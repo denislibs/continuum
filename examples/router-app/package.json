@@ -1,0 +1,17 @@
+{
+  "name": "@continuum-js/example-router-app",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@continuum-js/dom": "0.3.0",
+    "@continuum-js/frp": "0.3.0",
+    "@continuum-js/router": "0.0.0",
+    "@continuum-js/std": "0.3.0"
+  }
+}

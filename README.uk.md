@@ -29,13 +29,16 @@ continuum/
 ├─ packages/
 │  ├─ frp/        @continuum-js/frp   — ядро: Event, Behavior, планувальник
 │  ├─ dom/        @continuum-js/dom   — рендерер: h, dyn, each, володіння, контекст
-│  └─ std/        @continuum-js/std   — комбінатори: resource, debounce, throttle, …
+│  ├─ std/        @continuum-js/std   — комбінатори: resource, debounce, throttle, …
+│  ├─ router/     @continuum-js/router — URL як Behavior: вкладені маршрути, ліниві сторінки
+│  └─ test/       @continuum-js/test  — тест-утиліти: render, fire, flush
 ├─ examples/                       — приклади, що запускаються (Vite), кожен окремо
 │  ├─ counter/    @continuum-js/example-counter    — лічильник із §1.1 + тест
 │  ├─ todo/       @continuum-js/example-todo        — <Show>/<Each> + bindInput + тест
 │  ├─ animation/  @continuum-js/example-animation   — integral + time warp (неперервний час)
 │  ├─ showcase/   @continuum-js/example-showcase    — <Dynamic> (вкладки) + <Show>/<Portal> (модалка)
 │  └─ data/       @continuum-js/example-data        — HTTP-запити: perform/Result + debounce + resource
+│  └─ router-app/ @continuum-js/example-router-app — вкладений layout, лінивий чанк, guard, 404
 ├─ benchmark/     @continuum-js/benchmark           — таблиця js-framework-benchmark + замір Playwright
 ├─ .size-limit.json   — бюджети розміру бандла (npm run size)
 ├─ vitest.config.ts   — спільний раннер (jsdom, automatic JSX), аліаси на джерела
@@ -66,6 +69,7 @@ npm run example:counter  # vite dev-сервер для examples/counter
 npm run example:todo     # vite dev-сервер для examples/todo
 npm run example:showcase # <Dynamic>/<Show>/<Portal> демо
 npm run example:data     # живий пошук: fetch через perform/Result + debounce
+npm run example:router   # роутер: вкладений layout, лінивий чанк, guard, 404
 npm run size             # size-limit: gzip/brotli-розмір пакетів
 npm run bench            # Playwright-замір таблиці js-framework-benchmark
 npm run build            # збірка dist/ (ESM + .d.ts) усіх публікованих пакетів

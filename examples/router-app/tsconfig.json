@@ -1,0 +1,18 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "dist",
+    "rootDir": ".",
+    "jsx": "react-jsx",
+    "jsxImportSource": "@continuum-js/dom"
+  },
+  "include": ["."],
+  "exclude": ["vite.config.ts", "dist"],
+  "references": [
+    { "path": "../../packages/frp" },
+    { "path": "../../packages/dom" },
+    { "path": "../../packages/std" },
+    { "path": "../../packages/router" },
+    { "path": "../../packages/test" }
+  ]
+}
