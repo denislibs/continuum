@@ -9,8 +9,7 @@
     "declaration": true,
     "composite": true,
     "lib": ["es2020", "dom"],
-    "jsx": "react",
-    "jsxFactory": "h",
-    "jsxFragmentFactory": "Fragment"
+    "jsx": "react-jsx",
+    "jsxImportSource": "@continuum/dom"
   }
 }

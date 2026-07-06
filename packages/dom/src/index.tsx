@@ -544,19 +544,20 @@ export function Show<T>(props: {
 }
 
 /**
- * Keyed list. `key` defaults to identity.
+ * Keyed list. The `by` key selector defaults to identity. (Note: `key` is a
+ * reserved JSX attribute stripped by the compiler, so the prop is named `by`.)
  *
  * ```tsx
- * <Each each={items} key={(i) => i.id}>{(item) => <li>{item.name}</li>}</Each>
+ * <Each each={items} by={(i) => i.id}>{(item) => <li>{item.name}</li>}</Each>
  * ```
  */
 export function Each<T, K = T>(props: {
   each: Behavior<T[]>;
-  key?: (item: T) => K;
+  by?: (item: T) => K;
   children: (item: T) => Child;
 }): Node {
   const render = asRender<T>(props.children);
-  const key = props.key ?? ((item: T) => item as unknown as K);
+  const key = props.by ?? ((item: T) => item as unknown as K);
   return each(props.each, key, render);
 }
 

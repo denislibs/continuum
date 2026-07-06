@@ -1,5 +1,5 @@
 import { constant, integral, warp, type Behavior } from "@continuum/frp";
-import { h, animationFrames } from "@continuum/dom";
+import { animationFrames } from "@continuum/dom";
 
 const TRACK = 260; // px travel before wrapping
 const SPEED = 0.1; // px per ms
