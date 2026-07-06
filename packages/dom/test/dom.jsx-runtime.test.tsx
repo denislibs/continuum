@@ -1,8 +1,8 @@
 import { describe, test, expect } from "vitest";
 // NOTE: no `import { h }` — the automatic JSX runtime supplies it.
-import { mount, Show } from "@continuum/dom";
-import { jsx, jsxs, Fragment } from "@continuum/dom/jsx-runtime";
-import { newBehavior } from "@continuum/frp";
+import { mount, Show } from "@continuum-js/dom";
+import { jsx, jsxs, Fragment } from "@continuum-js/dom/jsx-runtime";
+import { newBehavior } from "@continuum-js/frp";
 
 describe("automatic JSX runtime", () => {
   test("JSX works without importing h", () => {

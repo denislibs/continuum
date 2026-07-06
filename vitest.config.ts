@@ -8,21 +8,21 @@ export default defineConfig({
     // Order matters: subpaths before the bare package alias.
     alias: [
       {
-        find: "@continuum/dom/jsx-dev-runtime",
+        find: "@continuum-js/dom/jsx-dev-runtime",
         replacement: r("./packages/dom/src/jsx-dev-runtime.ts"),
       },
       {
-        find: "@continuum/dom/jsx-runtime",
+        find: "@continuum-js/dom/jsx-runtime",
         replacement: r("./packages/dom/src/jsx-runtime.ts"),
       },
-      { find: "@continuum/dom", replacement: r("./packages/dom/src/index.tsx") },
-      { find: "@continuum/std", replacement: r("./packages/std/src/index.ts") },
-      { find: "@continuum/frp", replacement: r("./packages/frp/src/index.ts") },
+      { find: "@continuum-js/dom", replacement: r("./packages/dom/src/index.tsx") },
+      { find: "@continuum-js/std", replacement: r("./packages/std/src/index.ts") },
+      { find: "@continuum-js/frp", replacement: r("./packages/frp/src/index.ts") },
     ],
   },
   esbuild: {
     jsx: "automatic",
-    jsxImportSource: "@continuum/dom",
+    jsxImportSource: "@continuum-js/dom",
   },
   test: {
     globals: true,

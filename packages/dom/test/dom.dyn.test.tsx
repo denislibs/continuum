@@ -1,6 +1,6 @@
 import { describe, test, expect } from "vitest";
-import { h, mount, dyn, each, onCleanup } from "@continuum/dom";
-import { newBehavior } from "@continuum/frp";
+import { h, mount, dyn, each, onCleanup } from "@continuum-js/dom";
+import { newBehavior } from "@continuum-js/frp";
 
 describe("dyn", () => {
   test("swaps the subtree when the behavior changes", () => {

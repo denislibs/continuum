@@ -1,12 +1,12 @@
-# @continuum/std
+# @continuum-js/std
 
 Стандартная библиотека переиспользуемых FRP-комбинаторов Continuum — то, что
 нужно каждый день: тайминг, асинхронные данные, форма потоков, хелперы для
-поведений. Всё построено поверх `@continuum/frp` без доступа к внутренностям,
+поведений. Всё построено поверх `@continuum-js/frp` без доступа к внутренностям,
 которых ядро не отдаёт наружу.
 
 ```ts
-import { resource, debounce, /* … */ } from "@continuum/std";
+import { resource, debounce, /* … */ } from "@continuum-js/std";
 ```
 
 ## Тайминг

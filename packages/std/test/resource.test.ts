@@ -1,6 +1,6 @@
 import { describe, test, expect } from "vitest";
-import { newEvent } from "@continuum/frp";
-import { resource, type Async } from "@continuum/std";
+import { newEvent } from "@continuum-js/frp";
+import { resource, type Async } from "@continuum-js/std";
 
 const tick = () => new Promise((r) => setTimeout(r, 0));
 

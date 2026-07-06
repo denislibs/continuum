@@ -1,4 +1,4 @@
-import { newEvent } from "@continuum/frp";
+import { newEvent } from "@continuum-js/frp";
 
 /**
  * The ten-line counter from §1.1. The component runs once; a click flows

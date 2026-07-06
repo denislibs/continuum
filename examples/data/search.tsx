@@ -1,6 +1,6 @@
-import { newBehavior } from "@continuum/frp";
-import { bindInput, Dynamic, type Child } from "@continuum/dom";
-import { resource, debounce } from "@continuum/std";
+import { newBehavior } from "@continuum-js/frp";
+import { bindInput, Dynamic, type Child } from "@continuum-js/dom";
+import { resource, debounce } from "@continuum-js/std";
 
 export interface User {
   id: number;

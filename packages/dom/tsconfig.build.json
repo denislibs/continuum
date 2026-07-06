@@ -5,7 +5,7 @@
     "rootDir": "src",
     "outDir": "dist",
     "jsx": "react-jsx",
-    "jsxImportSource": "@continuum/dom",
+    "jsxImportSource": "@continuum-js/dom",
     "paths": {}
   },
   "include": ["src"]

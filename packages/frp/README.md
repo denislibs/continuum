@@ -1,11 +1,11 @@
-# @continuum/frp
+# @continuum-js/frp
 
 Ядро классического FRP: `Event`, `Behavior` и транзакционный планировщик с
 ранговой протяжкой без глитчей. Не зависит от DOM — пригодно для игр, потоков,
 анимации, серверной логики.
 
 ```ts
-import { newEvent } from "@continuum/frp";
+import { newEvent } from "@continuum-js/frp";
 
 const [clicks, fire] = newEvent<void>();
 const count = clicks.accum(0, (_, n) => n + 1);

@@ -1,5 +1,5 @@
 import { describe, test, expect } from "vitest";
-import { newEvent, Event, newBehavior } from "@continuum/frp";
+import { newEvent, Event, newBehavior } from "@continuum-js/frp";
 
 describe("accumulation", () => {
   test("accum folds occurrences into a behavior", () => {

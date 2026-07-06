@@ -49,7 +49,7 @@ run("npm", ["run", "build"], root);
 for (const p of PACKAGES) {
   run(
     "npm",
-    ["pack", "-w", `@continuum/${p}`, "--pack-destination", tarballDir],
+    ["pack", "-w", `@continuum-js/${p}`, "--pack-destination", tarballDir],
     root,
   );
 }
@@ -57,9 +57,9 @@ for (const p of PACKAGES) {
 const tarballs = Object.fromEntries(
   PACKAGES.map((p) => {
     const file = readdirSync(tarballDir).find((f) =>
-      f.startsWith(`continuum-${p}-`),
+      f.startsWith(`continuum-js-${p}-`),
     );
-    if (!file) fail(`no tarball produced for @continuum/${p}`);
+    if (!file) fail(`no tarball produced for @continuum-js/${p}`);
     return [p, join(tarballDir, file)];
   }),
 );
@@ -68,9 +68,9 @@ const tarballs = Object.fromEntries(
 for (const p of PACKAGES) {
   const listing = runOut("tar", ["-tzf", tarballs[p]]);
   if (!listing.includes("package/dist/index.js"))
-    fail(`@continuum/${p} tarball has no dist/index.js`);
+    fail(`@continuum-js/${p} tarball has no dist/index.js`);
   if (!listing.includes("package/dist/index.d.ts"))
-    fail(`@continuum/${p} tarball has no dist/index.d.ts`);
+    fail(`@continuum-js/${p} tarball has no dist/index.d.ts`);
 }
 
 // ─── 2. Scaffold a consumer project (what create-continuum will generate) ──
@@ -86,9 +86,9 @@ writeFileSync(
       private: true,
       type: "module",
       dependencies: {
-        "@continuum/frp": `file:${tarballs.frp}`,
-        "@continuum/dom": `file:${tarballs.dom}`,
-        "@continuum/std": `file:${tarballs.std}`,
+        "@continuum-js/frp": `file:${tarballs.frp}`,
+        "@continuum-js/dom": `file:${tarballs.dom}`,
+        "@continuum-js/std": `file:${tarballs.std}`,
       },
       devDependencies: { typescript: "~5.5.0", vite: "^5.4.0" },
     },
@@ -110,7 +110,7 @@ writeFileSync(
         skipLibCheck: true,
         lib: ["es2020", "dom"],
         jsx: "react-jsx",
-        jsxImportSource: "@continuum/dom",
+        jsxImportSource: "@continuum-js/dom",
       },
       include: ["src"],
     },
@@ -127,9 +127,9 @@ writeFileSync(
 // Hello-world touching all three packages + automatic JSX runtime.
 writeFileSync(
   join(app, "src", "main.tsx"),
-  `import { newBehavior, type Behavior } from "@continuum/frp";
-import { mount } from "@continuum/dom";
-import { count } from "@continuum/std";
+  `import { newBehavior, type Behavior } from "@continuum-js/frp";
+import { mount } from "@continuum-js/dom";
+import { count } from "@continuum-js/std";
 
 const [n, setN] = newBehavior(0);
 const label: Behavior<string> = n.map((v) => \`clicks: \${v}\`);
@@ -165,7 +165,7 @@ const nodeCheck = (pkg, name) =>
     ],
     app,
   );
-nodeCheck("@continuum/frp", "newBehavior");
-nodeCheck("@continuum/std", "debounce");
+nodeCheck("@continuum-js/frp", "newBehavior");
+nodeCheck("@continuum-js/std", "debounce");
 
 console.log("\n✓ smoke: packed tarballs install, type-check, bundle and run");

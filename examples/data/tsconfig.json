@@ -4,7 +4,7 @@
     "outDir": "dist",
     "rootDir": ".",
     "jsx": "react-jsx",
-    "jsxImportSource": "@continuum/dom"
+    "jsxImportSource": "@continuum-js/dom"
   },
   "include": ["."],
   "exclude": ["vite.config.ts", "dist"],

@@ -1,6 +1,6 @@
 import { describe, test, expect } from "vitest";
-import { h, mount, Show, Each, Dynamic, Portal } from "@continuum/dom";
-import { newBehavior } from "@continuum/frp";
+import { h, mount, Show, Each, Dynamic, Portal } from "@continuum-js/dom";
+import { newBehavior } from "@continuum-js/frp";
 
 describe("<Show>", () => {
   test("renders children when truthy, fallback when falsy, and toggles", () => {

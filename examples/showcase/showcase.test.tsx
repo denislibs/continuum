@@ -1,5 +1,5 @@
 import { describe, test, expect, afterEach } from "vitest";
-import { mount } from "@continuum/dom";
+import { mount } from "@continuum-js/dom";
 import { Showcase } from "./showcase";
 
 let unmount: (() => void) | null = null;
