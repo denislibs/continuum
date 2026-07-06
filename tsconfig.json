@@ -6,6 +6,7 @@
     { "path": "./examples/counter" },
     { "path": "./examples/todo" },
     { "path": "./examples/animation" },
-    { "path": "./examples/showcase" }
+    { "path": "./examples/showcase" },
+    { "path": "./examples/data" }
   ]
 }

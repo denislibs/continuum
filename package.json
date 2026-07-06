@@ -15,7 +15,8 @@
     "example:counter": "npm run dev -w @continuum/example-counter",
     "example:todo": "npm run dev -w @continuum/example-todo",
     "example:animation": "npm run dev -w @continuum/example-animation",
-    "example:showcase": "npm run dev -w @continuum/example-showcase"
+    "example:showcase": "npm run dev -w @continuum/example-showcase",
+    "example:data": "npm run dev -w @continuum/example-data"
   },
   "devDependencies": {
     "jsdom": "^24.1.0",
