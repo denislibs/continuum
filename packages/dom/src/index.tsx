@@ -2,8 +2,8 @@
 // Fine-grained rendering over the frp core: bindings, dynamic regions,
 // keyed lists, an ownership tree for lifecycle, and context.
 
-import { Behavior, Event, newEvent } from "@continuum/frp";
-import type { Unlisten } from "@continuum/frp";
+import { Behavior, Event, newEvent } from "@continuum-js/frp";
+import type { Unlisten } from "@continuum-js/frp";
 
 // ---------------------------------------------------------------------------
 // Ownership tree (§9) — lifecycle, not dependency tracking.

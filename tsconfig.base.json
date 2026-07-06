@@ -17,13 +17,13 @@
     // through each package's `exports` map (dist/) instead; tsconfig.build.json
     // resets `paths` so package builds see each other the consumer way.
     "paths": {
-      "@continuum/frp": ["./packages/frp/src/index.ts"],
-      "@continuum/dom": ["./packages/dom/src/index.tsx"],
-      "@continuum/dom/jsx-runtime": ["./packages/dom/src/jsx-runtime.ts"],
-      "@continuum/dom/jsx-dev-runtime": [
+      "@continuum-js/frp": ["./packages/frp/src/index.ts"],
+      "@continuum-js/dom": ["./packages/dom/src/index.tsx"],
+      "@continuum-js/dom/jsx-runtime": ["./packages/dom/src/jsx-runtime.ts"],
+      "@continuum-js/dom/jsx-dev-runtime": [
         "./packages/dom/src/jsx-dev-runtime.ts"
       ],
-      "@continuum/std": ["./packages/std/src/index.ts"]
+      "@continuum-js/std": ["./packages/std/src/index.ts"]
     }
   }
 }

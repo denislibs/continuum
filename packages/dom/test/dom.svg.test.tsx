@@ -1,6 +1,6 @@
 import { describe, test, expect } from "vitest";
-import { h, mount } from "@continuum/dom";
-import { newBehavior } from "@continuum/frp";
+import { h, mount } from "@continuum-js/dom";
+import { newBehavior } from "@continuum-js/frp";
 
 const SVG_NS = "http://www.w3.org/2000/svg";
 

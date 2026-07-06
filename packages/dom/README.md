@@ -1,12 +1,12 @@
-# @continuum/dom
+# @continuum-js/dom
 
-Тонкий fine-grained рендерер поверх [`@continuum/frp`](../frp). Отображает
+Тонкий fine-grained рендерер поверх [`@continuum-js/frp`](../frp). Отображает
 `Behavior`/`Event` в реальные DOM-узлы с точечными обновлениями; работает с
 обычным JSX через **автоматический рантайм** (`import { h }` не нужен).
 
 ```tsx
-import { newBehavior } from "@continuum/frp";
-import { mount } from "@continuum/dom";
+import { newBehavior } from "@continuum-js/frp";
+import { mount } from "@continuum-js/dom";
 
 const [name, setName] = newBehavior("world");
 mount(document.body, () => <h1>hello {name}</h1>);
@@ -49,12 +49,12 @@ setName("continuum"); // патчится один текст-узел
 {
   "compilerOptions": {
     "jsx": "react-jsx",
-    "jsxImportSource": "@continuum/dom"
+    "jsxImportSource": "@continuum-js/dom"
   }
 }
 ```
 
-Для Vite/esbuild — `jsx: "automatic"`, `jsxImportSource: "@continuum/dom"`.
+Для Vite/esbuild — `jsx: "automatic"`, `jsxImportSource: "@continuum-js/dom"`.
 Классическая фабрика тоже поддерживается (`h`/`Fragment` экспортируются) — тогда
 `--jsx react --jsxFactory h --jsxFragmentFactory Fragment` и `import { h }` в
 каждом файле с JSX.

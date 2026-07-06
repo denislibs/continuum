@@ -1,5 +1,5 @@
 import { describe, test, expect, vi, afterEach } from "vitest";
-import { mount, h } from "@continuum/dom";
+import { mount, h } from "@continuum-js/dom";
 import { UserSearch, type User } from "./search";
 
 describe("UserSearch", () => {

@@ -1,5 +1,5 @@
 import { describe, test, expect, vi, afterEach } from "vitest";
-import { mount, animationFrames } from "@continuum/dom";
+import { mount, animationFrames } from "@continuum-js/dom";
 
 afterEach(() => vi.unstubAllGlobals());
 

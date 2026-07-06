@@ -6,7 +6,7 @@ import {
   Behavior,
   Event,
   time,
-} from "@continuum/frp";
+} from "@continuum-js/frp";
 
 describe("Behavior.map", () => {
   test("maps sampled value and updates", () => {

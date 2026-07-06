@@ -1,6 +1,6 @@
 import { describe, test, expect } from "vitest";
-import { newEvent } from "@continuum/frp";
-import { distinct, perform } from "@continuum/frp";
+import { newEvent } from "@continuum-js/frp";
+import { distinct, perform } from "@continuum-js/frp";
 
 const tick = () => new Promise((r) => setTimeout(r, 0));
 

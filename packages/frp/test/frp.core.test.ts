@@ -1,5 +1,5 @@
 import { describe, test, expect } from "vitest";
-import { newEvent, newBehavior, constant, never } from "@continuum/frp";
+import { newEvent, newBehavior, constant, never } from "@continuum-js/frp";
 
 describe("sources and basic push", () => {
   test("listen receives the value that was sent", () => {

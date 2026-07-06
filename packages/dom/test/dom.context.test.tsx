@@ -9,8 +9,8 @@ import {
   when,
   bindInput,
   portal,
-} from "@continuum/dom";
-import { newBehavior, constant } from "@continuum/frp";
+} from "@continuum-js/dom";
+import { newBehavior, constant } from "@continuum-js/frp";
 
 describe("context", () => {
   test("use falls back to the default when nothing is provided", () => {

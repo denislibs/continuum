@@ -1,5 +1,5 @@
 import { describe, test, expect } from "vitest";
-import { root, scope, onCleanup } from "@continuum/dom";
+import { root, scope, onCleanup } from "@continuum-js/dom";
 
 describe("ownership tree", () => {
   test("scope disposes cleanups in LIFO order", () => {

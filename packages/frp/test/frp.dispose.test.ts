@@ -1,5 +1,5 @@
 import { describe, test, expect } from "vitest";
-import { newEvent, Event } from "@continuum/frp";
+import { newEvent, Event } from "@continuum-js/frp";
 
 describe("Event.dispose", () => {
   test("detaches a derived node from its source", () => {

@@ -21,16 +21,16 @@
 ```
 continuum/
 ├─ packages/
-│  ├─ frp/        @continuum/frp   — ядро: Event, Behavior, планировщик
-│  ├─ dom/        @continuum/dom   — рендерер: h, dyn, each, владение, контекст
-│  └─ std/        @continuum/std   — комбинаторы: resource, debounce, throttle, …
+│  ├─ frp/        @continuum-js/frp   — ядро: Event, Behavior, планировщик
+│  ├─ dom/        @continuum-js/dom   — рендерер: h, dyn, each, владение, контекст
+│  └─ std/        @continuum-js/std   — комбинаторы: resource, debounce, throttle, …
 ├─ examples/                       — запускаемые примеры (Vite), каждый — отдельно
-│  ├─ counter/    @continuum/example-counter    — счётчик из §1.1 + тест
-│  ├─ todo/       @continuum/example-todo        — <Show>/<Each> + bindInput + тест
-│  ├─ animation/  @continuum/example-animation   — integral + time warp (непрерывное время)
-│  ├─ showcase/   @continuum/example-showcase    — <Dynamic> (табы) + <Show>/<Portal> (модалка)
-│  └─ data/       @continuum/example-data        — HTTP-запросы: perform/Result + debounce + resource
-├─ benchmark/     @continuum/benchmark           — таблица js-framework-benchmark + Playwright-замер
+│  ├─ counter/    @continuum-js/example-counter    — счётчик из §1.1 + тест
+│  ├─ todo/       @continuum-js/example-todo        — <Show>/<Each> + bindInput + тест
+│  ├─ animation/  @continuum-js/example-animation   — integral + time warp (непрерывное время)
+│  ├─ showcase/   @continuum-js/example-showcase    — <Dynamic> (табы) + <Show>/<Portal> (модалка)
+│  └─ data/       @continuum-js/example-data        — HTTP-запросы: perform/Result + debounce + resource
+├─ benchmark/     @continuum-js/benchmark           — таблица js-framework-benchmark + Playwright-замер
 ├─ .size-limit.json   — бюджеты размера бандла (npm run size)
 ├─ vitest.config.ts   — общий раннер (jsdom, automatic JSX), алиасы на исходники
 ├─ tsconfig.json      — solution-style, project references
@@ -39,7 +39,7 @@ continuum/
 
 Зависимости строго односторонние: `dom` → `frp`, `std` → `frp`; `frp`
 самодостаточен. Примеры живут в корневом `examples/` и потребляют пакеты как
-`@continuum/frp` / `@continuum/dom` / `@continuum/std`.
+`@continuum-js/frp` / `@continuum-js/dom` / `@continuum-js/std`.
 
 ## Быстрый старт
 
@@ -51,13 +51,13 @@ npm run example:counter  # vite dev-сервер для examples/counter
 npm run example:todo     # vite dev-сервер для examples/todo
 npm run example:showcase # <Dynamic>/<Show>/<Portal> демо
 npm run example:data     # живой поиск: fetch через perform/Result + debounce
-npm run size             # size-limit: gzip/brotli-размер @continuum/frp и /dom
+npm run size             # size-limit: gzip/brotli-размер @continuum-js/frp и /dom
 npm run bench            # Playwright-замер таблицы js-framework-benchmark
 npm run build            # сборка dist/ (ESM + .d.ts) всех публикуемых пакетов
 npm run smoke            # контракт публикации: pack → npm i в чистый Vite-проект → tsc + vite build
 ```
 
-Размер (brotli, с зависимостями): `@continuum/frp` ≈ **1.8 kB**, `@continuum/dom`
+Размер (brotli, с зависимостями): `@continuum-js/frp` ≈ **1.8 kB**, `@continuum-js/dom`
 (включая frp) ≈ **3.5 kB**. Бюджеты — в [`.size-limit.json`](.size-limit.json),
 `npm run size` падает при превышении. Замер производительности —
 см. [`benchmark/`](benchmark) (`npm run bench`, нужен `npx playwright install chromium`).
@@ -65,7 +65,7 @@ npm run smoke            # контракт публикации: pack → npm i
 ### Счётчик за 10 строк (`examples/counter`)
 
 ```tsx
-import { newEvent } from "@continuum/frp";
+import { newEvent } from "@continuum-js/frp";
 
 export function Counter() {
   const [clicks, fire] = newEvent<MouseEvent>();
@@ -78,13 +78,13 @@ export function Counter() {
 поведение, патчится ровно один текст-узел — без VDOM и диффинга.
 
 > JSX работает через **автоматический рантайм** — `import { h }` в компонентах
-> не нужен. Настройка: `"jsx": "react-jsx"`, `"jsxImportSource": "@continuum/dom"`
+> не нужен. Настройка: `"jsx": "react-jsx"`, `"jsxImportSource": "@continuum-js/dom"`
 > (для Vite/esbuild — `jsx: "automatic"`). `h` остаётся доступным экспортом для
 > явных вызовов.
 
 ## Что реализовано
 
-**Ядро (`@continuum/frp`).** Транзакции (фазы prioritized/last/post), min-куча
+**Ядро (`@continuum-js/frp`).** Транзакции (фазы prioritized/last/post), min-куча
 рангов и glitch-free протяжка, коалесинг одновременных происшествий, задержка
 `hold`. Комбинаторы: `map`, `mapTo`, `filter`, `gate`, `snapshot`, `merge`,
 `orElse`, `accum`/`accumE`, `hold`, `once`, `listen`; для поведений — `map`,
@@ -97,7 +97,7 @@ export function Counter() {
 **явный `dispose`** у `Event`/`Behavior` с каскадом вверх по неиспользуемым
 производным узлам (для долгоживущих не-UI графов).
 
-**Рендерер (`@continuum/dom`).** JSX-фабрика `h`/`Fragment`, точечные привязки
+**Рендерер (`@continuum-js/dom`).** JSX-фабрика `h`/`Fragment`, точечные привязки
 текста/атрибутов/свойств, события `on*`, `dyn`, `each` (keyed-реконсиляция с
 LIS-диффингом и сохранением фокуса), дерево владения `root`/`scope`/`onCleanup`
 с каскадной очисткой подписок, контекст `createContext`/`provide`/`use`, хелперы
@@ -119,7 +119,7 @@ SVG-неймспейсы (`<svg>`-поддеревья через `createElement
 IO живёт на **границе** сети. `perform` принимает `Event` запросов, запускает
 асинхронный эффект в фазе post (после закрытия момента) и возвращает результат
 новым происшествием — уже как данные, с ошибкой, завёрнутой в `Result`, а не
-выброшенной. Поверх этого [`@continuum/std`](packages/std) даёт готовые
+выброшенной. Поверх этого [`@continuum-js/std`](packages/std) даёт готовые
 переиспользуемые кирпичики (а [`examples/data`](examples/data) показывает их в
 деле):
 

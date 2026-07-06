@@ -1,7 +1,7 @@
 // Row data + pure helpers for the js-framework-benchmark table.
 // The label vocabulary matches the official benchmark so results are comparable.
 
-import { newBehavior, type Behavior } from "@continuum/frp";
+import { newBehavior, type Behavior } from "@continuum-js/frp";
 
 const ADJECTIVES = [
   "pretty", "large", "big", "small", "tall", "short", "long", "handsome",
