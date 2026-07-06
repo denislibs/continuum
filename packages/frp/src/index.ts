@@ -141,14 +141,36 @@ export class Event<A> {
   /** Topological height in the graph. */
   rank: number;
   private listeners: Handler<A>[] = [];
+  /** Downstream nodes, used to keep ranks topologically sorted. */
+  private targets = new Set<Event<any>>();
 
   constructor(rank = 0) {
     this.rank = rank;
   }
 
+  /**
+   * Raise this node's rank above `limit` and propagate the bump downstream, so
+   * a node never has a rank ≤ one of its inputs. Detects dependency cycles.
+   */
+  ensureBiggerThan(limit: number, visited: Set<Event<any>>): void {
+    if (this.rank > limit) return;
+    if (visited.has(this))
+      throw new Error("Continuum: dependency cycle detected");
+    visited.add(this);
+    this.rank = limit + 1;
+    for (const t of this.targets) t.ensureBiggerThan(this.rank, visited);
+    visited.delete(this);
+  }
+
   /** Register an internal subscriber. Returns an unsubscribe handle. */
-  listen_(_target: Event<any> | null, h: Handler<A>): Unlisten {
+  listen_(target: Event<any> | null, h: Handler<A>): Unlisten {
     this.listeners.push(h);
+    if (target) {
+      this.targets.add(target);
+      // keep the target strictly above this source (handles dynamic
+      // subscriptions from switchB/switchE onto deeper events).
+      target.ensureBiggerThan(this.rank, new Set());
+    }
     return () => {
       const i = this.listeners.indexOf(h);
       if (i >= 0) this.listeners.splice(i, 1);
@@ -287,7 +309,7 @@ export class Event<A> {
         scheduledTx = t;
         hasLeft = false;
         hasRight = false;
-        t.prioritized(rank, flush);
+        t.prioritized(out.rank, flush); // out.rank may have been bumped
       }
     };
     ea.listen_(out, (t, a) => {
@@ -364,7 +386,7 @@ export class Behavior<A> {
     const schedule = (t: Transaction) => {
       if (scheduledTx !== t) {
         scheduledTx = t;
-        t.prioritized(rank, flush);
+        t.prioritized(out.rank, flush); // out.rank may have been bumped
       }
     };
     ba.updates.listen_(out, (t, a) => {
@@ -517,3 +539,9 @@ export function perform<A, B>(
   });
   return out;
 }
+
+// ---------------------------------------------------------------------------
+// Continuous-time combinators (§14 roadmap #7)
+// ---------------------------------------------------------------------------
+
+export { integral, derivative, warp } from "./continuous";

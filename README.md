@@ -21,8 +21,9 @@ continuum/
 │  ├─ frp/        @continuum/frp   — ядро: Event, Behavior, планировщик
 │  └─ dom/        @continuum/dom   — рендерер: h, dyn, each, владение, контекст
 ├─ examples/                       — запускаемые примеры (Vite), каждый — отдельно
-│  ├─ counter/    @continuum/example-counter — счётчик из §1.1 + тест
-│  └─ todo/       @continuum/example-todo     — keyed-список (each/when/bindInput) + тест
+│  ├─ counter/    @continuum/example-counter   — счётчик из §1.1 + тест
+│  ├─ todo/       @continuum/example-todo       — keyed-список (each/when/bindInput) + тест
+│  └─ animation/  @continuum/example-animation  — integral + time warp (непрерывное время)
 ├─ vitest.config.ts   — общий раннер (jsdom, jsxFactory h), алиасы на исходники
 ├─ tsconfig.json      — solution-style, project references
 └─ tsconfig.base.json — общие compilerOptions
@@ -66,19 +67,31 @@ export function Counter() {
 `apply`, `lift2`/`lift3`, `switchB`/`switchE`, `fromPoll`, `time`, `listen`.
 Из дорожной карты: `distinct`, `perform` (граница IO с `Result`), изоляция
 ошибок в фазе post и «атомарный или отброшенный момент» через стейджинг по
-идентичности транзакции.
+идентичности транзакции; **устойчивые ранги** (`ensureBiggerThan` + обнаружение
+циклов) для корректного `switch` в плотных графах; **непрерывное время** —
+`integral`/`derivative`/`warp` (численно семплируемые по дискретному клоку).
 
 **Рендерер (`@continuum/dom`).** JSX-фабрика `h`/`Fragment`, точечные привязки
 текста/атрибутов/свойств, события `on*`, `dyn`, `each` (keyed-реконсиляция с
 LIS-диффингом и сохранением фокуса), дерево владения `root`/`scope`/`onCleanup`
 с каскадной очисткой подписок, контекст `createContext`/`provide`/`use`, хелперы
-`when`/`bindInput`/`portal`, `mount`.
+`when`/`bindInput`/`portal`, `animationFrames` (клок кадров для непрерывного
+времени), `mount`.
+
+## Непрерывное время
+
+`integral`/`derivative`/`warp` из ядра работают поверх дискретного клока
+(`Event<number>` временных меток) — в браузере его даёт `animationFrames()`.
+Реализация численная (forward Euler / конечные разности), детерминированная и не
+зависит от числа наблюдателей: аккумуляция происходит один раз на тик. Денотация
+разрешение-независима, семплированный результат её приближает. Демо —
+[`examples/animation`](examples/animation) (`npm run example:animation`).
 
 ## Ограничения (см. дорожную карту §14 спецификации)
 
-- **Ранги при `switch`** только повышаются (`ensureBiggerThan` и обнаружение
-  циклов — не реализованы). В плотных графах с частым переключением возможны
-  краевые случаи упорядочивания.
-- **Непрерывное время** доступно только семплированием (`fromPoll`, `time`).
-  Первоклассных `integral`/`derivative`/time-warping нет — это осознанно
-  отложенный, самый спекулятивный пункт дорожной карты.
+- **Непрерывное время** реализовано *численно* через семплирование по клоку, а
+  не как первоклассная величина `Time = ℝ` в духе чистого Конала: точность
+  зависит от частоты клока, `warp` применяется к меткам тиков (см.
+  [PHILOSOPHY.md](PHILOSOPHY.md)).
+- **Отписка внутренних узлов ядра** по-прежнему через дерево владения слоя `dom`;
+  у комбинаторов `frp` нет собственного `dispose` (роадмап #5).
