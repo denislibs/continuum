@@ -24,8 +24,7 @@
   ],
   "sideEffects": false,
   "scripts": {
-    "build": "rm -rf dist && tsc -p tsconfig.build.json",
-    "prepack": "npm run build"
+    "build": "rm -rf dist && tsc -p tsconfig.build.json"
   },
   "publishConfig": {
     "access": "public"
