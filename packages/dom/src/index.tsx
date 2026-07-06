@@ -89,6 +89,27 @@ function bind(un: Unlisten): void {
 // JSX factory (§6.4)
 // ---------------------------------------------------------------------------
 
+const SVG_NS = "http://www.w3.org/2000/svg";
+
+// SVG-specific tag names. Ambiguous names shared with HTML (a, title, script,
+// style) are treated as HTML; use them inside `foreignObject` for HTML content.
+const SVG_TAGS = new Set([
+  "svg", "g", "defs", "symbol", "use", "image", "switch", "foreignObject",
+  "path", "rect", "circle", "ellipse", "line", "polyline", "polygon",
+  "text", "tspan", "textPath", "marker", "desc", "metadata", "view",
+  "linearGradient", "radialGradient", "stop", "clipPath", "mask", "pattern",
+  "filter", "feGaussianBlur", "feOffset", "feBlend", "feColorMatrix",
+  "feComposite", "feFlood", "feMerge", "feMergeNode", "feImage", "feTile",
+  "feMorphology", "feDisplacementMap", "feTurbulence", "animate",
+  "animateTransform", "animateMotion", "mpath", "set",
+]);
+
+function createEl(tag: string): Element {
+  return SVG_TAGS.has(tag)
+    ? document.createElementNS(SVG_NS, tag)
+    : document.createElement(tag);
+}
+
 export type Child =
   | Node
   | Behavior<unknown>
@@ -133,7 +154,13 @@ function applyRef(ref: unknown, el: Element): void {
 
 function setProp(el: Element, key: string, value: unknown): void {
   if (key === "class" || key === "className") {
-    (el as HTMLElement).className = value == null ? "" : String(value);
+    // SVG elements have a read-only `className` (SVGAnimatedString).
+    if (el.namespaceURI === SVG_NS) {
+      if (value == null) el.removeAttribute("class");
+      else el.setAttribute("class", String(value));
+    } else {
+      (el as HTMLElement).className = value == null ? "" : String(value);
+    }
     return;
   }
   if (key === "style") {
@@ -206,7 +233,7 @@ export function h(
   if (typeof tag === "function") {
     return (tag as Component)({ ...(props || {}), children });
   }
-  const el = document.createElement(tag);
+  const el = createEl(tag);
   if (props) applyProps(el, props as Record<string, unknown>);
   for (const c of children) appendChild(el, c);
   return el;

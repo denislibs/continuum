@@ -78,7 +78,8 @@ export function Counter() {
 LIS-диффингом и сохранением фокуса), дерево владения `root`/`scope`/`onCleanup`
 с каскадной очисткой подписок, контекст `createContext`/`provide`/`use`, хелперы
 `when`/`bindInput`/`portal`, компоненты-обёртки `<Show>`/`<Each>`/`<Dynamic>`/
-`<Portal>`, `animationFrames` (клок кадров для непрерывного времени), `mount`.
+`<Portal>`, `animationFrames` (клок кадров для непрерывного времени),
+SVG-неймспейсы (`<svg>`-поддеревья через `createElementNS`), `mount`.
 
 ## Непрерывное время
 
