@@ -1,6 +1,6 @@
 # Events
 
-`Event<A>` is a stream of **discrete occurrences**: at some moments something
+`Event<A>` is a stream of **[discrete occurrences](/glossary#occurrence)**: at some moments something
 happens carrying an `A`; between them, nothing exists. Denotationally —
 `[(Time, A)]`.
 
@@ -70,3 +70,7 @@ onCleanup(e.listen(handler));
 Prefer bindings, `snapshot`, and folds; reach for `listen` only at the edge
 of the network (logging, imperative APIs, IO — see
 [perform](/guides/async)).
+
+---
+
+> Unfamiliar term? Every piece of jargon in these docs is explained in the [glossary](/glossary).

@@ -55,3 +55,7 @@ const before = clicks.snapshot(count, (_e, n) => n);
 Полный операционный разбор — три фазы, ранги, `switch` и соответствие книге
 о Sodium — в
 [FRP-MODEL](https://github.com/denislibs/continuum/blob/main/FRP-MODEL.md).
+
+---
+
+> Незнакомый термин? Вся терминология этой документации объяснена в [глоссарии](/ru/glossary).

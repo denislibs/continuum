@@ -71,3 +71,7 @@ at creation time.
 Because nothing re-runs, component helpers are ordinary functions. Create
 state in a condition, in a loop, at module level; extract "custom hooks" as
 functions returning Behaviors/Events — no ordering rules, no lint plugin.
+
+---
+
+> Unfamiliar term? Every piece of jargon in these docs is explained in the [glossary](/glossary).

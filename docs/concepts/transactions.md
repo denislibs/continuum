@@ -55,3 +55,7 @@ opens a **new** moment — transactions never nest or interleave.
 For the full operational story — the three phases, ranks, `switch`, and how
 this maps to the Sodium book — see
 [FRP-MODEL](https://github.com/denislibs/continuum/blob/main/FRP-MODEL.md).
+
+---
+
+> Unfamiliar term? Every piece of jargon in these docs is explained in the [glossary](/glossary).

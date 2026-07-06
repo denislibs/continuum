@@ -62,3 +62,7 @@ Both are ordinary functions — call them in conditions, loops, and helpers.
 `scope(fn)` creates a child scope with its own dispose handle. You need them
 only when building custom machinery — for example, batching work outside the
 DOM tree that should still die with a component.
+
+---
+
+> Unfamiliar term? Every piece of jargon in these docs is explained in the [glossary](/glossary).

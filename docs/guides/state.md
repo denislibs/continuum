@@ -83,3 +83,7 @@ Behaviors are plain objects: declare them at module level and import them.
 That is how the router's `location()` works — one singleton Behavior per
 page. A component's local state lives in its body and dies with the subtree
 (see [Ownership and lifecycle](/concepts/ownership)).
+
+---
+
+> Unfamiliar term? Every piece of jargon in these docs is explained in the [glossary](/glossary).

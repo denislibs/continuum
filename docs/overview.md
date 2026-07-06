@@ -9,7 +9,7 @@ Two abstractions model everything that happens in a UI:
 
 - **`Behavior<A>`** — a value that exists at every moment: the text of an
   input, the current user, the URL.
-- **`Event<A>`** — discrete occurrences: clicks, responses, ticks.
+- **`Event<A>`** — [discrete occurrences](/glossary#occurrence): clicks, responses, ticks.
 
 Components are plain functions that run **once**. They build an FRP network
 and DOM wired to it; after that, updates are values propagating through the

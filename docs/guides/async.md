@@ -91,3 +91,7 @@ Async code never "writes state back" on its own — it always produces an
 _event_, which the network folds with the usual tools (`hold`, `accum`,
 `resource`). If you feel like calling `set` inside `.then()`, that is
 probably a `perform` in disguise.
+
+---
+
+> Unfamiliar term? Every piece of jargon in these docs is explained in the [glossary](/glossary).

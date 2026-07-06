@@ -92,3 +92,7 @@ onCleanup(
 `listen` returns an unsubscribe function — hand it to `onCleanup` so the
 subscription dies with the subtree. (JSX bindings do this by themselves; an
 explicit `listen` is a manual hatch, and its cleanup is manual too.)
+
+---
+
+> Unfamiliar term? Every piece of jargon in these docs is explained in the [glossary](/glossary).

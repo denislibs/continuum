@@ -71,3 +71,7 @@ the component's lifetime:
 
 The content is removed and disposed with the owning subtree, wherever it was
 mounted.
+
+---
+
+> Unfamiliar term? Every piece of jargon in these docs is explained in the [glossary](/glossary).

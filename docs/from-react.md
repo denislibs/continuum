@@ -453,3 +453,7 @@ behavior updates.
 Live code for all the examples is in
 [`examples/`](https://github.com/denislibs/continuum/tree/main/examples):
 counter, todo, debounced search, animation, router.
+
+---
+
+> Unfamiliar term? Every piece of jargon in these docs is explained in the [glossary](/glossary).
