@@ -1,6 +1,6 @@
 {
   "name": "@continuum-js/router",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Continuum router — the URL as a Behavior: nested routes, typed params, lazy pages, guards",
   "license": "MIT",
   "repository": {
@@ -30,8 +30,8 @@
     "access": "public"
   },
   "dependencies": {
-    "@continuum-js/dom": "^0.3.1",
-    "@continuum-js/frp": "^0.3.1",
-    "@continuum-js/std": "^0.3.1"
+    "@continuum-js/dom": "^0.4.0",
+    "@continuum-js/frp": "^0.4.0",
+    "@continuum-js/std": "^0.4.0"
   }
 }
