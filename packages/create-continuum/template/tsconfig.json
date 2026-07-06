@@ -1,0 +1,15 @@
+{
+  "compilerOptions": {
+    "target": "es2020",
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "strict": true,
+    "noEmit": true,
+    "skipLibCheck": true,
+    "lib": ["es2020", "dom"],
+    "jsx": "react-jsx",
+    "jsxImportSource": "@continuum-js/dom",
+    "types": ["vite/client"]
+  },
+  "include": ["src"]
+}

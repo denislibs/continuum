@@ -1,0 +1,26 @@
+{
+  "name": "create-continuum-js",
+  "version": "0.0.0",
+  "description": "Scaffold a Continuum + Vite + TypeScript project: npm create continuum-js",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/denislibs/continuum.git",
+    "directory": "packages/create-continuum"
+  },
+  "type": "module",
+  "bin": {
+    "create-continuum-js": "bin/create-continuum-js.mjs"
+  },
+  "files": [
+    "bin",
+    "src",
+    "template"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

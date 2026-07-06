@@ -39,10 +39,14 @@ export default tseslint.config(
     rules: { "@typescript-eslint/no-namespace": "off" },
   },
   {
-    // Node scripts (smoke, bench) — plain JS, console is the UI. bench.mjs
-    // also ships functions into the page via Playwright evaluate(), so
-    // browser globals are legitimate there.
-    files: ["scripts/**/*.mjs", "benchmark/bench.mjs"],
+    // Node scripts (smoke, bench, the create-CLI) — plain JS, console is the
+    // UI. bench.mjs also ships functions into the page via Playwright
+    // evaluate(), so browser globals are legitimate there.
+    files: [
+      "scripts/**/*.mjs",
+      "benchmark/bench.mjs",
+      "packages/create-continuum/**/*.mjs",
+    ],
     languageOptions: {
       globals: {
         process: "readonly",
