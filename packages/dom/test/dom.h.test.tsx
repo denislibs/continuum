@@ -38,6 +38,13 @@ describe("h — static elements", () => {
     expect(captured!.tagName).toBe("DIV");
   });
 
+  test("ref receives the element (object form)", () => {
+    const ref = { current: null as HTMLElement | null };
+    (<div ref={ref} />) as HTMLElement;
+    expect(ref.current).not.toBeNull();
+    expect(ref.current!.tagName).toBe("DIV");
+  });
+
   test("nested elements and arrays of children", () => {
     const el = (
       <ul>

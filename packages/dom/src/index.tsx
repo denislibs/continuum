@@ -11,6 +11,9 @@ import type { Unlisten } from "@continuum-js/frp";
 
 interface Owner {
   cleanups: Array<() => void>;
+  // Lazily allocated, like `contexts` — most owners never use `onMount`.
+  mounts: Array<() => void> | null;
+  mounted: boolean;
   children: Owner[];
   parent: Owner | null;
   // Lazily allocated — most owners never carry context, so we skip the Map
@@ -24,6 +27,8 @@ let currentOwner: Owner | null = null;
 function createOwner(parent: Owner | null): Owner {
   const owner: Owner = {
     cleanups: [],
+    mounts: null,
+    mounted: false,
     children: [],
     parent,
     contexts: null,
@@ -45,6 +50,7 @@ function disposeOwner(owner: Owner): void {
     owner.cleanups[i]();
   }
   owner.cleanups.length = 0;
+  owner.mounts = null; // never mounted → its onMount callbacks never run
   // detach from parent
   if (owner.parent) {
     const siblings = owner.parent.children;
@@ -80,6 +86,30 @@ export function scope<T>(fn: () => T): { value: T; dispose: () => void } {
 /** Register a cleanup in the current owner (no-op outside any owner). */
 export function onCleanup(fn: () => void): void {
   if (currentOwner) currentOwner.cleanups.push(fn);
+}
+
+// Run the subtree's pending onMount callbacks: child scopes first, then this
+// owner's own, newest registration first. With the idiomatic `onMount` at the
+// top of a component body, that yields children-before-parents.
+function flushMounts(owner: Owner): void {
+  if (owner.disposed) return;
+  for (const child of owner.children) flushMounts(child);
+  owner.mounted = true;
+  const mounts = owner.mounts;
+  if (mounts) {
+    owner.mounts = null;
+    for (let i = mounts.length - 1; i >= 0; i--) mounts[i]();
+  }
+}
+
+/**
+ * Register a callback to run once the current scope's nodes are inserted into
+ * the DOM — after `mount`, or right after a dynamic region (`dyn`/`each`)
+ * inserts a freshly built subtree. Use it for focus, measurement, and
+ * third-party libraries that need a live element. No-op outside any owner.
+ */
+export function onMount(fn: () => void): void {
+  if (currentOwner) (currentOwner.mounts ??= []).push(fn);
 }
 
 /** Attach an frp subscription to the current owner's lifecycle. */
@@ -290,28 +320,29 @@ export function h(
 // ---------------------------------------------------------------------------
 
 // Build `child` into a fragment under a fresh scope of `owner`. Returns the
-// fragment's top-level nodes and the scope's dispose handle.
+// fragment's top-level nodes, the scope's dispose handle, and a `flush` that
+// runs the scope's pending onMount callbacks (call it after insertion).
 function buildScoped(
   owner: Owner | null,
   build: () => Child,
-): { nodes: Node[]; dispose: () => void } {
-  const s = runUnder(owner, () =>
-    scope(() => {
-      const built = build();
-      // Fast path: a single element/text node (the common row/component case)
-      // needs no fragment or NodeList copy.
-      if (
-        built instanceof Node &&
-        built.nodeType !== 11 /* DocumentFragment */
-      ) {
-        return [built];
-      }
-      const frag = document.createDocumentFragment();
-      appendChild(frag, built);
-      return Array.from(frag.childNodes);
-    }),
-  );
-  return { nodes: s.value, dispose: s.dispose };
+): { nodes: Node[]; dispose: () => void; flush: () => void } {
+  const scopeOwner = createOwner(owner);
+  const nodes = runUnder(scopeOwner, () => {
+    const built = build();
+    // Fast path: a single element/text node (the common row/component case)
+    // needs no fragment or NodeList copy.
+    if (built instanceof Node && built.nodeType !== 11 /* DocumentFragment */) {
+      return [built];
+    }
+    const frag = document.createDocumentFragment();
+    appendChild(frag, built);
+    return Array.from(frag.childNodes);
+  });
+  return {
+    nodes,
+    dispose: () => disposeOwner(scopeOwner),
+    flush: () => flushMounts(scopeOwner),
+  };
 }
 
 /** Conditional / switching subtree: rebuilds on each change of `b`. */
@@ -323,7 +354,11 @@ export function dyn<T>(b: Behavior<T>, render: (v: T) => Child): Node {
   frag.appendChild(start);
   frag.appendChild(end);
 
-  let current: { nodes: Node[]; dispose: () => void } | null = null;
+  let current: {
+    nodes: Node[];
+    dispose: () => void;
+    flush: () => void;
+  } | null = null;
   // Level-triggered: render the behavior's CURRENT value, not the delivered
   // occurrence. A listener that runs earlier in the post phase may re-enter
   // with a new moment (e.g. a router redirect); the stale queued delivery
@@ -351,6 +386,9 @@ export function dyn<T>(b: Behavior<T>, render: (v: T) => Child): Node {
     current = buildScoped(owner, () => render(v));
     const parent = end.parentNode!;
     for (const n of current.nodes) parent.insertBefore(n, end);
+    // During the initial build the whole tree flushes at mount; afterwards
+    // each freshly inserted subtree flushes here.
+    if (!owner || owner.mounted) current.flush();
   };
 
   bind(b.listen(update));
@@ -414,6 +452,7 @@ export function each<T, K>(
     const seen = new Set<K>();
     const next: Array<Row<K>> = [];
     const seq: number[] = [];
+    const freshFlushes: Array<() => void> = [];
     for (const item of list) {
       const k = key(item);
       if (seen.has(k)) continue; // duplicate keys: keep first
@@ -426,6 +465,7 @@ export function each<T, K>(
         const built = buildScoped(owner, () => render(item));
         next.push({ key: k, nodes: built.nodes, dispose: built.dispose });
         seq.push(-1);
+        freshFlushes.push(built.flush);
       }
     }
 
@@ -451,6 +491,7 @@ export function each<T, K>(
     if (active instanceof HTMLElement && active.isConnected) active.focus();
 
     rows = next;
+    if (!owner || owner.mounted) for (const f of freshFlushes) f();
   };
 
   bind(items.listen(update));
@@ -555,6 +596,7 @@ export function mount(container: Node, view: () => Node): () => void {
     onCleanup(() => {
       for (const n of nodes) if (n.parentNode) n.parentNode.removeChild(n);
     });
+    if (currentOwner) flushMounts(currentOwner);
     return () => dispose();
   });
 }
