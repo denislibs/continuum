@@ -21,9 +21,10 @@ continuum/
 │  ├─ frp/        @continuum/frp   — ядро: Event, Behavior, планировщик
 │  └─ dom/        @continuum/dom   — рендерер: h, dyn, each, владение, контекст
 ├─ examples/                       — запускаемые примеры (Vite), каждый — отдельно
-│  ├─ counter/    @continuum/example-counter   — счётчик из §1.1 + тест
-│  ├─ todo/       @continuum/example-todo       — keyed-список (each/when/bindInput) + тест
-│  └─ animation/  @continuum/example-animation  — integral + time warp (непрерывное время)
+│  ├─ counter/    @continuum/example-counter    — счётчик из §1.1 + тест
+│  ├─ todo/       @continuum/example-todo        — <Show>/<Each> + bindInput + тест
+│  ├─ animation/  @continuum/example-animation   — integral + time warp (непрерывное время)
+│  └─ showcase/   @continuum/example-showcase    — <Dynamic> (табы) + <Show>/<Portal> (модалка)
 ├─ vitest.config.ts   — общий раннер (jsdom, automatic JSX), алиасы на исходники
 ├─ tsconfig.json      — solution-style, project references
 └─ tsconfig.base.json — общие compilerOptions
@@ -40,6 +41,7 @@ npm test              # vitest run — 69 тестов
 npm run typecheck     # tsc -b по всем пакетам
 npm run example:counter  # vite dev-сервер для examples/counter
 npm run example:todo     # vite dev-сервер для examples/todo
+npm run example:showcase # <Dynamic>/<Show>/<Portal> демо
 ```
 
 ### Счётчик за 10 строк (`examples/counter`)
