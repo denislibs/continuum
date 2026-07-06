@@ -13,7 +13,9 @@ interface Owner {
   cleanups: Array<() => void>;
   children: Owner[];
   parent: Owner | null;
-  contexts: Map<symbol, unknown>;
+  // Lazily allocated — most owners never carry context, so we skip the Map
+  // until `provide` writes one (hot path when building many rows).
+  contexts: Map<symbol, unknown> | null;
   disposed: boolean;
 }
 
@@ -24,7 +26,7 @@ function createOwner(parent: Owner | null): Owner {
     cleanups: [],
     children: [],
     parent,
-    contexts: new Map(),
+    contexts: null,
     disposed: false,
   };
   if (parent) parent.children.push(owner);
@@ -255,8 +257,14 @@ function buildScoped(
 ): { nodes: Node[]; dispose: () => void } {
   const s = runUnder(owner, () =>
     scope(() => {
+      const built = build();
+      // Fast path: a single element/text node (the common row/component case)
+      // needs no fragment or NodeList copy.
+      if (built instanceof Node && built.nodeType !== 11 /* DocumentFragment */) {
+        return [built];
+      }
       const frag = document.createDocumentFragment();
-      appendChild(frag, build());
+      appendChild(frag, built);
       return Array.from(frag.childNodes);
     })
   );
@@ -407,14 +415,18 @@ export function createContext<T>(defaultValue: T): Context<T> {
 
 /** Write a context value into the current owner. */
 export function provide<T>(ctx: Context<T>, value: T): void {
-  if (currentOwner) currentOwner.contexts.set(ctx.id, value);
+  if (currentOwner) {
+    (currentOwner.contexts ??= new Map()).set(ctx.id, value);
+  }
 }
 
 /** Read the nearest provided value up the owner tree, else the default. */
 export function use<T>(ctx: Context<T>): T {
   let o = currentOwner;
   while (o) {
-    if (o.contexts.has(ctx.id)) return o.contexts.get(ctx.id) as T;
+    if (o.contexts && o.contexts.has(ctx.id)) {
+      return o.contexts.get(ctx.id) as T;
+    }
     o = o.parent;
   }
   return ctx.defaultValue;
