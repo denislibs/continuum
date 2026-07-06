@@ -151,6 +151,7 @@ function createEl(tag: string): Element {
     : document.createElement(tag);
 }
 
+/** Anything placeable in JSX: nodes, behaviors (live-bound), primitives, arrays. */
 export type Child =
   | Node
   | Behavior<unknown>
@@ -445,11 +446,13 @@ export function each<T, K>(
 // Context (§10) — implicit environment over the owner tree.
 // ---------------------------------------------------------------------------
 
+/** A context handle: identity plus the value used when nothing was provided. */
 export interface Context<T> {
   readonly id: symbol;
   readonly defaultValue: T;
 }
 
+/** Create a context. Provide with `provide`, read with `use`. */
 export function createContext<T>(defaultValue: T): Context<T> {
   return { id: Symbol("context"), defaultValue };
 }
@@ -559,6 +562,14 @@ export function animationFrames(): Event<number> {
 
 // ---------------------------------------------------------------------------
 // Control-flow components — JSX wrappers over the rendering helpers.
+//
+// The function/component pairing is a deliberate symmetry, not duplication:
+//   when(b, then, else)  ↔  <Show when={b}>       — conditional region
+//   dyn(b, render)       ↔  <Dynamic of={b}>      — switching subtree
+//   each(b, by, render)  ↔  <Each of={b} by={..}> — keyed list
+//   portal(target, ch)   ↔  <Portal mount={..}>   — render elsewhere
+// Functions compose in plain code (no JSX required); components read better
+// inside markup. Both call the same implementation.
 // ---------------------------------------------------------------------------
 
 // JSX always delivers children as the rest array; a single render function
