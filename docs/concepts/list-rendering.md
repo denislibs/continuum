@@ -1,4 +1,4 @@
-# Lists
+# List rendering
 
 ## `<Each>`: the key is the row's identity
 

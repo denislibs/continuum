@@ -82,4 +82,4 @@ const page = distinctB(location().map((u) => u.pathname.split("/")[1]));
 Behaviors are plain objects: declare them at module level and import them.
 That is how the router's `location()` works — one singleton Behavior per
 page. A component's local state lives in its body and dies with the subtree
-(see the ownership guide).
+(see [Ownership and lifecycle](/concepts/ownership)).

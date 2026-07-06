@@ -7,6 +7,9 @@ hero:
   tagline: Behaviors, Events и тонкозернистый рендеринг. Компонент выполняется один раз — ре-рендеров, с которыми нужно бороться, просто нет.
   actions:
     - theme: brand
+      text: Начать
+      link: /ru/overview
+    - theme: alt
       text: Туториал
       link: /ru/tutorial/thinking-in-frp
     - theme: alt

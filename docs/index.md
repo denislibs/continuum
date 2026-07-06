@@ -7,6 +7,9 @@ hero:
   tagline: Behaviors, Events, and fine-grained rendering. Components run once — there are no re-renders to fight.
   actions:
     - theme: brand
+      text: Get started
+      link: /overview
+    - theme: alt
       text: Tutorial
       link: /tutorial/thinking-in-frp
     - theme: alt
