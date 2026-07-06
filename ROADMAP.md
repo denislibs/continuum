@@ -34,13 +34,14 @@
 - [x] проверка «чистой установки»: `npm run smoke` — pack → установка
       тарболов в чистый Vite-проект → `tsc --noEmit` + `vite build` +
       импорт из Node;
-- [ ] решить вопрос имени в npm (scope `@continuum` пуст — 0 пакетов в
-      поиске; свободна ли организация, проверяется только после
-      `npm login`);
-- [ ] версионирование и changelog — `changesets` (работает с workspaces,
-      автоматизирует связные бампы frp→dom→std);
-- [ ] GitHub Action `release.yml`: публикация по тегу (это релизный конвейер,
-      а не проверка на PR — замеры перформанса в CI по-прежнему не гоняем).
+- [x] имя в npm: организация `continuum` оказалась занята → скоуп
+      **`@continuum-js`** (организация создана, владелец — denistort);
+- [x] версионирование и changelog — `changesets` (fixed-группа frp+dom+std;
+      `human-id` запинен из-за ESM-only 4.x);
+- [x] GitHub Action `release.yml`: changesets/action ведёт PR «Version
+      Packages», его мерж публикует в npm и создаёт GitHub-релизы
+      (токен обязан передаваться и как `NODE_AUTH_TOKEN`). Опубликовано:
+      `@continuum-js/{frp,dom,std}@0.3.0`.
 
 Критерий готовности: `npm i @continuum-js/dom` в пустом Vite-проекте — и счётчик
 из README работает без правок tsconfig.

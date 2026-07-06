@@ -1,81 +1,86 @@
 # Continuum
 
+**English** | [Русский](README.ru.md)
+
 [![CI](https://github.com/denislibs/continuum/actions/workflows/ci.yml/badge.svg)](https://github.com/denislibs/continuum/actions/workflows/ci.yml)
 
-Реактивный фреймворк на **классическом FRP** (Behaviors + Events) с fine-grained
-рендерингом. Дискретная ветвь традиции Эллиотта в стиле Sodium: транзакции,
-ранговая протяжка, задержка `hold` на границе момента.
+A reactive UI framework built on **classic FRP** (Behaviors + Events) with
+fine-grained rendering. The discrete branch of Elliott's tradition, Sodium
+style: transactions, rank-ordered propagation, the `hold` delay at the moment
+boundary.
 
-Ключевое решение: `Behavior` — это **значение**, а не функция чтения. Поэтому
-реактивную величину передают как объект (`<div>{count}</div>`), и рендереру не
-нужен билд-тайм-трансформ.
+The key decision: a `Behavior` is a **value**, not a read function. A reactive
+quantity is passed around as an object (`<div>{count}</div>`), so the renderer
+needs no build-time transform.
 
-> 📖 Концептуальное описание модели — от философии до алгебры и следствий —
-> в [PHILOSOPHY.md](PHILOSOPHY.md).
+> 📖 A conceptual walkthrough of the model — from philosophy to algebra to its
+> consequences — in [PHILOSOPHY.md](PHILOSOPHY.md) (Russian).
 >
-> ⚙️ Операционная сторона той же модели — транзакции, задержка `hold`, ранги,
-> `switch`, с отсылками к книге Blackheath & Jones «Functional Reactive
-> Programming» (Manning) — в [FRP-MODEL.md](FRP-MODEL.md).
+> ⚙️ The operational side of the same model — transactions, the `hold` delay,
+> ranks, `switch`, with references to Blackheath & Jones, «Functional Reactive
+> Programming» (Manning) — in [FRP-MODEL.md](FRP-MODEL.md) (Russian).
 >
-> 🗺️ План развития по вехам (публикация → роутер → доки → устойчивость →
-> экосистема) — в [ROADMAP.md](ROADMAP.md).
+> 🗺️ The milestone roadmap (publishing → router → docs → hardening →
+> ecosystem) — in [ROADMAP.md](ROADMAP.md) (Russian).
 
-## Монорепозиторий
+## Monorepo
 
 ```
 continuum/
 ├─ packages/
-│  ├─ frp/        @continuum-js/frp   — ядро: Event, Behavior, планировщик
-│  ├─ dom/        @continuum-js/dom   — рендерер: h, dyn, each, владение, контекст
-│  └─ std/        @continuum-js/std   — комбинаторы: resource, debounce, throttle, …
-├─ examples/                       — запускаемые примеры (Vite), каждый — отдельно
-│  ├─ counter/    @continuum-js/example-counter    — счётчик из §1.1 + тест
-│  ├─ todo/       @continuum-js/example-todo        — <Show>/<Each> + bindInput + тест
-│  ├─ animation/  @continuum-js/example-animation   — integral + time warp (непрерывное время)
-│  ├─ showcase/   @continuum-js/example-showcase    — <Dynamic> (табы) + <Show>/<Portal> (модалка)
-│  └─ data/       @continuum-js/example-data        — HTTP-запросы: perform/Result + debounce + resource
-├─ benchmark/     @continuum-js/benchmark           — таблица js-framework-benchmark + Playwright-замер
-├─ .size-limit.json   — бюджеты размера бандла (npm run size)
-├─ vitest.config.ts   — общий раннер (jsdom, automatic JSX), алиасы на исходники
+│  ├─ frp/        @continuum-js/frp   — core: Event, Behavior, scheduler
+│  ├─ dom/        @continuum-js/dom   — renderer: h, dyn, each, ownership, context
+│  └─ std/        @continuum-js/std   — combinators: resource, debounce, throttle, …
+├─ examples/                       — runnable examples (Vite), one folder each
+│  ├─ counter/    @continuum-js/example-counter    — the §1.1 counter + test
+│  ├─ todo/       @continuum-js/example-todo        — <Show>/<Each> + bindInput + test
+│  ├─ animation/  @continuum-js/example-animation   — integral + time warp (continuous time)
+│  ├─ showcase/   @continuum-js/example-showcase    — <Dynamic> (tabs) + <Show>/<Portal> (modal)
+│  └─ data/       @continuum-js/example-data        — HTTP: perform/Result + debounce + resource
+├─ benchmark/     @continuum-js/benchmark           — js-framework-benchmark table + Playwright timing
+├─ .size-limit.json   — bundle size budgets (npm run size)
+├─ vitest.config.ts   — shared runner (jsdom, automatic JSX), source aliases
 ├─ tsconfig.json      — solution-style, project references
-└─ tsconfig.base.json — общие compilerOptions
+└─ tsconfig.base.json — shared compilerOptions
 ```
 
-Зависимости строго односторонние: `dom` → `frp`, `std` → `frp`; `frp`
-самодостаточен. Примеры живут в корневом `examples/` и потребляют пакеты как
-`@continuum-js/frp` / `@continuum-js/dom` / `@continuum-js/std`.
+Dependencies are strictly one-way: `dom` → `frp`, `std` → `frp`; `frp` is
+self-contained. Examples live in the root `examples/` and consume the packages
+as `@continuum-js/frp` / `@continuum-js/dom` / `@continuum-js/std`.
 
-## Быстрый старт
+## Quick start
 
-Новый проект (Vite + TypeScript + счётчик + тест):
+A new project (Vite + TypeScript + a counter + a test):
 
 ```bash
 npm create continuum-js@latest my-app
 cd my-app && npm install && npm run dev
 ```
 
-Разработка самого фреймворка:
+Working on the framework itself:
 
 ```bash
 npm install
-npm test              # vitest run — 69 тестов
-npm run typecheck     # tsc -b по всем пакетам
-npm run example:counter  # vite dev-сервер для examples/counter
-npm run example:todo     # vite dev-сервер для examples/todo
-npm run example:showcase # <Dynamic>/<Show>/<Portal> демо
-npm run example:data     # живой поиск: fetch через perform/Result + debounce
-npm run size             # size-limit: gzip/brotli-размер @continuum-js/frp и /dom
-npm run bench            # Playwright-замер таблицы js-framework-benchmark
-npm run build            # сборка dist/ (ESM + .d.ts) всех публикуемых пакетов
-npm run smoke            # контракт публикации: pack → npm i в чистый Vite-проект → tsc + vite build
+npm test              # vitest run
+npm run typecheck     # tsc -b across all packages
+npm run example:counter  # Vite dev server for examples/counter
+npm run example:todo     # Vite dev server for examples/todo
+npm run example:showcase # <Dynamic>/<Show>/<Portal> demo
+npm run example:data     # live search: fetch via perform/Result + debounce
+npm run size             # size-limit: gzip/brotli size of the packages
+npm run bench            # Playwright timing of the js-framework-benchmark table
+npm run build            # build dist/ (ESM + .d.ts) for all published packages
+npm run smoke            # publish contract: pack → npm i into a clean Vite app → tsc + vite build
 ```
 
-Размер (brotli, с зависимостями): `@continuum-js/frp` ≈ **1.8 kB**, `@continuum-js/dom`
-(включая frp) ≈ **3.5 kB**. Бюджеты — в [`.size-limit.json`](.size-limit.json),
-`npm run size` падает при превышении. Замер производительности —
-см. [`benchmark/`](benchmark) (`npm run bench`, нужен `npx playwright install chromium`).
+Size (brotli, with dependencies): `@continuum-js/frp` ≈ **1.8 kB**,
+`@continuum-js/dom` (incl. frp) ≈ **3.5 kB**, `@continuum-js/std` (incl. frp)
+≈ **2.0 kB**. Budgets live in [`.size-limit.json`](.size-limit.json);
+`npm run size` fails when exceeded. Performance measurement — see
+[`benchmark/`](benchmark) (`npm run bench`, needs
+`npx playwright install chromium`).
 
-### Счётчик за 10 строк (`examples/counter`)
+### A counter in 10 lines (`examples/counter`)
 
 ```tsx
 import { newEvent } from "@continuum-js/frp";
@@ -87,72 +92,76 @@ export function Counter() {
 }
 ```
 
-Компонент выполняется **один раз**. Клик уходит в FRP-сеть, `accum` обновляет
-поведение, патчится ровно один текст-узел — без VDOM и диффинга.
+A component runs **once**. The click flows into the FRP network, `accum`
+updates the behavior, and exactly one text node is patched — no virtual DOM,
+no diffing.
 
-> JSX работает через **автоматический рантайм** — `import { h }` в компонентах
-> не нужен. Настройка: `"jsx": "react-jsx"`, `"jsxImportSource": "@continuum-js/dom"`
-> (для Vite/esbuild — `jsx: "automatic"`). `h` остаётся доступным экспортом для
-> явных вызовов.
+> JSX works through the **automatic runtime** — components don't need
+> `import { h }`. Setup: `"jsx": "react-jsx"`,
+> `"jsxImportSource": "@continuum-js/dom"` (for Vite/esbuild —
+> `jsx: "automatic"`). `h` remains exported for explicit calls.
 
-## Что реализовано
+## What's implemented
 
-**Ядро (`@continuum-js/frp`).** Транзакции (фазы prioritized/last/post), min-куча
-рангов и glitch-free протяжка, коалесинг одновременных происшествий, задержка
-`hold`. Комбинаторы: `map`, `mapTo`, `filter`, `gate`, `snapshot`, `merge`,
-`orElse`, `accum`/`accumE`, `hold`, `once`, `listen`; для поведений — `map`,
-`apply`, `lift2`/`lift3`, `switchB`/`switchE`, `fromPoll`, `time`, `listen`.
-Из дорожной карты: `distinct`, `perform` (граница IO с `Result`), изоляция
-ошибок в фазе post и «атомарный или отброшенный момент» через стейджинг по
-идентичности транзакции; **устойчивые ранги** (`ensureBiggerThan` + обнаружение
-циклов) для корректного `switch` в плотных графах; **непрерывное время** —
-`integral`/`derivative`/`warp` (численно семплируемые по дискретному клоку);
-**явный `dispose`** у `Event`/`Behavior` с каскадом вверх по неиспользуемым
-производным узлам (для долгоживущих не-UI графов).
+**Core (`@continuum-js/frp`).** Transactions (prioritized/last/post phases), a
+rank min-heap with glitch-free propagation, coalescing of simultaneous
+occurrences, the `hold` delay. Combinators: `map`, `mapTo`, `filter`, `gate`,
+`snapshot`, `merge`, `orElse`, `accum`/`accumE`, `hold`, `once`, `listen`; for
+behaviors — `map`, `apply`, `lift2`/`lift3`, `switchB`/`switchE`, `fromPoll`,
+`time`, `listen`. From the roadmap: `distinct`, `perform` (the IO boundary
+with `Result`), error isolation in the post phase and "atomic or dropped
+moment" via transaction-identity staging; **rank maintenance**
+(`ensureBiggerThan` + cycle detection) for correct `switch` in dense graphs;
+**continuous time** — `integral`/`derivative`/`warp` (numerically sampled over
+a discrete clock); **explicit `dispose`** on `Event`/`Behavior` with an upward
+cascade through unused derived nodes (for long-lived non-UI graphs).
 
-**Рендерер (`@continuum-js/dom`).** JSX-фабрика `h`/`Fragment`, точечные привязки
-текста/атрибутов/свойств, события `on*`, `dyn`, `each` (keyed-реконсиляция с
-LIS-диффингом и сохранением фокуса), дерево владения `root`/`scope`/`onCleanup`
-с каскадной очисткой подписок, контекст `createContext`/`provide`/`use`, хелперы
-`when`/`bindInput`/`portal`, компоненты-обёртки `<Show>`/`<Each>`/`<Dynamic>`/
-`<Portal>`, `animationFrames` (клок кадров для непрерывного времени),
-SVG-неймспейсы (`<svg>`-поддеревья через `createElementNS`), `mount`.
+**Renderer (`@continuum-js/dom`).** JSX factory `h`/`Fragment`, fine-grained
+bindings for text/attributes/properties, `on*` events, `dyn`, `each` (keyed
+reconciliation with LIS diffing and focus preservation), the ownership tree
+`root`/`scope`/`onCleanup` with cascading subscription cleanup, context
+`createContext`/`provide`/`use`, helpers `when`/`bindInput`/`portal`, wrapper
+components `<Show>`/`<Each>`/`<Dynamic>`/`<Portal>`, `animationFrames` (a
+frame clock for continuous time), SVG namespaces (`<svg>` subtrees via
+`createElementNS`), `mount`.
 
-## Непрерывное время
+## Continuous time
 
-`integral`/`derivative`/`warp` из ядра работают поверх дискретного клока
-(`Event<number>` временных меток) — в браузере его даёт `animationFrames()`.
-Реализация численная (forward Euler / конечные разности), детерминированная и не
-зависит от числа наблюдателей: аккумуляция происходит один раз на тик. Денотация
-разрешение-независима, семплированный результат её приближает. Демо —
-[`examples/animation`](examples/animation) (`npm run example:animation`).
+`integral`/`derivative`/`warp` from the core work over a discrete clock (an
+`Event<number>` of timestamps) — in the browser that's `animationFrames()`.
+The implementation is numerical (forward Euler / finite differences),
+deterministic, and independent of the observer count: accumulation happens
+once per tick. The denotation is resolution-independent; the sampled result
+approximates it. Demo — [`examples/animation`](examples/animation)
+(`npm run example:animation`).
 
-## Работа с данными (HTTP)
+## Working with data (HTTP)
 
-IO живёт на **границе** сети. `perform` принимает `Event` запросов, запускает
-асинхронный эффект в фазе post (после закрытия момента) и возвращает результат
-новым происшествием — уже как данные, с ошибкой, завёрнутой в `Result`, а не
-выброшенной. Поверх этого [`@continuum-js/std`](packages/std) даёт готовые
-переиспользуемые кирпичики (а [`examples/data`](examples/data) показывает их в
-деле):
+IO lives at the **boundary** of the network. `perform` takes an `Event` of
+requests, runs the async effect in the post phase (after the moment closes)
+and returns the result as a new occurrence — as data, with the error wrapped
+in a `Result` rather than thrown. On top of it,
+[`@continuum-js/std`](packages/std) provides ready-made building blocks (and
+[`examples/data`](examples/data) shows them in action):
 
-- `resource(trigger, fetcher): Behavior<Async<T>>` — конечный автомат
-  `idle → loading → ok | error`. Запросы нумеруются, поэтому запоздавший ответ на
-  устаревший запрос отбрасывается (last-request-wins) — декларативное решение
-  классического бага гонки ответов.
-- `debounce(event, ms)` — коалесинг всплеска в последнее значение после паузы.
+- `resource(trigger, fetcher): Behavior<Async<T>>` — a state machine
+  (`idle → loading → ok | error`). Requests are numbered, so a late response
+  to a superseded request is dropped (last-request-wins) — the classic
+  response-race bug solved declaratively.
+- `debounce(event, ms)` — coalesce a burst into its last value after a pause.
 
-Вместе они дают живой поиск «по мере ввода»: `input → debounce → fetch →
-loading/error/empty/results`. Фетчер инжектируется, поэтому компонент
-тестируется без сети (`npm run example:data` бьёт в реальный GitHub API).
+Together they make search-as-you-type: `input → debounce → fetch →
+loading/error/empty/results`. The fetcher is injected, so the component is
+testable without a network (`npm run example:data` hits the real GitHub API).
 
-## Ограничения (см. дорожную карту §14 спецификации)
+## Limitations (see roadmap §14 of the spec)
 
-- **Непрерывное время** реализовано _численно_ через семплирование по клоку, а
-  не как первоклассная величина `Time = ℝ` в духе чистого Конала: точность
-  зависит от частоты клока, `warp` применяется к меткам тиков (см.
+- **Continuous time** is implemented _numerically_ by sampling over a clock,
+  not as a first-class `Time = ℝ` in the pure-Elliott sense: precision depends
+  on the clock rate, and `warp` remaps tick timestamps (see
   [PHILOSOPHY.md](PHILOSOPHY.md)).
-- **Ссылочная модель памяти** без слабых ссылок: подписка идёт от источника к
-  потребителю, поэтому производные узлы живут, пока жив источник. Явный
-  `dispose()` (с каскадом вверх по неиспользуемым производным) позволяет
-  разорвать цепочку вручную; в UI это делает дерево владения слоя `dom`.
+- **Reference-based memory model**, no weak references: subscription runs from
+  source to consumer, so derived nodes stay alive as long as their source
+  does. Explicit `dispose()` (with an upward cascade through unused derived
+  nodes) breaks the chain manually; in UI code the `dom` layer's ownership
+  tree does this for you.
