@@ -47,13 +47,16 @@
 
 ### 🔴 `create-continuum` — scaffold CLI
 
-- [ ] пакет `packages/create-continuum` (bin), запускается через
-      `npm create continuum@latest my-app`;
-- [ ] шаблон: Vite + TS, `jsxImportSource: "@continuum-js/dom"`, готовый
+- [x] пакет `packages/create-continuum` (`create-continuum-js`, buildless
+      ESM без зависимостей), запускается через
+      `npm create continuum-js@latest my-app`;
+- [x] шаблон: Vite + TS, `jsxImportSource: "@continuum-js/dom"`, готовый
       counter-компонент, vitest с jsdom;
-- [ ] минимум вопросов (имя проекта; со временем — выбор шаблона);
-- [ ] e2e-тест: сгенерировать проект во временную папку → `npm i` →
-      `vite build` зелёный.
+- [x] минимум вопросов (имя проекта аргументом или интерактивно; выбор
+      шаблона — со временем);
+- [x] e2e-тест: в `npm run smoke` CLI генерирует проект во временную папку,
+      зависимости подменяются на локальные тарболы → `npm i` →
+      `tsc --noEmit && vite build` → тест сгенерированного приложения.
 
 ### 🟡 Гигиена API перед публикацией
 

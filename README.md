@@ -47,6 +47,15 @@ continuum/
 
 ## Быстрый старт
 
+Новый проект (Vite + TypeScript + счётчик + тест):
+
+```bash
+npm create continuum-js@latest my-app
+cd my-app && npm install && npm run dev
+```
+
+Разработка самого фреймворка:
+
 ```bash
 npm install
 npm test              # vitest run — 69 тестов

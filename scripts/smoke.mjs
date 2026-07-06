@@ -14,6 +14,7 @@ import {
   mkdtempSync,
   mkdirSync,
   writeFileSync,
+  readFileSync,
   readdirSync,
   rmSync,
 } from "node:fs";
@@ -168,4 +169,36 @@ const nodeCheck = (pkg, name) =>
 nodeCheck("@continuum-js/frp", "newBehavior");
 nodeCheck("@continuum-js/std", "debounce");
 
-console.log("\n✓ smoke: packed tarballs install, type-check, bundle and run");
+// ─── 4. create-continuum-js e2e ────────────────────────────────────────────
+// Scaffold a project with the real CLI, point its deps at the local tarballs
+// (hermetic — no registry), then install, type-check, build and run its test.
+
+const cliApp = join(work, "cli-app");
+run(
+  "node",
+  [
+    join(
+      root,
+      "packages",
+      "create-continuum",
+      "bin",
+      "create-continuum-js.mjs",
+    ),
+    "cli-app",
+  ],
+  work,
+);
+
+const cliPkgPath = join(cliApp, "package.json");
+const cliPkg = JSON.parse(readFileSync(cliPkgPath, "utf8"));
+cliPkg.dependencies["@continuum-js/frp"] = `file:${tarballs.frp}`;
+cliPkg.dependencies["@continuum-js/dom"] = `file:${tarballs.dom}`;
+writeFileSync(cliPkgPath, JSON.stringify(cliPkg, null, 2));
+
+run("npm", ["install", "--no-audit", "--no-fund"], cliApp);
+run("npm", ["run", "build"], cliApp); // tsc --noEmit && vite build
+run("npm", ["test"], cliApp); // the scaffolded counter test
+
+console.log(
+  "\n✓ smoke: tarballs install and build; scaffolded app builds and its test passes",
+);
