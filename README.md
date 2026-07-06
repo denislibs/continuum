@@ -30,13 +30,16 @@ continuum/
 ├─ packages/
 │  ├─ frp/        @continuum-js/frp   — core: Event, Behavior, scheduler
 │  ├─ dom/        @continuum-js/dom   — renderer: h, dyn, each, ownership, context
-│  └─ std/        @continuum-js/std   — combinators: resource, debounce, throttle, …
+│  ├─ std/        @continuum-js/std   — combinators: resource, debounce, throttle, …
+│  ├─ router/     @continuum-js/router — the URL as a Behavior: nested routes, lazy pages
+│  └─ test/       @continuum-js/test  — test utilities: render, fire, flush
 ├─ examples/                       — runnable examples (Vite), one folder each
 │  ├─ counter/    @continuum-js/example-counter    — the §1.1 counter + test
 │  ├─ todo/       @continuum-js/example-todo        — <Show>/<Each> + bindInput + test
 │  ├─ animation/  @continuum-js/example-animation   — integral + time warp (continuous time)
 │  ├─ showcase/   @continuum-js/example-showcase    — <Dynamic> (tabs) + <Show>/<Portal> (modal)
 │  └─ data/       @continuum-js/example-data        — HTTP: perform/Result + debounce + resource
+│  └─ router-app/ @continuum-js/example-router-app — nested layout, lazy chunk, guards, 404
 ├─ benchmark/     @continuum-js/benchmark           — js-framework-benchmark table + Playwright timing
 ├─ .size-limit.json   — bundle size budgets (npm run size)
 ├─ vitest.config.ts   — shared runner (jsdom, automatic JSX), source aliases
@@ -67,6 +70,7 @@ npm run example:counter  # Vite dev server for examples/counter
 npm run example:todo     # Vite dev server for examples/todo
 npm run example:showcase # <Dynamic>/<Show>/<Portal> demo
 npm run example:data     # live search: fetch via perform/Result + debounce
+npm run example:router   # router: nested layout, lazy chunk, guard, 404
 npm run size             # size-limit: gzip/brotli size of the packages
 npm run bench            # Playwright timing of the js-framework-benchmark table
 npm run build            # build dist/ (ESM + .d.ts) for all published packages

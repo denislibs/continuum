@@ -28,6 +28,10 @@ export default defineConfig({
         replacement: r("./packages/test/src/index.ts"),
       },
       {
+        find: "@continuum-js/router",
+        replacement: r("./packages/router/src/index.ts"),
+      },
+      {
         find: "@continuum-js/frp",
         replacement: r("./packages/frp/src/index.ts"),
       },

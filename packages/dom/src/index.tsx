@@ -324,11 +324,29 @@ export function dyn<T>(b: Behavior<T>, render: (v: T) => Child): Node {
   frag.appendChild(end);
 
   let current: { nodes: Node[]; dispose: () => void } | null = null;
-  const update = (v: T) => {
+  // Level-triggered: render the behavior's CURRENT value, not the delivered
+  // occurrence. A listener that runs earlier in the post phase may re-enter
+  // with a new moment (e.g. a router redirect); the stale queued delivery
+  // then must not clobber the newer render. Deduping by Object.is also makes
+  // duplicate deliveries free.
+  let hasRendered = false;
+  let renderedValue: T;
+  const update = () => {
+    const v = b.sampleNoTrans();
+    if (hasRendered && Object.is(renderedValue, v)) return;
+    hasRendered = true;
+    renderedValue = v;
     if (current) {
       current.dispose();
-      for (const n of current.nodes)
-        if (n.parentNode) n.parentNode.removeChild(n);
+      // Sweep the whole live range between the markers: a nested dynamic
+      // region at the root of this one may have swapped nodes since build,
+      // so the recorded node list can be stale.
+      let n = start.nextSibling;
+      while (n && n !== end) {
+        const next = n.nextSibling;
+        n.parentNode?.removeChild(n);
+        n = next;
+      }
     }
     current = buildScoped(owner, () => render(v));
     const parent = end.parentNode!;

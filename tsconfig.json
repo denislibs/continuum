@@ -5,11 +5,13 @@
     { "path": "./packages/dom" },
     { "path": "./packages/std" },
     { "path": "./packages/test" },
+    { "path": "./packages/router" },
     { "path": "./examples/counter" },
     { "path": "./examples/todo" },
     { "path": "./examples/animation" },
     { "path": "./examples/showcase" },
     { "path": "./examples/data" },
+    { "path": "./examples/router-app" },
     { "path": "./benchmark" }
   ]
 }
