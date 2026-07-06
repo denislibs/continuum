@@ -1,5 +1,5 @@
 import { describe, test, expect, vi, afterEach } from "vitest";
-import { mount, h } from "@continuum-js/dom";
+import { mount } from "@continuum-js/dom";
 import { TimeWarpDemo } from "./animation";
 
 afterEach(() => vi.unstubAllGlobals());

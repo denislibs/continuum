@@ -1,0 +1,56 @@
+// Flat ESLint config (ESLint 9). Style is Prettier's job — eslint-config-
+// prettier at the end disables every formatting rule; here we keep only
+// correctness rules.
+import eslint from "@eslint/js";
+import tseslint from "typescript-eslint";
+import prettier from "eslint-config-prettier";
+
+export default tseslint.config(
+  {
+    ignores: [
+      "**/dist/**",
+      "**/.tsout/**",
+      "**/node_modules/**",
+      "coverage/**",
+    ],
+  },
+  eslint.configs.recommended,
+  ...tseslint.configs.recommended,
+  prettier,
+  {
+    rules: {
+      // The FRP core intentionally erases event/behavior payload types at the
+      // graph-plumbing layer; `any` there is deliberate, not an accident.
+      "@typescript-eslint/no-explicit-any": "off",
+      // Allow intentionally-unused args/vars with the conventional _ prefix.
+      "@typescript-eslint/no-unused-vars": [
+        "error",
+        { argsIgnorePattern: "^_", varsIgnorePattern: "^_" },
+      ],
+      // `const self = this` is how listener closures capture the node in the
+      // FRP core; a deliberate pattern, not an accident.
+      "@typescript-eslint/no-this-alias": ["error", { allowedNames: ["self"] }],
+    },
+  },
+  {
+    // The `namespace JSX` declaration is the only way to type JSX elements —
+    // the compiler looks it up by name, ES module syntax cannot express it.
+    files: ["packages/dom/src/jsx-runtime.ts"],
+    rules: { "@typescript-eslint/no-namespace": "off" },
+  },
+  {
+    // Node scripts (smoke, bench) — plain JS, console is the UI. bench.mjs
+    // also ships functions into the page via Playwright evaluate(), so
+    // browser globals are legitimate there.
+    files: ["scripts/**/*.mjs", "benchmark/bench.mjs"],
+    languageOptions: {
+      globals: {
+        process: "readonly",
+        console: "readonly",
+        document: "readonly",
+        performance: "readonly",
+        requestAnimationFrame: "readonly",
+      },
+    },
+  },
+);

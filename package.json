@@ -17,25 +17,46 @@
     "smoke": "node scripts/smoke.mjs",
     "changeset": "changeset",
     "release": "npm run build && changeset publish",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
     "size": "size-limit",
     "bench": "npm run bench -w @continuum-js/benchmark",
     "example:counter": "npm run dev -w @continuum-js/example-counter",
     "example:todo": "npm run dev -w @continuum-js/example-todo",
     "example:animation": "npm run dev -w @continuum-js/example-animation",
     "example:showcase": "npm run dev -w @continuum-js/example-showcase",
-    "example:data": "npm run dev -w @continuum-js/example-data"
+    "example:data": "npm run dev -w @continuum-js/example-data",
+    "prepare": "husky"
   },
   "devDependencies": {
     "@changesets/cli": "^2.31.0",
+    "@eslint/js": "^9.39.4",
     "@size-limit/preset-small-lib": "^11.1.0",
+    "eslint": "^9.39.4",
+    "eslint-config-prettier": "^10.1.8",
+    "husky": "^9.1.7",
     "jsdom": "^24.1.0",
+    "lint-staged": "^15.5.2",
     "playwright": "^1.61.0",
+    "prettier": "^3.9.4",
     "size-limit": "^11.1.0",
     "typescript": "^5.5.0",
+    "typescript-eslint": "^8.62.1",
     "vite": "^5.4.0",
     "vitest": "^2.0.0"
   },
   "overrides": {
     "human-id": "3.0.1"
+  },
+  "lint-staged": {
+    "*.{ts,tsx,js,mjs}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{json,md,yml,html,css}": [
+      "prettier --write"
+    ]
   }
 }

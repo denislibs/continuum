@@ -1,5 +1,5 @@
 import { describe, test, expect, vi, afterEach } from "vitest";
-import { mount, h } from "@continuum-js/dom";
+import { mount } from "@continuum-js/dom";
 import { UserSearch, type User } from "./search";
 
 describe("UserSearch", () => {
@@ -45,7 +45,7 @@ describe("UserSearch", () => {
 
     expect(container.querySelector(".loading")).toBeNull();
     const items = Array.from(container.querySelectorAll("li")).map(
-      (li) => li.textContent
+      (li) => li.textContent,
     );
     expect(items).toEqual(["ann", "annie"]);
   });

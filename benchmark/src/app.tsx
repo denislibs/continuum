@@ -78,7 +78,14 @@ export function App() {
       <table class="table table-hover table-striped test-data">
         <tbody>
           <Each each={rows} by={(r) => r.id}>
-            {(r) => <TableRow row={r} selected={selected} onSelect={setSelected} onRemove={remove} />}
+            {(r) => (
+              <TableRow
+                row={r}
+                selected={selected}
+                onSelect={setSelected}
+                onRemove={remove}
+              />
+            )}
           </Each>
         </tbody>
       </table>

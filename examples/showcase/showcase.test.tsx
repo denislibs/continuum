@@ -12,7 +12,9 @@ describe("Showcase", () => {
   test("<Dynamic> switches the tab panel", () => {
     const container = document.createElement("div");
     unmount = mount(container, () => <Showcase />);
-    expect(container.querySelector(".panel")!.textContent).toContain("Welcome home");
+    expect(container.querySelector(".panel")!.textContent).toContain(
+      "Welcome home",
+    );
     container.querySelector<HTMLButtonElement>(".tab-about")!.click();
     expect(container.querySelector(".panel")!.textContent).toContain("About");
   });

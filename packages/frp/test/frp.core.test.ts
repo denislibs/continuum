@@ -80,7 +80,7 @@ describe("hold delay semantics (classic FRP)", () => {
     // snapshot samples b in the same moment e fires; must see PRE-update value.
     const snapped: Array<[number, number]> = [];
     e.snapshot(b, (a, s) => [a, s] as [number, number]).listen((pair) =>
-      snapped.push(pair)
+      snapped.push(pair),
     );
     fire(1); // b was 0 at start of this moment
     fire(2); // b was 1 at start of this moment

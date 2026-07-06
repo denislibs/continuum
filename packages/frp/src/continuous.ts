@@ -18,15 +18,13 @@ import type { Behavior, Event } from "./index.js";
 export function integral(
   b: Behavior<number>,
   tick: Event<number>,
-  init = 0
+  init = 0,
 ): Behavior<number> {
   return tick
-    .accum<{ t: number | null; acc: number }>(
-      { t: null, acc: init },
-      (t, s) =>
-        s.t === null
-          ? { t, acc: s.acc }
-          : { t, acc: s.acc + b.sampleNoTrans() * (t - s.t) }
+    .accum<{ t: number | null; acc: number }>({ t: null, acc: init }, (t, s) =>
+      s.t === null
+        ? { t, acc: s.acc }
+        : { t, acc: s.acc + b.sampleNoTrans() * (t - s.t) },
     )
     .map((s) => s.acc);
 }
@@ -37,7 +35,7 @@ export function integral(
  */
 export function derivative(
   b: Behavior<number>,
-  tick: Event<number>
+  tick: Event<number>,
 ): Behavior<number> {
   return tick
     .accum<{ t: number | null; v: number; d: number }>(
@@ -47,7 +45,7 @@ export function derivative(
         if (s.t === null) return { t, v, d: 0 };
         const dt = t - s.t;
         return { t, v, d: dt === 0 ? s.d : (v - s.v) / dt };
-      }
+      },
     )
     .map((s) => s.d);
 }
@@ -59,7 +57,7 @@ export function derivative(
  */
 export function warp(
   tick: Event<number>,
-  remap: (t: number) => number
+  remap: (t: number) => number,
 ): Event<number> {
   return tick.map(remap);
 }

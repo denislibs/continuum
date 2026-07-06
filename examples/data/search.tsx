@@ -30,12 +30,14 @@ export function UserSearch({
 
   return (
     <div class="user-search">
-      <input placeholder="search GitHub users…" {...bindInput(draft, setDraft)} />
+      <input
+        placeholder="search GitHub users…"
+        {...bindInput(draft, setDraft)}
+      />
       <Dynamic value={state}>
         {(s): Child => {
           if (s.status === "loading") return <p class="loading">searching…</p>;
-          if (s.status === "error")
-            return <p class="error">request failed</p>;
+          if (s.status === "error") return <p class="error">request failed</p>;
           if (s.status === "ok")
             return s.value.length === 0 ? (
               <p class="empty">no users found</p>

@@ -1,5 +1,5 @@
 import { describe, test, expect } from "vitest";
-import { Event, newEvent, newBehavior, Behavior, constant } from "@continuum-js/frp";
+import { Event, newEvent, newBehavior, Behavior } from "@continuum-js/frp";
 
 describe("rank maintenance (ensureBiggerThan)", () => {
   test("subscribing a low-rank node under a high-rank source bumps it and propagates", () => {

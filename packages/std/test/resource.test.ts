@@ -10,7 +10,7 @@ describe("resource", () => {
     let resolve!: (v: string[]) => void;
     const state = resource<string, string[]>(
       trigger,
-      () => new Promise<string[]>((res) => (resolve = res))
+      () => new Promise<string[]>((res) => (resolve = res)),
     );
 
     expect(state.sample().status).toBe("idle");
@@ -25,7 +25,7 @@ describe("resource", () => {
   test("captures rejection as an error state", async () => {
     const [trigger, fire] = newEvent<string>();
     const state = resource<string, string[]>(trigger, () =>
-      Promise.reject(new Error("boom"))
+      Promise.reject(new Error("boom")),
     );
 
     fire("x");
@@ -33,7 +33,7 @@ describe("resource", () => {
     const s = state.sample();
     expect(s.status).toBe("error");
     expect((s as Extract<Async<unknown>, { status: "error" }>).error).toEqual(
-      new Error("boom")
+      new Error("boom"),
     );
   });
 
@@ -42,7 +42,7 @@ describe("resource", () => {
     const [trigger, fire] = newEvent<string>();
     const state = resource<string, string[]>(
       trigger,
-      () => new Promise<string[]>((res) => resolvers.push(res))
+      () => new Promise<string[]>((res) => resolvers.push(res)),
     );
 
     fire("first");

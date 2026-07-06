@@ -19,7 +19,9 @@
     },
     "./package.json": "./package.json"
   },
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "sideEffects": false,
   "scripts": {
     "build": "rm -rf dist && tsc -p tsconfig.build.json",

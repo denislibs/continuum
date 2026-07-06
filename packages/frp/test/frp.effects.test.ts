@@ -33,7 +33,7 @@ describe("perform", () => {
     const [req, fire] = newEvent<number>();
     const seen: Array<{ ok: boolean; value?: number }> = [];
     perform(req, async (n) => n * 2).listen((r) =>
-      seen.push(r as { ok: boolean; value?: number })
+      seen.push(r as { ok: boolean; value?: number }),
     );
     fire(5);
     await tick();

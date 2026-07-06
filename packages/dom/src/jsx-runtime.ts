@@ -17,8 +17,8 @@ function build(type: unknown, props: RuntimeProps | null): Node {
     children === undefined
       ? []
       : Array.isArray(children)
-      ? children
-      : [children];
+        ? children
+        : [children];
   return h(type as never, rest, ...kids);
 }
 
