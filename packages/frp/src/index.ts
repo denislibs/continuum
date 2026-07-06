@@ -598,4 +598,4 @@ export function perform<A, B>(
 // Continuous-time combinators (§14 roadmap #7)
 // ---------------------------------------------------------------------------
 
-export { integral, derivative, warp } from "./continuous";
+export { integral, derivative, warp } from "./continuous.js";

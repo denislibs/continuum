@@ -13,6 +13,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "typecheck": "tsc -b",
+    "build": "npm run build -w @continuum/frp && npm run build -w @continuum/std && npm run build -w @continuum/dom",
+    "smoke": "node scripts/smoke.mjs",
     "size": "size-limit",
     "bench": "npm run bench -w @continuum/benchmark",
     "example:counter": "npm run dev -w @continuum/example-counter",

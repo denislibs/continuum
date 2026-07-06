@@ -4,8 +4,8 @@
 // They are thin adapters over `h`: the automatic runtime delivers children in
 // `props.children`, whereas `h` takes them as rest arguments.
 
-import { h, Fragment as Frag } from "./index";
-import type { Child } from "./index";
+import { h, Fragment as Frag } from "./index.js";
+import type { Child } from "./index.js";
 
 export const Fragment = Frag;
 

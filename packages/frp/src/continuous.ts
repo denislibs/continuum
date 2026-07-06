@@ -9,7 +9,7 @@
 // (forward Euler / finite differences), and the clock resolution appears only
 // at tick time.
 
-import type { Behavior, Event } from "./index";
+import type { Behavior, Event } from "./index.js";
 
 /**
  * Integrate a behavior with respect to a clock (forward Euler).
