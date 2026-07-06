@@ -23,6 +23,9 @@ setName("continuum"); // патчится один текст-узел
   подписок при сносе динамических регионов.
 - **Контекст** — `createContext` / `provide` / `use` поверх дерева владения.
 - **Хелперы** — `when`, `bindInput`, `portal`, `mount`, `animationFrames`.
+- **SVG** — теги `<svg>`, `<rect>`, `<path>`, `<circle>`, … создаются в SVG-неймспейсе
+  (`createElementNS`); `class` и атрибуты (`viewBox`, `fill`, …) ставятся корректно.
+  HTML внутри `<foreignObject>` остаётся HTML.
 - **Компоненты-обёртки** — JSX над хелперами (в духе Solid):
 
 ```tsx
