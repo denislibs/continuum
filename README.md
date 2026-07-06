@@ -20,6 +20,8 @@ needs no build-time transform.
 > ranks, `switch`, with references to Blackheath & Jones, «Functional Reactive
 > Programming» (Manning) — in [FRP-MODEL.md](FRP-MODEL.md) (Russian).
 >
+> ⚛️ Side-by-side React → Continuum code comparisons — in [FROM-REACT.md](FROM-REACT.md) (Russian).
+>
 > 🗺️ The milestone roadmap (publishing → router → docs → hardening →
 > ecosystem) — in [ROADMAP.md](ROADMAP.md) (Russian).
 
