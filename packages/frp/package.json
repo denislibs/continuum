@@ -1,6 +1,6 @@
 {
   "name": "@continuum-js/frp",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Continuum FRP core — Event, Behavior, transactional scheduler",
   "license": "MIT",
   "repository": {
@@ -19,7 +19,9 @@
     },
     "./package.json": "./package.json"
   },
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "sideEffects": false,
   "scripts": {
     "build": "rm -rf dist && tsc -p tsconfig.build.json",
