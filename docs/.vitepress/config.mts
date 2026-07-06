@@ -28,6 +28,15 @@ export default defineConfig({
             ],
           },
           {
+            text: "Guides",
+            items: [
+              { text: "State and derived values", link: "/guides/state" },
+              { text: "Lists", link: "/guides/lists" },
+              { text: "Async", link: "/guides/async" },
+              { text: "Forms", link: "/guides/forms" },
+            ],
+          },
+          {
             text: "Migration",
             items: [{ text: "From React", link: "/from-react" }],
           },
@@ -57,6 +66,18 @@ export default defineConfig({
                 text: "Мышление в Behaviors и Events",
                 link: "/ru/tutorial/thinking-in-frp",
               },
+            ],
+          },
+          {
+            text: "Гайды",
+            items: [
+              {
+                text: "Состояние и производные значения",
+                link: "/ru/guides/state",
+              },
+              { text: "Списки", link: "/ru/guides/lists" },
+              { text: "Асинхронность", link: "/ru/guides/async" },
+              { text: "Формы", link: "/ru/guides/forms" },
             ],
           },
           {
