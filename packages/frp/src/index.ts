@@ -143,6 +143,10 @@ export class Event<A> {
   private listeners: Handler<A>[] = [];
   /** Downstream nodes, used to keep ranks topologically sorted. */
   private targets = new Set<Event<any>>();
+  /** Teardown handles for this node's own subscriptions to its inputs. */
+  private cleanups: Array<() => void> = [];
+  /** True once `dispose()` has run. */
+  disposed = false;
 
   constructor(rank = 0) {
     this.rank = rank;
@@ -183,11 +187,51 @@ export class Event<A> {
     for (const h of ls) h(t, a);
   }
 
+  /**
+   * @internal Subscribe this node to `input`, returning a teardown that also
+   * cascades: if `input` is a derived node left with no listeners, it disposes
+   * too. Sources (no cleanups of their own) are never auto-disposed.
+   */
+  subscribe<X>(input: Event<X>, h: Handler<X>): Unlisten {
+    const un = input.listen_(this, h);
+    return () => {
+      un();
+      if (input.listeners.length === 0 && input.cleanups.length > 0) {
+        input.dispose();
+      }
+    };
+  }
+
+  /** @internal Subscribe to `input` and register the teardown for `dispose()`. */
+  consume<X>(input: Event<X>, h: Handler<X>): void {
+    this.cleanups.push(this.subscribe(input, h));
+  }
+
+  /** @internal Register an extra teardown to run on `dispose()`. */
+  onDispose(fn: () => void): void {
+    this.cleanups.push(fn);
+  }
+
+  /**
+   * Detach this node from its inputs (breaking the push chain so it can be
+   * collected) and drop its downstream links. Idempotent. Cascades upstream
+   * through derived intermediates that become unused, but never to sources.
+   */
+  dispose(): void {
+    if (this.disposed) return;
+    this.disposed = true;
+    const cs = this.cleanups;
+    this.cleanups = [];
+    for (const c of cs) c();
+    this.listeners.length = 0;
+    this.targets.clear();
+  }
+
   // --- combinators -------------------------------------------------------
 
   map<B>(f: (a: A) => B): Event<B> {
     const out = new Event<B>(this.rank + 1);
-    this.listen_(out, (t, a) => out.send_(t, f(a)));
+    out.consume(this, (t, a) => out.send_(t, f(a)));
     return out;
   }
 
@@ -197,7 +241,7 @@ export class Event<A> {
 
   filter(pred: (a: A) => boolean): Event<A> {
     const out = new Event<A>(this.rank + 1);
-    this.listen_(out, (t, a) => {
+    out.consume(this, (t, a) => {
       if (pred(a)) out.send_(t, a);
     });
     return out;
@@ -206,7 +250,7 @@ export class Event<A> {
   /** Sample a behavior at the instant of each occurrence (sees pre-moment value). */
   snapshot<B, C>(b: Behavior<B>, f: (a: A, b: B) => C): Event<C> {
     const out = new Event<C>(this.rank + 1);
-    this.listen_(out, (t, a) => out.send_(t, f(a, b.sampleNoTrans())));
+    out.consume(this, (t, a) => out.send_(t, f(a, b.sampleNoTrans())));
     return out;
   }
 
@@ -219,7 +263,7 @@ export class Event<A> {
     let stagedTx: Transaction | null = null;
     let stagedVal: A;
     const updates = new Event<A>(this.rank + 1);
-    self.listen_(updates, (t, a) => {
+    updates.consume(self, (t, a) => {
       if (stagedTx !== t) {
         stagedTx = t;
         t.last(() => {
@@ -240,7 +284,7 @@ export class Event<A> {
     const self = this;
     const out = new Event<B>(this.rank + 1);
     const acc = out.hold(init); // delayed: snapshot sees previous state
-    self.listen_(out, (t, a) => out.send_(t, f(a, acc.sampleNoTrans())));
+    out.consume(self, (t, a) => out.send_(t, f(a, acc.sampleNoTrans())));
     return out;
   }
 
@@ -251,23 +295,22 @@ export class Event<A> {
 
   /** Only the first occurrence passes. */
   once(): Event<A> {
-    const self = this;
     const out = new Event<A>(this.rank + 1);
     let fired = false;
-    let un: Unlisten = () => {};
-    un = self.listen_(out, (t, a) => {
+    const stop = out.subscribe(this, (t, a) => {
       if (fired) return;
       fired = true;
       out.send_(t, a);
-      un();
+      stop();
     });
+    out.onDispose(stop);
     return out;
   }
 
   /** Pass occurrences only while the behavior is true. */
   gate(b: Behavior<boolean>): Event<A> {
     const out = new Event<A>(this.rank + 1);
-    this.listen_(out, (t, a) => {
+    out.consume(this, (t, a) => {
       if (b.sampleNoTrans()) out.send_(t, a);
     });
     return out;
@@ -312,12 +355,12 @@ export class Event<A> {
         t.prioritized(out.rank, flush); // out.rank may have been bumped
       }
     };
-    ea.listen_(out, (t, a) => {
+    out.consume(ea, (t, a) => {
       schedule(t);
       left = a;
       hasLeft = true;
     });
-    eb.listen_(out, (t, a) => {
+    out.consume(eb, (t, a) => {
       schedule(t);
       right = a;
       hasRight = true;
@@ -361,6 +404,11 @@ export class Behavior<A> {
     return this.updates.listen(h);
   }
 
+  /** Detach this behavior's `updates` from the graph (see `Event.dispose`). */
+  dispose(): void {
+    this.updates.dispose();
+  }
+
   // --- static combinators -----------------------------------------------
 
   /** Applicative with coalescing: apply a behavior-of-function to a value. */
@@ -389,11 +437,11 @@ export class Behavior<A> {
         t.prioritized(out.rank, flush); // out.rank may have been bumped
       }
     };
-    ba.updates.listen_(out, (t, a) => {
+    out.consume(ba.updates, (t, a) => {
       va = a;
       schedule(t);
     });
-    bb.updates.listen_(out, (t, b) => {
+    out.consume(bb.updates, (t, b) => {
       vb = b;
       schedule(t);
     });
@@ -427,17 +475,18 @@ export class Behavior<A> {
   static switchB<A>(bb: Behavior<Behavior<A>>): Behavior<A> {
     let current = bb.sampleNoTrans();
     const out = new Event<A>(current.updates.rank + 1);
-    let innerUn = current.updates.listen_(out, (t, a) => out.send_(t, a));
-    bb.updates.listen_(out, (t, nb) => {
+    let innerUn = out.subscribe(current.updates, (t, a) => out.send_(t, a));
+    out.consume(bb.updates, (t, nb) => {
       // Emit the new inner's current value as this behavior's update.
       out.send_(t, nb.sampleNoTrans());
       // Rewire at the moment boundary (classic switch delay).
       t.last(() => {
         innerUn();
         current = nb;
-        innerUn = current.updates.listen_(out, (t2, a) => out.send_(t2, a));
+        innerUn = out.subscribe(current.updates, (t2, a) => out.send_(t2, a));
       });
     });
+    out.onDispose(() => innerUn());
     return new Behavior<A>(
       () => bb.sampleNoTrans().sampleNoTrans(),
       out
@@ -448,15 +497,16 @@ export class Behavior<A> {
   static switchE<A>(be: Behavior<Event<A>>): Event<A> {
     let current = be.sampleNoTrans();
     const out = new Event<A>(current.rank + 1);
-    let innerUn = current.listen_(out, (t, a) => out.send_(t, a));
-    be.updates.listen_(out, (t, ne) => {
+    let innerUn = out.subscribe(current, (t, a) => out.send_(t, a));
+    out.consume(be.updates, (t, ne) => {
       // Rewire at the moment boundary so the old event stays live this moment.
       t.last(() => {
         innerUn();
         current = ne;
-        innerUn = current.listen_(out, (t2, a) => out.send_(t2, a));
+        innerUn = out.subscribe(current, (t2, a) => out.send_(t2, a));
       });
     });
+    out.onDispose(() => innerUn());
     return out;
   }
 }
@@ -509,7 +559,7 @@ export function distinct<A>(
   const out = new Event<A>(e.rank + 1);
   let hasPrev = false;
   let prev: A;
-  e.listen_(out, (t, a) => {
+  out.consume(e, (t, a) => {
     if (!hasPrev || !eq(prev, a)) {
       hasPrev = true;
       prev = a;
@@ -531,12 +581,14 @@ export function perform<A, B>(
   const [out, fire] = newEvent<Result<unknown, B>>();
   // listen runs in phase post (after the moment closes); the promise
   // settles later, and `fire` opens a brand-new moment.
-  e.listen((a) => {
-    run(a).then(
-      (value) => fire({ ok: true, value }),
-      (error) => fire({ ok: false, error })
-    );
-  });
+  out.onDispose(
+    e.listen((a) => {
+      run(a).then(
+        (value) => fire({ ok: true, value }),
+        (error) => fire({ ok: false, error })
+      );
+    })
+  );
   return out;
 }
 
