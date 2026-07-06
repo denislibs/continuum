@@ -23,7 +23,8 @@
       "@continuum-js/dom/jsx-dev-runtime": [
         "./packages/dom/src/jsx-dev-runtime.ts"
       ],
-      "@continuum-js/std": ["./packages/std/src/index.ts"]
+      "@continuum-js/std": ["./packages/std/src/index.ts"],
+      "@continuum-js/test": ["./packages/test/src/index.ts"]
     }
   }
 }

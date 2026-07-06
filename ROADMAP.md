@@ -104,12 +104,15 @@
 
 Понадобятся и нам (роутер тестировать), и пользователям.
 
-- [ ] `render(view)` → `{ container, dispose }` с автоочисткой между тестами;
-- [ ] `fire(el, event)` и хелперы ввода (`type`, `click`);
-- [ ] `flush()` — дождаться завершения транзакций и фазы post (сейчас в тестах
-      это ad-hoc `await new Promise(...)`);
-- [ ] мок времени для `debounce`/`throttle`/`interval` (интеграция с
-      vitest fake timers).
+- [x] `render(view)` → `{ container, dispose }` с автоочисткой между тестами
+      (`cleanup()` из `afterEach`; контейнеры живут в `document.body` ради
+      честного фокуса/всплытия);
+- [x] `fire(el, event)` и хелперы ввода (`type` посимвольно через `input`,
+      `click`);
+- [x] `flush()` — дренаж микротасков, чтобы результаты `perform` вернулись в
+      сеть (сами транзакции синхронны);
+- [x] мок времени: `advanceTimers(ms)` поверх vitest fake timers (vitest —
+      опциональный peer, импортируется лениво).
 
 ---
 
