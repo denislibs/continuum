@@ -48,3 +48,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+          # setup-node's registry-url writes an .npmrc that reads the token
+          # from NODE_AUTH_TOKEN — without this line publishing runs
+          # unauthenticated and npm masks it as E404 on PUT.
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
