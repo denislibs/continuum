@@ -4,6 +4,7 @@
     { "path": "./packages/frp" },
     { "path": "./packages/dom" },
     { "path": "./packages/std" },
+    { "path": "./packages/test" },
     { "path": "./examples/counter" },
     { "path": "./examples/todo" },
     { "path": "./examples/animation" },

@@ -24,6 +24,10 @@ export default defineConfig({
         replacement: r("./packages/std/src/index.ts"),
       },
       {
+        find: "@continuum-js/test",
+        replacement: r("./packages/test/src/index.ts"),
+      },
+      {
         find: "@continuum-js/frp",
         replacement: r("./packages/frp/src/index.ts"),
       },
