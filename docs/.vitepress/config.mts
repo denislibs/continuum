@@ -13,6 +13,7 @@ function sidebar(
       text: t.introduction,
       items: [
         { text: t.overview, link: `${prefix}/overview` },
+        { text: t.history, link: `${prefix}/history` },
         { text: t.quickStart, link: `${prefix}/quick-start` },
         { text: t.tutorial, link: `${prefix}/tutorial/thinking-in-frp` },
       ],
@@ -52,6 +53,7 @@ function sidebar(
 const en = {
   introduction: "Introduction",
   overview: "Overview",
+  history: "History and context",
   quickStart: "Quick start",
   tutorial: "Thinking in Behaviors and Events",
   concepts: "Concepts",
@@ -73,6 +75,7 @@ const en = {
 const ru = {
   introduction: "Введение",
   overview: "Обзор",
+  history: "История и контекст",
   quickStart: "Быстрый старт",
   tutorial: "Мышление в Behaviors и Events",
   concepts: "Понятия",
