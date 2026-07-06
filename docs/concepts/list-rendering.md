@@ -80,3 +80,7 @@ A static list (data never changes during the subtree's life) is a plain
 ```
 
 `<Each>` is only for lists that are Behaviors.
+
+---
+
+> Unfamiliar term? Every piece of jargon in these docs is explained in the [glossary](/glossary).

@@ -115,3 +115,7 @@ const url = location(); // Behavior<URL> — the singleton
 
 `location()` also follows back/forward buttons (popstate). Deriving from it
 is ordinary FRP: `location().map((u) => u.searchParams.get("q"))`.
+
+---
+
+> Unfamiliar term? Every piece of jargon in these docs is explained in the [glossary](/glossary).

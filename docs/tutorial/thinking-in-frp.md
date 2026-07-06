@@ -35,7 +35,7 @@ The whole model is two types:
   Denotationally `Time → A`: you can't ask it "did it arrive?", only "what is
   it now?". The mouse position, the text of an input, the current count, the
   URL.
-- **`Event<A>`** — _discrete occurrences_: at some moments something happens
+- **`Event<A>`** — [discrete occurrences](/glossary#occurrence): at some moments something happens
   carrying an `A`; at all other moments, nothing does. A click, a keypress, a
   server response, a timer tick.
 
@@ -236,3 +236,7 @@ a Behavior with `idle | loading | ok | error` states rendered by a plain
 - [From React](/from-react) — the correspondence table and paired examples.
 - `npm create continuum-js@latest` — a project scaffold to experiment with as
   you read.
+
+---
+
+> Unfamiliar term? Every piece of jargon in these docs is explained in the [glossary](/glossary).

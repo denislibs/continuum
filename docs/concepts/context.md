@@ -54,3 +54,7 @@ component body (during build), not inside event handlers or async callbacks.
 The router is built on exactly this mechanism: `<Outlet>` and `useParams()`
 read a `RouterContext` carrying the matched chain and the current depth —
 see [Routing](/guides/routing).
+
+---
+
+> Unfamiliar term? Every piece of jargon in these docs is explained in the [glossary](/glossary).

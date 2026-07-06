@@ -189,3 +189,7 @@ expressible.
   Elm walked away from signals.
 - Ryan Carniato — essays on fine-grained reactivity (solidjs.com/blog) —
   the signal tradition first-hand.
+
+---
+
+> Unfamiliar term? Every piece of jargon in these docs is explained in the [glossary](/glossary).

@@ -55,3 +55,7 @@ A Behavior updates **at the boundary of a moment**: within the very
 transaction that changes it, readers still see the old value. That delay is
 what makes simultaneous reads well-defined — the whole story is in
 [Transactions](/concepts/transactions).
+
+---
+
+> Unfamiliar term? Every piece of jargon in these docs is explained in the [glossary](/glossary).

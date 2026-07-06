@@ -113,3 +113,7 @@ const url = location(); // Behavior<URL> — синглтон
 
 `location()` следует и за кнопками назад/вперёд (popstate). Производные от
 него — обычный FRP: `location().map((u) => u.searchParams.get("q"))`.
+
+---
+
+> Незнакомый термин? Вся терминология этой документации объяснена в [глоссарии](/ru/glossary).
