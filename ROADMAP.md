@@ -24,15 +24,19 @@
 Сейчас пакеты отдают TypeScript-исходники (`main: ./src/index.ts`) — это
 работает только внутри workspace с общим tsconfig.
 
-- [ ] Сборка каждого пакета в `dist/` (ESM + `.d.ts`), инструмент — `tsup`
-      или `vite build` в library-режиме;
-- [ ] `exports` maps на `dist/` с условиями `types`/`import`; поле
-      `publishConfig`, `files: ["dist"]`;
-- [ ] у `@continuum/dom` собрать и субпути `jsx-runtime`/`jsx-dev-runtime`;
-- [ ] проверка «чистой установки»: смоук-тест, который ставит собранные
-      тарболы (`npm pack`) во временный проект и компилирует hello-world;
-- [ ] решить вопрос имени в npm (scope `@continuum` может быть занят —
-      проверить заранее, при необходимости выбрать свободный scope);
+- [x] Сборка каждого пакета в `dist/` (ESM + `.d.ts`) — plain `tsc` с
+      `tsconfig.build.json` (module-preserving, без бандлера; внутренние
+      импорты с `.js`-расширениями — dist валиден и для Node ESM);
+- [x] `exports` maps на `dist/` с условиями `types`/`import`; поле
+      `publishConfig`, `files: ["dist"]`; dev внутри монорепо — через
+      `paths` в `tsconfig.base.json` (typecheck не требует dist);
+- [x] у `@continuum/dom` собрать и субпути `jsx-runtime`/`jsx-dev-runtime`;
+- [x] проверка «чистой установки»: `npm run smoke` — pack → установка
+      тарболов в чистый Vite-проект → `tsc --noEmit` + `vite build` +
+      импорт из Node;
+- [ ] решить вопрос имени в npm (scope `@continuum` пуст — 0 пакетов в
+      поиске; свободна ли организация, проверяется только после
+      `npm login`);
 - [ ] версионирование и changelog — `changesets` (работает с workspaces,
       автоматизирует связные бампы frp→dom→std);
 - [ ] GitHub Action `release.yml`: публикация по тегу (это релизный конвейер,

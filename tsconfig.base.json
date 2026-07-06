@@ -9,7 +9,21 @@
     "declaration": true,
     "composite": true,
     "lib": ["es2020", "dom"],
-    "jsx": "react-jsx",
-    "jsxImportSource": "@continuum/dom"
+    // `jsx`/`jsxImportSource` intentionally live in the configs that render
+    // (dom, examples, benchmark) — frp/std must compile without resolving a
+    // JSX runtime at all.
+    // Inside the monorepo the compiler resolves packages to their sources, so
+    // type-checking never depends on built dist/. Published consumers resolve
+    // through each package's `exports` map (dist/) instead; tsconfig.build.json
+    // resets `paths` so package builds see each other the consumer way.
+    "paths": {
+      "@continuum/frp": ["./packages/frp/src/index.ts"],
+      "@continuum/dom": ["./packages/dom/src/index.tsx"],
+      "@continuum/dom/jsx-runtime": ["./packages/dom/src/jsx-runtime.ts"],
+      "@continuum/dom/jsx-dev-runtime": [
+        "./packages/dom/src/jsx-dev-runtime.ts"
+      ],
+      "@continuum/std": ["./packages/std/src/index.ts"]
+    }
   }
 }

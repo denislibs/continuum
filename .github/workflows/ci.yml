@@ -24,3 +24,8 @@ jobs:
 
       - name: Test
         run: npm test
+
+      # Publish contract: packed tarballs must install and build in a clean
+      # Vite project (no monorepo aliases). Perf measurements stay local-only.
+      - name: Smoke (publish contract)
+        run: npm run smoke

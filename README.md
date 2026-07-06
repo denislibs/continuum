@@ -53,6 +53,8 @@ npm run example:showcase # <Dynamic>/<Show>/<Portal> демо
 npm run example:data     # живой поиск: fetch через perform/Result + debounce
 npm run size             # size-limit: gzip/brotli-размер @continuum/frp и /dom
 npm run bench            # Playwright-замер таблицы js-framework-benchmark
+npm run build            # сборка dist/ (ESM + .d.ts) всех публикуемых пакетов
+npm run smoke            # контракт публикации: pack → npm i в чистый Vite-проект → tsc + vite build
 ```
 
 Размер (brotli, с зависимостями): `@continuum/frp` ≈ **1.8 kB**, `@continuum/dom`

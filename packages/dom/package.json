@@ -2,26 +2,40 @@
   "name": "@continuum/dom",
   "version": "0.2.0",
   "description": "Continuum DOM renderer — fine-grained bindings, dynamic regions, ownership, context",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/denislibs/continuum.git",
+    "directory": "packages/dom"
+  },
   "type": "module",
-  "main": "./src/index.tsx",
-  "module": "./src/index.tsx",
-  "types": "./src/index.tsx",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "exports": {
     ".": {
-      "types": "./src/index.tsx",
-      "import": "./src/index.tsx"
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
     },
     "./jsx-runtime": {
-      "types": "./src/jsx-runtime.ts",
-      "import": "./src/jsx-runtime.ts"
+      "types": "./dist/jsx-runtime.d.ts",
+      "import": "./dist/jsx-runtime.js"
     },
     "./jsx-dev-runtime": {
-      "types": "./src/jsx-dev-runtime.ts",
-      "import": "./src/jsx-dev-runtime.ts"
-    }
+      "types": "./dist/jsx-dev-runtime.d.ts",
+      "import": "./dist/jsx-dev-runtime.js"
+    },
+    "./package.json": "./package.json"
   },
-  "files": ["src"],
+  "files": ["dist"],
   "sideEffects": false,
+  "scripts": {
+    "build": "rm -rf dist && tsc -p tsconfig.build.json",
+    "prepack": "npm run build"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
   "dependencies": {
     "@continuum/frp": "0.2.0"
   }
