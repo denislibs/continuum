@@ -1,0 +1,8 @@
+{
+  "files": [],
+  "references": [
+    { "path": "./packages/frp" },
+    { "path": "./packages/dom" },
+    { "path": "./packages/examples" }
+  ]
+}

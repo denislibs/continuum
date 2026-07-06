@@ -1,0 +1,20 @@
+{
+  "name": "@continuum/dom",
+  "version": "0.2.0",
+  "description": "Continuum DOM renderer — fine-grained bindings, dynamic regions, ownership, context",
+  "type": "module",
+  "main": "./src/index.tsx",
+  "module": "./src/index.tsx",
+  "types": "./src/index.tsx",
+  "exports": {
+    ".": {
+      "types": "./src/index.tsx",
+      "import": "./src/index.tsx"
+    }
+  },
+  "files": ["src"],
+  "sideEffects": false,
+  "dependencies": {
+    "@continuum/frp": "0.2.0"
+  }
+}

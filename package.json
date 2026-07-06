@@ -1,0 +1,20 @@
+{
+  "name": "continuum-monorepo",
+  "version": "0.2.0",
+  "private": true,
+  "description": "Continuum — classic FRP (Behaviors + Events) with fine-grained rendering",
+  "type": "module",
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc -b packages/frp packages/dom packages/examples"
+  },
+  "devDependencies": {
+    "jsdom": "^24.1.0",
+    "typescript": "^5.5.0",
+    "vitest": "^2.0.0"
+  }
+}

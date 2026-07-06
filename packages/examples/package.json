@@ -1,0 +1,11 @@
+{
+  "name": "@continuum/examples",
+  "version": "0.2.0",
+  "private": true,
+  "description": "Continuum example components",
+  "type": "module",
+  "dependencies": {
+    "@continuum/dom": "0.2.0",
+    "@continuum/frp": "0.2.0"
+  }
+}
