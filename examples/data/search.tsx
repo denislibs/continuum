@@ -1,6 +1,6 @@
 import { newBehavior } from "@continuum/frp";
 import { bindInput, Dynamic, type Child } from "@continuum/dom";
-import { resource, debounce } from "./async";
+import { resource, debounce } from "@continuum/std";
 
 export interface User {
   id: number;

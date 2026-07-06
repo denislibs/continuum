@@ -16,6 +16,7 @@ export default defineConfig({
         replacement: r("../../packages/dom/src/jsx-runtime.ts"),
       },
       { find: "@continuum/dom", replacement: r("../../packages/dom/src/index.tsx") },
+      { find: "@continuum/std", replacement: r("../../packages/std/src/index.ts") },
       { find: "@continuum/frp", replacement: r("../../packages/frp/src/index.ts") },
     ],
   },

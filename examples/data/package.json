@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@continuum/dom": "0.2.0",
-    "@continuum/frp": "0.2.0"
+    "@continuum/frp": "0.2.0",
+    "@continuum/std": "0.2.0"
   }
 }

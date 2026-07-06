@@ -3,6 +3,7 @@
   "references": [
     { "path": "./packages/frp" },
     { "path": "./packages/dom" },
+    { "path": "./packages/std" },
     { "path": "./examples/counter" },
     { "path": "./examples/todo" },
     { "path": "./examples/animation" },
