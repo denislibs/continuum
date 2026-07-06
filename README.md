@@ -13,6 +13,10 @@
 > 📖 Концептуальное описание модели — от философии до алгебры и следствий —
 > в [PHILOSOPHY.md](PHILOSOPHY.md).
 >
+> ⚙️ Операционная сторона той же модели — транзакции, задержка `hold`, ранги,
+> `switch`, с отсылками к книге Blackheath & Jones «Functional Reactive
+> Programming» (Manning) — в [FRP-MODEL.md](FRP-MODEL.md).
+>
 > 🗺️ План развития по вехам (публикация → роутер → доки → устойчивость →
 > экосистема) — в [ROADMAP.md](ROADMAP.md).
 
