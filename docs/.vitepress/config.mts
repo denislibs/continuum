@@ -13,7 +13,10 @@ export default defineConfig({
       description:
         "Classic FRP for the DOM: Behaviors, Events, and fine-grained rendering with no re-renders.",
       themeConfig: {
-        nav: [{ text: "Tutorial", link: "/tutorial/thinking-in-frp" }],
+        nav: [
+          { text: "Tutorial", link: "/tutorial/thinking-in-frp" },
+          { text: "From React", link: "/from-react" },
+        ],
         sidebar: [
           {
             text: "Tutorial",
@@ -23,6 +26,10 @@ export default defineConfig({
                 link: "/tutorial/thinking-in-frp",
               },
             ],
+          },
+          {
+            text: "Migration",
+            items: [{ text: "From React", link: "/from-react" }],
           },
         ],
         editLink: {
@@ -38,7 +45,10 @@ export default defineConfig({
       description:
         "Классический FRP для DOM: Behaviors, Events и тонкозернистый рендеринг без ре-рендеров.",
       themeConfig: {
-        nav: [{ text: "Туториал", link: "/ru/tutorial/thinking-in-frp" }],
+        nav: [
+          { text: "Туториал", link: "/ru/tutorial/thinking-in-frp" },
+          { text: "Из React", link: "/ru/from-react" },
+        ],
         sidebar: [
           {
             text: "Туториал",
@@ -48,6 +58,10 @@ export default defineConfig({
                 link: "/ru/tutorial/thinking-in-frp",
               },
             ],
+          },
+          {
+            text: "Миграция",
+            items: [{ text: "Из React", link: "/ru/from-react" }],
           },
         ],
         editLink: {

@@ -228,7 +228,6 @@ Behavior с состояниями `idle | loading | ok | error`, которые
 - [FRP-MODEL](https://github.com/denislibs/continuum/blob/main/FRP-MODEL.md) —
   операционный разбор: фазы транзакции, ранги, `switch`, непрерывное время, с
   отсылками к книге _Functional Reactive Programming_ (Blackheath & Jones).
-- [Из React](https://github.com/denislibs/continuum/blob/main/FROM-REACT.md) —
-  таблица соответствий и парные примеры.
+- [Из React](/ru/from-react) — таблица соответствий и парные примеры.
 - `npm create continuum-js@latest` — заготовка проекта, чтобы пробовать по
   ходу чтения.

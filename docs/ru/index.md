@@ -11,7 +11,7 @@ hero:
       link: /ru/tutorial/thinking-in-frp
     - theme: alt
       text: Пришли из React?
-      link: https://github.com/denislibs/continuum/blob/main/FROM-REACT.md
+      link: /ru/from-react
     - theme: alt
       text: GitHub
       link: https://github.com/denislibs/continuum
