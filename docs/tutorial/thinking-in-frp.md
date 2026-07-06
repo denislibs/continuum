@@ -233,7 +233,6 @@ a Behavior with `idle | loading | ok | error` states rendered by a plain
   the operational deep dive: transaction phases, ranks, `switch`, continuous
   time, with references to _Functional Reactive Programming_
   (Blackheath & Jones).
-- [From React](https://github.com/denislibs/continuum/blob/main/FROM-REACT.md) —
-  the correspondence table and paired examples.
+- [From React](/from-react) — the correspondence table and paired examples.
 - `npm create continuum-js@latest` — a project scaffold to experiment with as
   you read.

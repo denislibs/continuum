@@ -1,9 +1,5 @@
 # Из React в Continuum
 
-> Этот документ живёт и на сайте документации:
-> [English](https://denislibs.github.io/continuum/from-react) ·
-> [Русский](https://denislibs.github.io/continuum/ru/from-react)
-
 Один и тот же код бок о бок: слева — идиоматичный React (19, функциональные
 компоненты + хуки), справа — Continuum. Цель — не «React плохой», а показать,
 куда девается каждая привычная конструкция и почему многих из них здесь просто
@@ -432,19 +428,19 @@ pending-состояние — не «подвешенный рендер, по�
   `Result<E, T>`), их рендерят обычным `<Show>`/`<Dynamic>`.
 - **Батчинга как оптимизации.** Транзакции ядра — это не «оптимизация
   склейкой», а модель одновременности: одномоментные изменения атомарны по
-  построению (см. [FRP-MODEL.md](FRP-MODEL.md)).
+  построению (см. [FRP-MODEL.md](https://github.com/denislibs/continuum/blob/main/FRP-MODEL.md)).
 
 ## Что честно сказать про обратную сторону
 
 - **Непривычная модель.** Думать величинами-во-времени и потоками
   происшествий — навык; порог входа выше, чем «просто пиши функции».
-  Читать сначала: [PHILOSOPHY.md](PHILOSOPHY.md), затем
-  [FRP-MODEL.md](FRP-MODEL.md).
+  Читать сначала: [PHILOSOPHY.md](https://github.com/denislibs/continuum/blob/main/PHILOSOPHY.md), затем
+  [FRP-MODEL.md](https://github.com/denislibs/continuum/blob/main/FRP-MODEL.md).
 - **Задержка `hold`.** Внутри одного момента чтения видят значение _до_
   него — это фича (иначе рекурсивное состояние не определить), но первые
   пару раз удивляет.
 - **Экосистема.** У React — вселенная библиотек; у нас — frp/dom/std/router/
   test и дорожная карта.
 
-Живой код всех примеров — в [`examples/`](examples): счётчик, todo, поиск с
+Живой код всех примеров — в [`examples/`](https://github.com/denislibs/continuum/tree/main/examples): счётчик, todo, поиск с
 debounce, анимация, роутер.
