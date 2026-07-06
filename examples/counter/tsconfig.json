@@ -1,0 +1,10 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "dist",
+    "rootDir": "."
+  },
+  "include": ["."],
+  "exclude": ["vite.config.ts", "dist"],
+  "references": [{ "path": "../../packages/frp" }, { "path": "../../packages/dom" }]
+}

@@ -17,24 +17,29 @@
 continuum/
 ├─ packages/
 │  ├─ frp/        @continuum/frp   — ядро: Event, Behavior, планировщик
-│  ├─ dom/        @continuum/dom   — рендерер: h, dyn, each, владение, контекст
-│  └─ examples/   @continuum/examples — Counter, TodoApp + сквозные тесты
+│  └─ dom/        @continuum/dom   — рендерер: h, dyn, each, владение, контекст
+├─ examples/                       — запускаемые примеры (Vite), каждый — отдельно
+│  ├─ counter/    @continuum/example-counter — счётчик из §1.1 + тест
+│  └─ todo/       @continuum/example-todo     — keyed-список (each/when/bindInput) + тест
 ├─ vitest.config.ts   — общий раннер (jsdom, jsxFactory h), алиасы на исходники
 ├─ tsconfig.json      — solution-style, project references
 └─ tsconfig.base.json — общие compilerOptions
 ```
 
-Зависимость строго односторонняя: `dom` → `frp`; `frp` самодостаточен.
+Зависимость строго односторонняя: `dom` → `frp`; `frp` самодостаточен. Примеры
+живут в корневом `examples/` и потребляют пакеты как `@continuum/frp` / `@continuum/dom`.
 
 ## Быстрый старт
 
 ```bash
 npm install
-npm test          # vitest run — 69 тестов
-npm run typecheck # tsc -b по всем пакетам
+npm test              # vitest run — 69 тестов
+npm run typecheck     # tsc -b по всем пакетам
+npm run example:counter  # vite dev-сервер для examples/counter
+npm run example:todo     # vite dev-сервер для examples/todo
 ```
 
-### Счётчик за 10 строк (`@continuum/examples`)
+### Счётчик за 10 строк (`examples/counter`)
 
 ```tsx
 import { newEvent } from "@continuum/frp";

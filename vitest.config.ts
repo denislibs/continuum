@@ -18,6 +18,9 @@ export default defineConfig({
   test: {
     globals: true,
     environment: "jsdom",
-    include: ["packages/*/test/**/*.test.{ts,tsx}"],
+    include: [
+      "packages/*/test/**/*.test.{ts,tsx}",
+      "examples/*/*.test.{ts,tsx}",
+    ],
   },
 });

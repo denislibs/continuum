@@ -1,0 +1,15 @@
+{
+  "name": "@continuum/example-todo",
+  "version": "0.2.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@continuum/dom": "0.2.0",
+    "@continuum/frp": "0.2.0"
+  }
+}
