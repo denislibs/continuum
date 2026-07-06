@@ -1,0 +1,50 @@
+# Release pipeline (changesets).
+#
+# On every push to main:
+#   - if there are pending changesets, the action opens/updates a
+#     "Version Packages" PR (bumps versions, writes changelogs);
+#   - when that PR is merged, the action publishes the bumped packages to npm
+#     and creates git tags.
+#
+# No untrusted event data is interpolated into run: commands (injection-safe).
+# Requires the NPM_TOKEN repository secret (npm automation token with publish
+# rights for the @continuum scope).
+name: Release
+
+on:
+  push:
+    branches: [main]
+
+concurrency: release-${{ github.ref }}
+
+permissions:
+  contents: write
+  pull-requests: write
+  id-token: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          registry-url: https://registry.npmjs.org
+
+      - name: Install
+        run: npm ci
+
+      # Publishing gate: never release something the test suite rejects.
+      - name: Test
+        run: npm test
+
+      - name: Create release PR or publish
+        uses: changesets/action@v1
+        with:
+          publish: npm run release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
