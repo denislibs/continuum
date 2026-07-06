@@ -6,5 +6,9 @@
   },
   "include": ["."],
   "exclude": ["vite.config.ts", "dist"],
-  "references": [{ "path": "../../packages/frp" }, { "path": "../../packages/dom" }]
+  "references": [
+    { "path": "../../packages/frp" },
+    { "path": "../../packages/dom" },
+    { "path": "../../packages/std" }
+  ]
 }

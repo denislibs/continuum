@@ -19,7 +19,8 @@
 continuum/
 ├─ packages/
 │  ├─ frp/        @continuum/frp   — ядро: Event, Behavior, планировщик
-│  └─ dom/        @continuum/dom   — рендерер: h, dyn, each, владение, контекст
+│  ├─ dom/        @continuum/dom   — рендерер: h, dyn, each, владение, контекст
+│  └─ std/        @continuum/std   — комбинаторы: resource, debounce, throttle, …
 ├─ examples/                       — запускаемые примеры (Vite), каждый — отдельно
 │  ├─ counter/    @continuum/example-counter    — счётчик из §1.1 + тест
 │  ├─ todo/       @continuum/example-todo        — <Show>/<Each> + bindInput + тест
@@ -31,8 +32,9 @@ continuum/
 └─ tsconfig.base.json — общие compilerOptions
 ```
 
-Зависимость строго односторонняя: `dom` → `frp`; `frp` самодостаточен. Примеры
-живут в корневом `examples/` и потребляют пакеты как `@continuum/frp` / `@continuum/dom`.
+Зависимости строго односторонние: `dom` → `frp`, `std` → `frp`; `frp`
+самодостаточен. Примеры живут в корневом `examples/` и потребляют пакеты как
+`@continuum/frp` / `@continuum/dom` / `@continuum/std`.
 
 ## Быстрый старт
 
@@ -103,8 +105,9 @@ SVG-неймспейсы (`<svg>`-поддеревья через `createElement
 IO живёт на **границе** сети. `perform` принимает `Event` запросов, запускает
 асинхронный эффект в фазе post (после закрытия момента) и возвращает результат
 новым происшествием — уже как данные, с ошибкой, завёрнутой в `Result`, а не
-выброшенной. Поверх этого [`examples/data`](examples/data) собирает два
-переиспользуемых кирпичика:
+выброшенной. Поверх этого [`@continuum/std`](packages/std) даёт готовые
+переиспользуемые кирпичики (а [`examples/data`](examples/data) показывает их в
+деле):
 
 - `resource(trigger, fetcher): Behavior<Async<T>>` — конечный автомат
   `idle → loading → ok | error`. Запросы нумеруются, поэтому запоздавший ответ на
