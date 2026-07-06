@@ -1,5 +1,5 @@
 import { describe, test, expect } from "vitest";
-import { mount, h } from "@continuum-js/dom";
+import { mount } from "@continuum-js/dom";
 import { TodoApp } from "./todo";
 
 describe("TodoApp", () => {
@@ -17,7 +17,7 @@ describe("TodoApp", () => {
     };
     const submit = () =>
       form.dispatchEvent(
-        new window.Event("submit", { bubbles: true, cancelable: true })
+        new window.Event("submit", { bubbles: true, cancelable: true }),
       );
 
     type("buy milk");
@@ -27,7 +27,7 @@ describe("TodoApp", () => {
 
     expect(container.querySelector(".empty")).toBeNull();
     const items = Array.from(container.querySelectorAll("li")).map(
-      (li) => li.textContent
+      (li) => li.textContent,
     );
     expect(items).toEqual(["buy milk", "write docs"]);
     // draft cleared after submit

@@ -89,7 +89,7 @@ export function interval(ms: number): Event<number> {
 /** Map, dropping occurrences whose result is `null`/`undefined`. */
 export function filterMap<A, B>(
   e: Event<A>,
-  f: (a: A) => B | null | undefined
+  f: (a: A) => B | null | undefined,
 ): Event<B> {
   const out = new Event<B>(e.rank + 1);
   out.consume(e, (t, a) => {
@@ -115,7 +115,7 @@ export function pairwise<A>(e: Event<A>): Event<[A, A]> {
 /** Split a stream by a predicate into `[matching, rest]`. */
 export function partition<A>(
   e: Event<A>,
-  pred: (a: A) => boolean
+  pred: (a: A) => boolean,
 ): [Event<A>, Event<A>] {
   return [e.filter(pred), e.filter((a) => !pred(a))];
 }
@@ -144,7 +144,7 @@ export function previous<A>(b: Behavior<A>, init: A): Behavior<A> {
 /** A behavior that suppresses updates equal to the current value (default `Object.is`). */
 export function distinctB<A>(
   b: Behavior<A>,
-  eq: (x: A, y: A) => boolean = Object.is
+  eq: (x: A, y: A) => boolean = Object.is,
 ): Behavior<A> {
   const out = new Event<A>(b.updates.rank + 1);
   let prev = b.sampleNoTrans();
@@ -178,7 +178,7 @@ export type Async<T> =
  */
 export function resource<A, T>(
   trigger: Event<A>,
-  fetcher: (arg: A) => Promise<T>
+  fetcher: (arg: A) => Promise<T>,
 ): Behavior<Async<T>> {
   const requests = trigger.accumE({ seq: 0, arg: null as A }, (arg, prev) => ({
     seq: prev.seq + 1,
@@ -188,7 +188,7 @@ export function resource<A, T>(
   const latest = requests.map((r) => r.seq).hold(0);
 
   const responses = perform(requests, (r) =>
-    fetcher(r.arg).then((value) => ({ seq: r.seq, value }))
+    fetcher(r.arg).then((value) => ({ seq: r.seq, value })),
   );
 
   const settled = responses

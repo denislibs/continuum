@@ -57,7 +57,11 @@ describe("warp (time remapping)", () => {
 
   test("integrating over a warped clock runs faster", () => {
     const [tick, fire] = newEvent<number>();
-    const x = integral(constant(1), warp(tick, (t) => t * 2), 0);
+    const x = integral(
+      constant(1),
+      warp(tick, (t) => t * 2),
+      0,
+    );
     fire(0); // warped baseline 0
     fire(5); // warped 10 -> dt=10 -> +10 (unwarped would be +5)
     expect(x.sample()).toBe(10);

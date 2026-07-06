@@ -1,5 +1,5 @@
 import { describe, test, expect } from "vitest";
-import { h, mount, dyn, each, onCleanup } from "@continuum-js/dom";
+import { mount, dyn, each, onCleanup } from "@continuum-js/dom";
 import { newBehavior } from "@continuum-js/frp";
 
 describe("dyn", () => {
@@ -20,7 +20,7 @@ describe("dyn", () => {
       dyn(b, (v) => {
         onCleanup(() => log.push("cleanup-" + v));
         return <span>{v}</span>;
-      })
+      }),
     );
     expect(log).toEqual([]);
     set("b");
@@ -37,7 +37,7 @@ describe("dyn", () => {
       dyn(b, (v) => {
         onCleanup(() => log.push("cleanup-" + v));
         return <span>{v}</span>;
-      })
+      }),
     );
     unmount();
     expect(log).toEqual(["cleanup-a"]);
@@ -52,8 +52,8 @@ describe("each", () => {
       each(
         items,
         (i) => i.id,
-        (i) => <li>{String(i.id)}</li>
-      )
+        (i) => <li>{String(i.id)}</li>,
+      ),
     );
     expect(container.querySelectorAll("li").length).toBe(3);
     expect(container.textContent).toBe("123");
@@ -66,8 +66,8 @@ describe("each", () => {
       each(
         items,
         (i) => i.id,
-        (i) => <li>{String(i.id)}</li>
-      )
+        (i) => <li>{String(i.id)}</li>,
+      ),
     );
     expect(container.textContent).toBe("12");
     setItems([{ id: 1 }, { id: 2 }, { id: 3 }]);
@@ -83,8 +83,8 @@ describe("each", () => {
       each(
         items,
         (i) => i.id,
-        (i) => <li id={"row" + i.id}>{String(i.id)}</li>
-      )
+        (i) => <li id={"row" + i.id}>{String(i.id)}</li>,
+      ),
     );
     const row2before = container.querySelector("#row2");
     setItems([{ id: 3 }, { id: 2 }, { id: 1 }]);
@@ -104,8 +104,8 @@ describe("each", () => {
         (i) => {
           renders++;
           return <li>{String(i.id)}</li>;
-        }
-      )
+        },
+      ),
     );
     expect(renders).toBe(2);
     setItems([{ id: 2 }, { id: 1 }]); // reorder only
@@ -125,8 +125,8 @@ describe("each", () => {
         (i) => {
           onCleanup(() => log.push("rm" + i.id));
           return <li>{String(i.id)}</li>;
-        }
-      )
+        },
+      ),
     );
     setItems([{ id: 1 }, { id: 3 }]); // remove 2
     expect(log).toEqual(["rm2"]);

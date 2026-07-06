@@ -14,7 +14,10 @@ export function TimeWarpDemo() {
   const v = constant(SPEED);
 
   const xNormal = integral(v, ticks);
-  const xFast = integral(v, warp(ticks, (t) => t * 2));
+  const xFast = integral(
+    v,
+    warp(ticks, (t) => t * 2),
+  );
 
   const track = (x: Behavior<number>, color: string) => {
     const boxStyle = x.map((px) => ({

@@ -1,5 +1,5 @@
 import { describe, test, expect } from "vitest";
-import { mount, h } from "@continuum-js/dom";
+import { mount } from "@continuum-js/dom";
 import { Counter } from "./counter";
 
 describe("Counter (end-to-end DOM -> Event -> Behavior -> DOM)", () => {

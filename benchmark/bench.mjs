@@ -31,7 +31,7 @@ async function measureClick(page, sel) {
     const start = performance.now();
     el.click();
     await new Promise((r) =>
-      requestAnimationFrame(() => requestAnimationFrame(() => r()))
+      requestAnimationFrame(() => requestAnimationFrame(() => r())),
     );
     return performance.now() - start;
   }, sel);
@@ -42,11 +42,11 @@ async function clickAndSettle(page, sel, expectRows) {
   if (expectRows != null) {
     await page.waitForFunction(
       (n) => document.querySelectorAll("tbody tr").length === n,
-      expectRows
+      expectRows,
     );
   }
   await page.evaluate(
-    () => new Promise((r) => requestAnimationFrame(() => r()))
+    () => new Promise((r) => requestAnimationFrame(() => r())),
   );
 }
 
@@ -96,7 +96,7 @@ async function main() {
     ({ chromium } = await import("playwright"));
   } catch {
     console.error(
-      "Playwright is not installed. Run:\n  npm i -D playwright && npx playwright install chromium"
+      "Playwright is not installed. Run:\n  npm i -D playwright && npx playwright install chromium",
     );
     process.exit(1);
   }
@@ -114,7 +114,7 @@ async function main() {
   } catch (err) {
     console.error(
       "Could not launch Chromium. Install it with:\n  npx playwright install chromium\n",
-      err.message
+      err.message,
     );
     server.httpServer.close();
     process.exit(1);
@@ -140,7 +140,7 @@ async function main() {
   server.httpServer.close();
 
   console.log(
-    `\nContinuum -- js-framework-benchmark (median of ${REPEAT} runs, ${WARMUP} warmups)\n`
+    `\nContinuum -- js-framework-benchmark (median of ${REPEAT} runs, ${WARMUP} warmups)\n`,
   );
   console.table(results);
 }

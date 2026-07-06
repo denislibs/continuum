@@ -325,7 +325,7 @@ export class Event<A> {
   static merge<A>(
     ea: Event<A>,
     eb: Event<A>,
-    combine: (l: A, r: A) => A
+    combine: (l: A, r: A) => A,
   ): Event<A> {
     const rank = Math.max(ea.rank, eb.rank) + 1;
     const out = new Event<A>(rank);
@@ -337,11 +337,7 @@ export class Event<A> {
     const flush = (t: Transaction) => {
       scheduledTx = null;
       const val =
-        hasLeft && hasRight
-          ? combine(left, right)
-          : hasLeft
-          ? left
-          : right;
+        hasLeft && hasRight ? combine(left, right) : hasLeft ? left : right;
       hasLeft = false;
       hasRight = false;
       out.send_(t, val);
@@ -383,7 +379,7 @@ export class Behavior<A> {
     /** Pull the current value without opening a transaction. */
     public sampleNoTrans: () => A,
     /** Push notifications of discrete changes (empty for continuous behaviors). */
-    public updates: Event<A>
+    public updates: Event<A>,
   ) {}
 
   sample(): A {
@@ -392,10 +388,7 @@ export class Behavior<A> {
 
   /** Pointwise transform (continuous-safe: recomputed on each sample). */
   map<B>(f: (a: A) => B): Behavior<B> {
-    return new Behavior<B>(
-      () => f(this.sampleNoTrans()),
-      this.updates.map(f)
-    );
+    return new Behavior<B>(() => f(this.sampleNoTrans()), this.updates.map(f));
   }
 
   /** Deliver the current value immediately, then every change. */
@@ -422,7 +415,7 @@ export class Behavior<A> {
   static lift2<A, B, C>(
     f: (a: A, b: B) => C,
     ba: Behavior<A>,
-    bb: Behavior<B>
+    bb: Behavior<B>,
   ): Behavior<C> {
     const rank = Math.max(ba.updates.rank, bb.updates.rank) + 1;
     const out = new Event<C>(rank);
@@ -449,7 +442,7 @@ export class Behavior<A> {
     });
     return new Behavior<C>(
       () => f(ba.sampleNoTrans(), bb.sampleNoTrans()),
-      out
+      out,
     );
   }
 
@@ -458,12 +451,12 @@ export class Behavior<A> {
     f: (a: A, b: B, c: C) => D,
     ba: Behavior<A>,
     bb: Behavior<B>,
-    bc: Behavior<C>
+    bc: Behavior<C>,
   ): Behavior<D> {
     const partial = Behavior.lift2(
       (a: A, b: B) => (c: C) => f(a, b, c),
       ba,
-      bb
+      bb,
     );
     return Behavior.lift2((g, c) => g(c), partial, bc);
   }
@@ -489,10 +482,7 @@ export class Behavior<A> {
       });
     });
     out.onDispose(() => innerUn());
-    return new Behavior<A>(
-      () => bb.sampleNoTrans().sampleNoTrans(),
-      out
-    );
+    return new Behavior<A>(() => bb.sampleNoTrans().sampleNoTrans(), out);
   }
 
   /** Follow the event currently selected by a behavior. */
@@ -546,9 +536,7 @@ export function time(): Behavior<number> {
 // Effects & de-duplication (§6.5)
 // ---------------------------------------------------------------------------
 
-export type Result<E, T> =
-  | { ok: true; value: T }
-  | { ok: false; error: E };
+export type Result<E, T> = { ok: true; value: T } | { ok: false; error: E };
 
 /**
  * De-duplicate consecutive equal values (filter with one-value memory).
@@ -556,7 +544,7 @@ export type Result<E, T> =
  */
 export function distinct<A>(
   e: Event<A>,
-  eq: (a: A, b: A) => boolean = Object.is
+  eq: (a: A, b: A) => boolean = Object.is,
 ): Event<A> {
   const out = new Event<A>(e.rank + 1);
   let hasPrev = false;
@@ -578,7 +566,7 @@ export function distinct<A>(
  */
 export function perform<A, B>(
   e: Event<A>,
-  run: (a: A) => Promise<B>
+  run: (a: A) => Promise<B>,
 ): Event<Result<unknown, B>> {
   const [out, fire] = newEvent<Result<unknown, B>>();
   // listen runs in phase post (after the moment closes); the promise
@@ -587,9 +575,9 @@ export function perform<A, B>(
     e.listen((a) => {
       run(a).then(
         (value) => fire({ ok: true, value }),
-        (error) => fire({ ok: false, error })
+        (error) => fire({ ok: false, error }),
       );
-    })
+    }),
   );
   return out;
 }

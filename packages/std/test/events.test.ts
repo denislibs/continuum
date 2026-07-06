@@ -1,6 +1,12 @@
 import { describe, test, expect } from "vitest";
 import { newEvent } from "@continuum-js/frp";
-import { filterMap, pairwise, partition, count, sampleWith } from "@continuum-js/std";
+import {
+  filterMap,
+  pairwise,
+  partition,
+  count,
+  sampleWith,
+} from "@continuum-js/std";
 import { newBehavior } from "@continuum-js/frp";
 
 describe("event combinators", () => {

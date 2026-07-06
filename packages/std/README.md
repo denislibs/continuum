@@ -6,7 +6,7 @@
 которых ядро не отдаёт наружу.
 
 ```ts
-import { resource, debounce, /* … */ } from "@continuum-js/std";
+import { resource, debounce /* … */ } from "@continuum-js/std";
 ```
 
 ## Тайминг
@@ -14,31 +14,31 @@ import { resource, debounce, /* … */ } from "@continuum-js/std";
 Мост к настенным часам (`setTimeout`/`setInterval`). Каждый возвращает событие,
 которое гасит свой таймер в `dispose()`.
 
-| | |
-|---|---|
+|                   |                                                                 |
+| ----------------- | --------------------------------------------------------------- |
 | `debounce(e, ms)` | эмит после `ms` тишины, всплеск коалесится в последнее значение |
-| `throttle(e, ms)` | пропустить первое происшествие, затем игнорировать `ms` |
-| `delay(e, ms)` | сдвинуть каждое происшествие на `ms` позже |
-| `interval(ms)` | источник, тикающий `1, 2, 3, …` каждые `ms` |
+| `throttle(e, ms)` | пропустить первое происшествие, затем игнорировать `ms`         |
+| `delay(e, ms)`    | сдвинуть каждое происшествие на `ms` позже                      |
+| `interval(ms)`    | источник, тикающий `1, 2, 3, …` каждые `ms`                     |
 
 ## Форма потоков
 
 Производные события над графом (glitch-free, по рангам).
 
-| | |
-|---|---|
-| `filterMap(e, f)` | map с отбрасыванием `null`/`undefined` |
-| `pairwise(e)` | `[prev, curr]`, начиная со второго происшествия |
-| `partition(e, pred)` | разбить поток на `[подходящие, остальные]` |
-| `count(e)` | `Behavior<number>` — сколько раз событие случилось |
-| `sampleWith(trigger, b)` | значение `b` в момент каждого `trigger` |
+|                          |                                                    |
+| ------------------------ | -------------------------------------------------- |
+| `filterMap(e, f)`        | map с отбрасыванием `null`/`undefined`             |
+| `pairwise(e)`            | `[prev, curr]`, начиная со второго происшествия    |
+| `partition(e, pred)`     | разбить поток на `[подходящие, остальные]`         |
+| `count(e)`               | `Behavior<number>` — сколько раз событие случилось |
+| `sampleWith(trigger, b)` | значение `b` в момент каждого `trigger`            |
 
 ## Поведения
 
-| | |
-|---|---|
+|                     |                                                                |
+| ------------------- | -------------------------------------------------------------- |
 | `previous(b, init)` | поведение, отстающее на шаг (значение до последнего изменения) |
-| `distinctB(b, eq?)` | подавляет обновления, равные текущему значению |
+| `distinctB(b, eq?)` | подавляет обновления, равные текущему значению                 |
 
 ## Асинхронные данные (HTTP)
 
@@ -53,7 +53,9 @@ import { resource, debounce, /* … */ } from "@continuum-js/std";
 
 ```ts
 const query = debounce(input.updates, 300).filter((s) => s.length > 0);
-const users = resource(query, (q) => fetch(`/api?q=${q}`).then((r) => r.json()));
+const users = resource(query, (q) =>
+  fetch(`/api?q=${q}`).then((r) => r.json()),
+);
 // users: Behavior<Async<User[]>>  — рисуй по users.status
 ```
 

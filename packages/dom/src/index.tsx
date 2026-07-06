@@ -96,14 +96,53 @@ const SVG_NS = "http://www.w3.org/2000/svg";
 // SVG-specific tag names. Ambiguous names shared with HTML (a, title, script,
 // style) are treated as HTML; use them inside `foreignObject` for HTML content.
 const SVG_TAGS = new Set([
-  "svg", "g", "defs", "symbol", "use", "image", "switch", "foreignObject",
-  "path", "rect", "circle", "ellipse", "line", "polyline", "polygon",
-  "text", "tspan", "textPath", "marker", "desc", "metadata", "view",
-  "linearGradient", "radialGradient", "stop", "clipPath", "mask", "pattern",
-  "filter", "feGaussianBlur", "feOffset", "feBlend", "feColorMatrix",
-  "feComposite", "feFlood", "feMerge", "feMergeNode", "feImage", "feTile",
-  "feMorphology", "feDisplacementMap", "feTurbulence", "animate",
-  "animateTransform", "animateMotion", "mpath", "set",
+  "svg",
+  "g",
+  "defs",
+  "symbol",
+  "use",
+  "image",
+  "switch",
+  "foreignObject",
+  "path",
+  "rect",
+  "circle",
+  "ellipse",
+  "line",
+  "polyline",
+  "polygon",
+  "text",
+  "tspan",
+  "textPath",
+  "marker",
+  "desc",
+  "metadata",
+  "view",
+  "linearGradient",
+  "radialGradient",
+  "stop",
+  "clipPath",
+  "mask",
+  "pattern",
+  "filter",
+  "feGaussianBlur",
+  "feOffset",
+  "feBlend",
+  "feColorMatrix",
+  "feComposite",
+  "feFlood",
+  "feMerge",
+  "feMergeNode",
+  "feImage",
+  "feTile",
+  "feMorphology",
+  "feDisplacementMap",
+  "feTurbulence",
+  "animate",
+  "animateTransform",
+  "animateMotion",
+  "mpath",
+  "set",
 ]);
 
 function createEl(tag: string): Element {
@@ -253,20 +292,23 @@ export function h(
 // fragment's top-level nodes and the scope's dispose handle.
 function buildScoped(
   owner: Owner | null,
-  build: () => Child
+  build: () => Child,
 ): { nodes: Node[]; dispose: () => void } {
   const s = runUnder(owner, () =>
     scope(() => {
       const built = build();
       // Fast path: a single element/text node (the common row/component case)
       // needs no fragment or NodeList copy.
-      if (built instanceof Node && built.nodeType !== 11 /* DocumentFragment */) {
+      if (
+        built instanceof Node &&
+        built.nodeType !== 11 /* DocumentFragment */
+      ) {
         return [built];
       }
       const frag = document.createDocumentFragment();
       appendChild(frag, built);
       return Array.from(frag.childNodes);
-    })
+    }),
   );
   return { nodes: s.value, dispose: s.dispose };
 }
@@ -334,7 +376,7 @@ function lisIndices(seq: number[]): Set<number> {
 export function each<T, K>(
   items: Behavior<T[]>,
   key: (item: T) => K,
-  render: (item: T) => Child
+  render: (item: T) => Child,
 ): Node {
   const owner = currentOwner;
   const start = document.createComment("each");
@@ -372,8 +414,7 @@ export function each<T, K>(
     for (const r of rows) {
       if (!seen.has(r.key)) {
         r.dispose();
-        for (const n of r.nodes)
-          if (n.parentNode) n.parentNode.removeChild(n);
+        for (const n of r.nodes) if (n.parentNode) n.parentNode.removeChild(n);
       }
     }
 
@@ -455,22 +496,21 @@ function distinctB<T>(b: Behavior<T>): Behavior<T> {
 export function when(
   cond: Behavior<boolean>,
   thenRender: () => Child,
-  elseRender?: () => Child
+  elseRender?: () => Child,
 ): Node {
   return dyn(distinctB(cond), (c) =>
-    c ? thenRender() : elseRender ? elseRender() : null
+    c ? thenRender() : elseRender ? elseRender() : null,
   );
 }
 
 /** Two-way binding props for a text input. Spread onto an `<input>`. */
 export function bindInput(
   value: Behavior<string>,
-  set: (v: string) => void
+  set: (v: string) => void,
 ): { value: Behavior<string>; onInput: (e: globalThis.Event) => void } {
   return {
     value,
-    onInput: (e: globalThis.Event) =>
-      set((e.target as HTMLInputElement).value),
+    onInput: (e: globalThis.Event) => set((e.target as HTMLInputElement).value),
   };
 }
 
@@ -489,8 +529,7 @@ export function portal(target: Node, child: Child): Node {
 export function mount(container: Node, view: () => Node): () => void {
   return root((dispose) => {
     const node = view();
-    const nodes =
-      node.nodeType === 11 ? Array.from(node.childNodes) : [node];
+    const nodes = node.nodeType === 11 ? Array.from(node.childNodes) : [node];
     container.appendChild(node);
     onCleanup(() => {
       for (const n of nodes) if (n.parentNode) n.parentNode.removeChild(n);
@@ -551,7 +590,7 @@ export function Show<T>(props: {
   return when(
     present,
     () => render(props.when.sample() as NonNullable<T>),
-    props.fallback
+    props.fallback,
   );
 }
 

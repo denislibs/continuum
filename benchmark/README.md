@@ -35,14 +35,14 @@ npm run bench                      # из корня монорепо
 
 Пример вывода (headless Chromium, для калибровки — не абсолютная истина):
 
-| operation | median ms |
-|---|---|
-| create rows (1k) | ~32 |
-| replace all rows (1k) | ~33 |
-| partial update (every 10th) | ~19 |
-| select row | ~15 |
-| swap rows | ~15 |
-| remove row | ~15 |
-| append rows (1k) | ~38 |
-| create many rows (10k) | ~300 |
-| clear rows (1k) | ~16 |
+| operation                   | median ms |
+| --------------------------- | --------- |
+| create rows (1k)            | ~32       |
+| replace all rows (1k)       | ~33       |
+| partial update (every 10th) | ~19       |
+| select row                  | ~15       |
+| swap rows                   | ~15       |
+| remove row                  | ~15       |
+| append rows (1k)            | ~38       |
+| create many rows (10k)      | ~300      |
+| clear rows (1k)             | ~16       |

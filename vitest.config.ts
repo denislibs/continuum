@@ -15,9 +15,18 @@ export default defineConfig({
         find: "@continuum-js/dom/jsx-runtime",
         replacement: r("./packages/dom/src/jsx-runtime.ts"),
       },
-      { find: "@continuum-js/dom", replacement: r("./packages/dom/src/index.tsx") },
-      { find: "@continuum-js/std", replacement: r("./packages/std/src/index.ts") },
-      { find: "@continuum-js/frp", replacement: r("./packages/frp/src/index.ts") },
+      {
+        find: "@continuum-js/dom",
+        replacement: r("./packages/dom/src/index.tsx"),
+      },
+      {
+        find: "@continuum-js/std",
+        replacement: r("./packages/std/src/index.ts"),
+      },
+      {
+        find: "@continuum-js/frp",
+        replacement: r("./packages/frp/src/index.ts"),
+      },
     ],
   },
   esbuild: {

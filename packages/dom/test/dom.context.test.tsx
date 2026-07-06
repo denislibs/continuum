@@ -1,6 +1,5 @@
 import { describe, test, expect } from "vitest";
 import {
-  h,
   mount,
   dyn,
   createContext,
@@ -84,8 +83,8 @@ describe("when", () => {
           thenRenders++;
           return <span>yes</span>;
         },
-        () => <span>no</span>
-      )
+        () => <span>no</span>,
+      ),
     );
     expect(container.textContent).toBe("yes");
     expect(thenRenders).toBe(1);

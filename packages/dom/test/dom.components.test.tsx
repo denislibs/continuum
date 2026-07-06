@@ -1,5 +1,5 @@
 import { describe, test, expect } from "vitest";
-import { h, mount, Show, Each, Dynamic, Portal } from "@continuum-js/dom";
+import { mount, Show, Each, Dynamic, Portal } from "@continuum-js/dom";
 import { newBehavior } from "@continuum-js/frp";
 
 describe("<Show>", () => {

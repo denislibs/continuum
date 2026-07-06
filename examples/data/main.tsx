@@ -5,7 +5,7 @@ import { UserSearch, type User } from "./search";
 // Everything inside the component treats it as an injected dependency.
 async function searchGitHub(query: string): Promise<User[]> {
   const res = await fetch(
-    `https://api.github.com/search/users?q=${encodeURIComponent(query)}&per_page=10`
+    `https://api.github.com/search/users?q=${encodeURIComponent(query)}&per_page=10`,
   );
   if (!res.ok) throw new Error(`GitHub ${res.status}`);
   const data = (await res.json()) as { items: User[] };

@@ -6,6 +6,9 @@ import { jsx } from "./jsx-runtime.js";
 
 export { Fragment, JSX } from "./jsx-runtime.js";
 
-export function jsxDEV(type: unknown, props: Record<string, unknown> | null): Node {
+export function jsxDEV(
+  type: unknown,
+  props: Record<string, unknown> | null,
+): Node {
   return jsx(type, props);
 }

@@ -1,10 +1,14 @@
 import { describe, test, expect } from "vitest";
-import { h, Fragment, mount } from "@continuum-js/dom";
+import { mount } from "@continuum-js/dom";
 import { newEvent, newBehavior } from "@continuum-js/frp";
 
 describe("h — static elements", () => {
   test("creates an element with attributes and text children", () => {
-    const el = (<div id="x" title="hello">world</div>) as HTMLElement;
+    const el = (
+      <div id="x" title="hello">
+        world
+      </div>
+    ) as HTMLElement;
     expect(el.tagName).toBe("DIV");
     expect(el.id).toBe("x");
     expect(el.getAttribute("title")).toBe("hello");
@@ -12,7 +16,9 @@ describe("h — static elements", () => {
   });
 
   test("class and style object", () => {
-    const el = (<div class="a b" style={{ color: "red", fontSize: "10px" }} />) as HTMLElement;
+    const el = (
+      <div class="a b" style={{ color: "red", fontSize: "10px" }} />
+    ) as HTMLElement;
     expect(el.className).toBe("a b");
     expect(el.style.color).toBe("red");
     expect(el.style.fontSize).toBe("10px");
@@ -64,11 +70,7 @@ describe("h — fine-grained bindings", () => {
 
   test("mixed static and reactive children keep their positions", () => {
     const [b, set] = newBehavior(1);
-    const el = (
-      <div>
-        count: {b}!
-      </div>
-    ) as HTMLElement;
+    const el = (<div>count: {b}!</div>) as HTMLElement;
     expect(el.textContent).toBe("count: 1!");
     set(2);
     expect(el.textContent).toBe("count: 2!");
@@ -78,7 +80,9 @@ describe("h — fine-grained bindings", () => {
 describe("h — events", () => {
   test("on* handlers attach DOM listeners", () => {
     let fired = 0;
-    const btn = (<button onClick={() => fired++}>x</button>) as HTMLButtonElement;
+    const btn = (
+      <button onClick={() => fired++}>x</button>
+    ) as HTMLButtonElement;
     btn.click();
     btn.click();
     expect(fired).toBe(2);

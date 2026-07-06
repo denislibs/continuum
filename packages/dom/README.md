@@ -49,8 +49,8 @@ setName("continuum"); // патчится один текст-узел
 {
   "compilerOptions": {
     "jsx": "react-jsx",
-    "jsxImportSource": "@continuum-js/dom"
-  }
+    "jsxImportSource": "@continuum-js/dom",
+  },
 }
 ```
 
