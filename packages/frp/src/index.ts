@@ -400,7 +400,9 @@ export class Behavior<A> {
 
   /** Deliver the current value immediately, then every change. */
   listen(h: (a: A) => void): Unlisten {
-    h(this.sample());
+    // Initial delivery is a pure read; sample directly instead of opening a
+    // fresh transaction per listener (hot path when building many bindings).
+    h(this.sampleNoTrans());
     return this.updates.listen(h);
   }
 
