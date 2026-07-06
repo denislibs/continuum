@@ -1,6 +1,6 @@
 {
   "name": "@continuum-js/test",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "Continuum test utilities — render, event helpers, flush, fake-timer integration",
   "license": "MIT",
   "repository": {
