@@ -8,6 +8,7 @@
     { "path": "./examples/todo" },
     { "path": "./examples/animation" },
     { "path": "./examples/showcase" },
-    { "path": "./examples/data" }
+    { "path": "./examples/data" },
+    { "path": "./benchmark" }
   ]
 }
