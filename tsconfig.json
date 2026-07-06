@@ -4,6 +4,7 @@
     { "path": "./packages/frp" },
     { "path": "./packages/dom" },
     { "path": "./examples/counter" },
-    { "path": "./examples/todo" }
+    { "path": "./examples/todo" },
+    { "path": "./examples/animation" }
   ]
 }

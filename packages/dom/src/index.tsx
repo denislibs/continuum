@@ -2,7 +2,7 @@
 // Fine-grained rendering over the frp core: bindings, dynamic regions,
 // keyed lists, an ownership tree for lifecycle, and context.
 
-import { Behavior, Event } from "@continuum/frp";
+import { Behavior, Event, newEvent } from "@continuum/frp";
 import type { Unlisten } from "@continuum/frp";
 
 // ---------------------------------------------------------------------------
@@ -458,4 +458,23 @@ export function mount(container: Node, view: () => Node): () => void {
     });
     return () => dispose();
   });
+}
+
+// ---------------------------------------------------------------------------
+// Animation clock (browser) — a discrete tick source for continuous time.
+// ---------------------------------------------------------------------------
+
+/**
+ * An `Event<number>` of `requestAnimationFrame` timestamps (ms). Drives the
+ * continuous-time combinators (`integral`/`derivative`/`warp` from the core).
+ * Registered against the current owner: it stops automatically on unmount.
+ */
+export function animationFrames(): Event<number> {
+  const [ticks, fire] = newEvent<number>();
+  let raf = requestAnimationFrame(function loop(t) {
+    fire(t);
+    raf = requestAnimationFrame(loop);
+  });
+  onCleanup(() => cancelAnimationFrame(raf));
+  return ticks;
 }
