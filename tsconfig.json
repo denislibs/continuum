@@ -5,6 +5,7 @@
     { "path": "./packages/dom" },
     { "path": "./examples/counter" },
     { "path": "./examples/todo" },
-    { "path": "./examples/animation" }
+    { "path": "./examples/animation" },
+    { "path": "./examples/showcase" }
   ]
 }
