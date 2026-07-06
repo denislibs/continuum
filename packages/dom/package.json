@@ -1,5 +1,5 @@
 {
-  "name": "@continuum/dom",
+  "name": "@continuum-js/dom",
   "version": "0.2.0",
   "description": "Continuum DOM renderer — fine-grained bindings, dynamic regions, ownership, context",
   "license": "MIT",
@@ -37,6 +37,6 @@
     "access": "public"
   },
   "dependencies": {
-    "@continuum/frp": "0.2.0"
+    "@continuum-js/frp": "0.2.0"
   }
 }

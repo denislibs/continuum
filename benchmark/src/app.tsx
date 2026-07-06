@@ -1,5 +1,5 @@
-import { newBehavior, type Behavior } from "@continuum/frp";
-import { Each } from "@continuum/dom";
+import { newBehavior, type Behavior } from "@continuum-js/frp";
+import { Each } from "@continuum-js/dom";
 import { buildRows, swap, type Row } from "./data";
 
 // The standard js-framework-benchmark "keyed" table. Operations mutate a plain

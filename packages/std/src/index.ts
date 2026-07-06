@@ -3,7 +3,7 @@
 // real apps: timing, async data, stream shaping, behavior helpers. Nothing here
 // touches internals the core doesn't already expose.
 
-import { Event, Behavior, newEvent, perform } from "@continuum/frp";
+import { Event, Behavior, newEvent, perform } from "@continuum-js/frp";
 
 // ===========================================================================
 // Timing — bridges to the wall clock via setTimeout/setInterval. Each returns

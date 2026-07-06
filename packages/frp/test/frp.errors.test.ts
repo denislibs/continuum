@@ -1,5 +1,5 @@
 import { describe, test, expect } from "vitest";
-import { newEvent } from "@continuum/frp";
+import { newEvent } from "@continuum-js/frp";
 
 describe("error semantics (§5.1 + isolation)", () => {
   test("exception in a combinator propagates but the engine recovers", () => {

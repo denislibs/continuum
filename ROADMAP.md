@@ -6,7 +6,7 @@
 
 Текущее состояние (v0.2): ядро FRP (транзакции, ранги, коалесинг), рендерер
 (fine-grained привязки, `each` с LIS, владение, контекст, jsx-runtime),
-`@continuum/std` (resource, debounce, …), непрерывное время
+`@continuum-js/std` (resource, debounce, …), непрерывное время
 (`integral`/`derivative`/`warp`), 5 примеров, бенчмарк js-framework-benchmark,
 бюджеты size-limit, CI.
 
@@ -30,7 +30,7 @@
 - [x] `exports` maps на `dist/` с условиями `types`/`import`; поле
       `publishConfig`, `files: ["dist"]`; dev внутри монорепо — через
       `paths` в `tsconfig.base.json` (typecheck не требует dist);
-- [x] у `@continuum/dom` собрать и субпути `jsx-runtime`/`jsx-dev-runtime`;
+- [x] у `@continuum-js/dom` собрать и субпути `jsx-runtime`/`jsx-dev-runtime`;
 - [x] проверка «чистой установки»: `npm run smoke` — pack → установка
       тарболов в чистый Vite-проект → `tsc --noEmit` + `vite build` +
       импорт из Node;
@@ -42,14 +42,14 @@
 - [ ] GitHub Action `release.yml`: публикация по тегу (это релизный конвейер,
       а не проверка на PR — замеры перформанса в CI по-прежнему не гоняем).
 
-Критерий готовности: `npm i @continuum/dom` в пустом Vite-проекте — и счётчик
+Критерий готовности: `npm i @continuum-js/dom` в пустом Vite-проекте — и счётчик
 из README работает без правок tsconfig.
 
 ### 🔴 `create-continuum` — scaffold CLI
 
 - [ ] пакет `packages/create-continuum` (bin), запускается через
       `npm create continuum@latest my-app`;
-- [ ] шаблон: Vite + TS, `jsxImportSource: "@continuum/dom"`, готовый
+- [ ] шаблон: Vite + TS, `jsxImportSource: "@continuum-js/dom"`, готовый
       counter-компонент, vitest с jsdom;
 - [ ] минимум вопросов (имя проекта; со временем — выбор шаблона);
 - [ ] e2e-тест: сгенерировать проект во временную папку → `npm i` →
@@ -64,7 +64,7 @@
 - [ ] JSDoc на каждый публичный символ (сигнатура + пример в одну строку);
 - [ ] единообразие имён (`when`/`Show`, `dyn`/`Dynamic`, `each`/`Each` —
       задокументировать пары «функция ↔ компонент» как осознанную симметрию);
-- [ ] `@continuum/std` добавить в бюджеты `.size-limit.json`.
+- [ ] `@continuum-js/std` добавить в бюджеты `.size-limit.json`.
 
 ---
 
@@ -73,7 +73,7 @@
 Цель: маршрутизация как первоклассный житель FRP-модели. URL — это буквально
 `Behavior<Route>`; это самая выигрышная демонстрация подхода.
 
-### 🔴 `@continuum/router`
+### 🔴 `@continuum-js/router`
 
 - [ ] `location(): Behavior<URL>` поверх History API (popstate + перехват
       навигаций), `navigate(to)` — событийный вход;
@@ -93,7 +93,7 @@
 Критерий готовности: todo-пример переписывается в многостраничное приложение
 без хаков, back/forward браузера работает, утечек владения нет (тест).
 
-### 🟡 Тест-утилиты `@continuum/test`
+### 🟡 Тест-утилиты `@continuum-js/test`
 
 Понадобятся и нам (роутер тестировать), и пользователям.
 
@@ -190,7 +190,7 @@
       пересоздания; спроектировать маркеры динамических областей;
 - [ ] SSR имеет смысл только после роутера и публикации — потому здесь.
 
-### 🟡 `@continuum/forms`
+### 🟡 `@continuum-js/forms`
 
 - [ ] поле = `Behavior<T>` + валидность = производный `Behavior<Result>`,
       «touched/dirty» — производные от событий;
@@ -212,7 +212,7 @@
 
 - [ ] transition/анимации ухода в `Each`/`Show` (владение уже даёт хук:
       отложенное уничтожение);
-- [ ] `@continuum/query` — слой поверх resource: кэш по ключу, инвалидация,
+- [ ] `@continuum-js/query` — слой поверх resource: кэш по ключу, инвалидация,
       refetch on focus;
 - [ ] адаптеры интеропа: использовать Continuum-компонент внутри
       React/Vue-приложения (виджетный сценарий — реалистичный путь миграции).

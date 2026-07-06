@@ -1,6 +1,6 @@
 import { describe, test, expect } from "vitest";
-import { h, Fragment, mount } from "@continuum/dom";
-import { newEvent, newBehavior } from "@continuum/frp";
+import { h, Fragment, mount } from "@continuum-js/dom";
+import { newEvent, newBehavior } from "@continuum-js/frp";
 
 describe("h — static elements", () => {
   test("creates an element with attributes and text children", () => {
@@ -98,7 +98,7 @@ describe("h — events", () => {
 describe("h — components", () => {
   test("a component function runs exactly once", () => {
     let calls = 0;
-    function Comp(props: { n: import("@continuum/frp").Behavior<number> }) {
+    function Comp(props: { n: import("@continuum-js/frp").Behavior<number> }) {
       calls++;
       return <span>{props.n}</span>;
     }

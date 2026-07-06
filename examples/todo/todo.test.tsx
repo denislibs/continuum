@@ -1,5 +1,5 @@
 import { describe, test, expect } from "vitest";
-import { mount, h } from "@continuum/dom";
+import { mount, h } from "@continuum-js/dom";
 import { TodoApp } from "./todo";
 
 describe("TodoApp", () => {

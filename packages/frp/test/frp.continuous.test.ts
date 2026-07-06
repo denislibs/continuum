@@ -1,6 +1,6 @@
 import { describe, test, expect } from "vitest";
-import { newEvent, newBehavior, constant } from "@continuum/frp";
-import { integral, derivative, warp } from "@continuum/frp";
+import { newEvent, newBehavior, constant } from "@continuum-js/frp";
+import { integral, derivative, warp } from "@continuum-js/frp";
 
 describe("integral", () => {
   test("accumulates value * dt over a tick clock", () => {

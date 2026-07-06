@@ -1,8 +1,8 @@
-# @continuum/benchmark
+# @continuum-js/benchmark
 
 Реализация таблицы из [js-framework-benchmark](https://github.com/krausest/js-framework-benchmark)
 Стефана Краузе (keyed-вариант) на Continuum — заодно самый суровый стресс-тест
-рендерера `@continuum/dom`.
+рендерера `@continuum-js/dom`.
 
 Каждая строка — `{ id, label }`, где `label` — **отдельное поведение**, поэтому
 «update every 10th row» патчит один текст-узел, не перестраивая строку. Массив
@@ -12,7 +12,7 @@ DOM). Выделение строки — производный `class` от п
 ## Запуск в браузере
 
 ```bash
-npm run dev -w @continuum/benchmark   # vite dev-сервер с таблицей и кнопками
+npm run dev -w @continuum-js/benchmark   # vite dev-сервер с таблицей и кнопками
 ```
 
 ## Замер производительности

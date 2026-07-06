@@ -1,5 +1,5 @@
-import { newEvent, newBehavior, type Behavior } from "@continuum/frp";
-import { Show, Each, bindInput } from "@continuum/dom";
+import { newEvent, newBehavior, type Behavior } from "@continuum-js/frp";
+import { Show, Each, bindInput } from "@continuum-js/dom";
 
 export interface Todo {
   id: number;

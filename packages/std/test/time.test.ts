@@ -1,6 +1,6 @@
 import { describe, test, expect, vi, afterEach } from "vitest";
-import { newEvent } from "@continuum/frp";
-import { debounce, throttle, delay, interval } from "@continuum/std";
+import { newEvent } from "@continuum-js/frp";
+import { debounce, throttle, delay, interval } from "@continuum-js/std";
 
 describe("time combinators", () => {
   afterEach(() => vi.useRealTimers());

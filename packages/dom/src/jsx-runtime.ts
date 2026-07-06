@@ -1,5 +1,5 @@
 // Continuum — automatic JSX runtime.
-// With `"jsx": "react-jsx"` + `"jsxImportSource": "@continuum/dom"`, the
+// With `"jsx": "react-jsx"` + `"jsxImportSource": "@continuum-js/dom"`, the
 // compiler auto-imports these, so components no longer need `import { h }`.
 // They are thin adapters over `h`: the automatic runtime delivers children in
 // `props.children`, whereas `h` takes them as rest arguments.

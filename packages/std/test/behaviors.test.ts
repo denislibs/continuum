@@ -1,6 +1,6 @@
 import { describe, test, expect } from "vitest";
-import { newBehavior } from "@continuum/frp";
-import { previous, distinctB } from "@continuum/std";
+import { newBehavior } from "@continuum-js/frp";
+import { previous, distinctB } from "@continuum-js/std";
 
 describe("behavior combinators", () => {
   test("previous lags one step behind", () => {

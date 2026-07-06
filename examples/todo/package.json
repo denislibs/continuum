@@ -1,5 +1,5 @@
 {
-  "name": "@continuum/example-todo",
+  "name": "@continuum-js/example-todo",
   "version": "0.2.0",
   "private": true,
   "type": "module",
@@ -9,7 +9,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@continuum/dom": "0.2.0",
-    "@continuum/frp": "0.2.0"
+    "@continuum-js/dom": "0.2.0",
+    "@continuum-js/frp": "0.2.0"
   }
 }

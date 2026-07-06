@@ -1,4 +1,4 @@
-import { mount } from "@continuum/dom";
+import { mount } from "@continuum-js/dom";
 import { UserSearch, type User } from "./search";
 
 // Real IO lives at the edge: a plain async function hitting the GitHub API.

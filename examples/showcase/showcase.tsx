@@ -1,5 +1,5 @@
-import { newBehavior } from "@continuum/frp";
-import { Dynamic, Show, Portal } from "@continuum/dom";
+import { newBehavior } from "@continuum-js/frp";
+import { Dynamic, Show, Portal } from "@continuum-js/dom";
 
 type Tab = "home" | "about";
 
