@@ -26,7 +26,8 @@ export default defineConfig({
           },
         ],
         editLink: {
-          pattern: "https://github.com/denislibs/continuum/edit/main/docs/:path",
+          pattern:
+            "https://github.com/denislibs/continuum/edit/main/docs/:path",
           text: "Edit this page on GitHub",
         },
       },
@@ -50,7 +51,8 @@ export default defineConfig({
           },
         ],
         editLink: {
-          pattern: "https://github.com/denislibs/continuum/edit/main/docs/:path",
+          pattern:
+            "https://github.com/denislibs/continuum/edit/main/docs/:path",
           text: "Править на GitHub",
         },
         outline: { label: "На этой странице" },
