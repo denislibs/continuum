@@ -2,6 +2,7 @@
 // Classic FRP (Behaviors + Events), discrete branch (Sodium style):
 // transactions, rank-ordered propagation, `hold` delay at the moment boundary.
 
+/** Handle returned by `listen`: call it to unsubscribe. */
 export type Unlisten = () => void;
 
 // A subscriber inside the graph: receives the enclosing transaction + value.
@@ -17,7 +18,12 @@ interface Entry {
   action: (t: Transaction) => void;
 }
 
+/**
+ * One logical instant of time (a "moment"). Engine-level API: application
+ * code normally never touches it — `fire`/`listen`/`sample` manage moments.
+ */
 export class Transaction {
+  /** @internal */
   static current: Transaction | null = null;
   private static seqCounter = 0;
 
@@ -137,8 +143,12 @@ export class Transaction {
 // Event<A> — discrete occurrences (push).
 // ---------------------------------------------------------------------------
 
+/**
+ * Discrete occurrences over time (push). Denotationally `[(Time, A)]`: at most
+ * one occurrence per moment — simultaneous inputs coalesce (see `merge`).
+ */
 export class Event<A> {
-  /** Topological height in the graph. */
+  /** @internal Topological height in the graph (propagation order). */
   rank: number;
   private listeners: Handler<A>[] = [];
   /** Downstream nodes, used to keep ranks topologically sorted. */
@@ -153,8 +163,9 @@ export class Event<A> {
   }
 
   /**
-   * Raise this node's rank above `limit` and propagate the bump downstream, so
-   * a node never has a rank ≤ one of its inputs. Detects dependency cycles.
+   * @internal Raise this node's rank above `limit` and propagate the bump
+   * downstream, so a node never has a rank ≤ one of its inputs. Detects
+   * dependency cycles.
    */
   ensureBiggerThan(limit: number, visited: Set<Event<any>>): void {
     if (this.rank > limit) return;
@@ -166,7 +177,7 @@ export class Event<A> {
     visited.delete(this);
   }
 
-  /** Register an internal subscriber. Returns an unsubscribe handle. */
+  /** @internal Register an in-graph subscriber. Returns an unsubscribe handle. */
   listen_(target: Event<any> | null, h: Handler<A>): Unlisten {
     this.listeners.push(h);
     if (target) {
@@ -181,7 +192,7 @@ export class Event<A> {
     };
   }
 
-  /** Push an occurrence to every current subscriber. */
+  /** @internal Push an occurrence to every current subscriber. */
   send_(t: Transaction, a: A): void {
     const ls = this.listeners.slice();
     for (const h of ls) h(t, a);
@@ -374,6 +385,10 @@ export class Event<A> {
 // Behavior<A> — a value across time (pull) + discrete `updates` (push).
 // ---------------------------------------------------------------------------
 
+/**
+ * A value across time (pull) with discrete change notifications (push).
+ * Denotationally `Time → A`: it always has a value — `sample()` never misses.
+ */
 export class Behavior<A> {
   constructor(
     /** Pull the current value without opening a transaction. */
@@ -507,22 +522,26 @@ export class Behavior<A> {
 // Source constructors
 // ---------------------------------------------------------------------------
 
+/** A source event plus its `fire`. Each `fire` opens a fresh moment. */
 export function newEvent<A>(): [Event<A>, (a: A) => void] {
   const e = new Event<A>(0);
   const fire = (a: A) => Transaction.run((t) => e.send_(t, a));
   return [e, fire];
 }
 
+/** A source behavior (a `hold` over a source event) plus its setter. */
 export function newBehavior<A>(init: A): [Behavior<A>, (a: A) => void] {
   const [e, fire] = newEvent<A>();
   const b = e.hold(init);
   return [b, fire];
 }
 
+/** The behavior that is `v` at every moment (applicative `pure`). */
 export function constant<A>(v: A): Behavior<A> {
   return new Behavior<A>(() => v, new Event<A>(0));
 }
 
+/** The event with no occurrences (identity of `merge`). */
 export function never<A>(): Event<A> {
   return new Event<A>(0);
 }
@@ -536,6 +555,7 @@ export function time(): Behavior<number> {
 // Effects & de-duplication (§6.5)
 // ---------------------------------------------------------------------------
 
+/** Outcome of an effect as data: errors flow through the graph, not thrown. */
 export type Result<E, T> = { ok: true; value: T } | { ok: false; error: E };
 
 /**
