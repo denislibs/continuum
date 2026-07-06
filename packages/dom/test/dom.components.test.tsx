@@ -45,7 +45,7 @@ describe("<Each>", () => {
     ]);
     const container = document.createElement("div");
     mount(container, () => (
-      <Each each={items} key={(i) => i.id}>
+      <Each each={items} by={(i) => i.id}>
         {(item) => <li id={"row" + item.id}>{item.t}</li>}
       </Each>
     ));

@@ -1,5 +1,4 @@
 import { newEvent } from "@continuum/frp";
-import { h } from "@continuum/dom";
 
 /**
  * The ten-line counter from §1.1. The component runs once; a click flows

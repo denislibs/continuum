@@ -24,7 +24,7 @@ continuum/
 │  ├─ counter/    @continuum/example-counter   — счётчик из §1.1 + тест
 │  ├─ todo/       @continuum/example-todo       — keyed-список (each/when/bindInput) + тест
 │  └─ animation/  @continuum/example-animation  — integral + time warp (непрерывное время)
-├─ vitest.config.ts   — общий раннер (jsdom, jsxFactory h), алиасы на исходники
+├─ vitest.config.ts   — общий раннер (jsdom, automatic JSX), алиасы на исходники
 ├─ tsconfig.json      — solution-style, project references
 └─ tsconfig.base.json — общие compilerOptions
 ```
@@ -46,7 +46,6 @@ npm run example:todo     # vite dev-сервер для examples/todo
 
 ```tsx
 import { newEvent } from "@continuum/frp";
-import { h } from "@continuum/dom";
 
 export function Counter() {
   const [clicks, fire] = newEvent<MouseEvent>();
@@ -57,6 +56,11 @@ export function Counter() {
 
 Компонент выполняется **один раз**. Клик уходит в FRP-сеть, `accum` обновляет
 поведение, патчится ровно один текст-узел — без VDOM и диффинга.
+
+> JSX работает через **автоматический рантайм** — `import { h }` в компонентах
+> не нужен. Настройка: `"jsx": "react-jsx"`, `"jsxImportSource": "@continuum/dom"`
+> (для Vite/esbuild — `jsx: "automatic"`). `h` остаётся доступным экспортом для
+> явных вызовов.
 
 ## Что реализовано
 

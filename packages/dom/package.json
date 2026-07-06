@@ -10,6 +10,14 @@
     ".": {
       "types": "./src/index.tsx",
       "import": "./src/index.tsx"
+    },
+    "./jsx-runtime": {
+      "types": "./src/jsx-runtime.ts",
+      "import": "./src/jsx-runtime.ts"
+    },
+    "./jsx-dev-runtime": {
+      "types": "./src/jsx-dev-runtime.ts",
+      "import": "./src/jsx-dev-runtime.ts"
     }
   },
   "files": ["src"],
