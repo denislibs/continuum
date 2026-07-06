@@ -77,8 +77,8 @@ export function Counter() {
 текста/атрибутов/свойств, события `on*`, `dyn`, `each` (keyed-реконсиляция с
 LIS-диффингом и сохранением фокуса), дерево владения `root`/`scope`/`onCleanup`
 с каскадной очисткой подписок, контекст `createContext`/`provide`/`use`, хелперы
-`when`/`bindInput`/`portal`, `animationFrames` (клок кадров для непрерывного
-времени), `mount`.
+`when`/`bindInput`/`portal`, компоненты-обёртки `<Show>`/`<Each>`/`<Dynamic>`/
+`<Portal>`, `animationFrames` (клок кадров для непрерывного времени), `mount`.
 
 ## Непрерывное время
 

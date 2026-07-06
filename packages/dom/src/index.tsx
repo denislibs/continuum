@@ -478,3 +478,83 @@ export function animationFrames(): Event<number> {
   onCleanup(() => cancelAnimationFrame(raf));
   return ticks;
 }
+
+// ---------------------------------------------------------------------------
+// Control-flow components — JSX wrappers over the rendering helpers.
+// ---------------------------------------------------------------------------
+
+// JSX always delivers children as the rest array; a single render function
+// arrives as `[fn]`. Normalize to a render callback.
+function asRender<T>(children: unknown): (value: T) => Child {
+  const c = Array.isArray(children) ? children[0] : children;
+  return typeof c === "function"
+    ? (c as (value: T) => Child)
+    : () => c as Child;
+}
+
+/**
+ * Conditional region. Rebuilds only when the truthiness of `when` toggles; the
+ * (narrowed) value is passed to the children render function at build time.
+ *
+ * ```tsx
+ * <Show when={user} fallback={() => <Guest />}>
+ *   {(u) => <span>{u.name}</span>}
+ * </Show>
+ * ```
+ */
+export function Show<T>(props: {
+  when: Behavior<T>;
+  children: (value: NonNullable<T>) => Child;
+  fallback?: () => Child;
+}): Node {
+  const render = asRender<NonNullable<T>>(props.children);
+  const present = props.when.map((v) => !!v);
+  return when(
+    present,
+    () => render(props.when.sample() as NonNullable<T>),
+    props.fallback
+  );
+}
+
+/**
+ * Keyed list. `key` defaults to identity.
+ *
+ * ```tsx
+ * <Each each={items} key={(i) => i.id}>{(item) => <li>{item.name}</li>}</Each>
+ * ```
+ */
+export function Each<T, K = T>(props: {
+  each: Behavior<T[]>;
+  key?: (item: T) => K;
+  children: (item: T) => Child;
+}): Node {
+  const render = asRender<T>(props.children);
+  const key = props.key ?? ((item: T) => item as unknown as K);
+  return each(props.each, key, render);
+}
+
+/**
+ * Switch the subtree on a behavior's value (rebuilds on every change).
+ *
+ * ```tsx
+ * <Dynamic value={route}>{(r) => r === "home" ? <Home /> : <About />}</Dynamic>
+ * ```
+ */
+export function Dynamic<T>(props: {
+  value: Behavior<T>;
+  children: (value: T) => Child;
+}): Node {
+  return dyn(props.value, asRender<T>(props.children));
+}
+
+/**
+ * Render children into another node (e.g. `document.body`), cleaning up on
+ * unmount. Children are eager here — a portal renders immediately.
+ *
+ * ```tsx
+ * <Portal mount={document.body}><Modal /></Portal>
+ * ```
+ */
+export function Portal(props: { mount: Node; children?: Child }): Node {
+  return portal(props.mount, props.children ?? null);
+}

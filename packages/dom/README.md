@@ -22,7 +22,22 @@ setName("continuum"); // патчится один текст-узел
 - **Дерево владения** — `root` / `scope` / `onCleanup`: каскадная очистка
   подписок при сносе динамических регионов.
 - **Контекст** — `createContext` / `provide` / `use` поверх дерева владения.
-- **Хелперы** — `when`, `bindInput`, `portal`, `mount`.
+- **Хелперы** — `when`, `bindInput`, `portal`, `mount`, `animationFrames`.
+- **Компоненты-обёртки** — JSX над хелперами (в духе Solid):
+
+```tsx
+<Show when={user} fallback={() => <Guest />}>
+  {(u) => <span>{u.name}</span>}
+</Show>
+
+<Each each={items} key={(i) => i.id}>
+  {(item) => <li>{item.name}</li>}
+</Each>
+
+<Dynamic value={route}>{(r) => (r === "home" ? <Home /> : <About />)}</Dynamic>
+
+<Portal mount={document.body}><Modal /></Portal>
+```
 
 ### Сборка (tsc, как в спецификации §15)
 
