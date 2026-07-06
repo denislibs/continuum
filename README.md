@@ -24,7 +24,8 @@ continuum/
 │  ├─ counter/    @continuum/example-counter    — счётчик из §1.1 + тест
 │  ├─ todo/       @continuum/example-todo        — <Show>/<Each> + bindInput + тест
 │  ├─ animation/  @continuum/example-animation   — integral + time warp (непрерывное время)
-│  └─ showcase/   @continuum/example-showcase    — <Dynamic> (табы) + <Show>/<Portal> (модалка)
+│  ├─ showcase/   @continuum/example-showcase    — <Dynamic> (табы) + <Show>/<Portal> (модалка)
+│  └─ data/       @continuum/example-data        — HTTP-запросы: perform/Result + debounce + resource
 ├─ vitest.config.ts   — общий раннер (jsdom, automatic JSX), алиасы на исходники
 ├─ tsconfig.json      — solution-style, project references
 └─ tsconfig.base.json — общие compilerOptions
@@ -42,6 +43,7 @@ npm run typecheck     # tsc -b по всем пакетам
 npm run example:counter  # vite dev-сервер для examples/counter
 npm run example:todo     # vite dev-сервер для examples/todo
 npm run example:showcase # <Dynamic>/<Show>/<Portal> демо
+npm run example:data     # живой поиск: fetch через perform/Result + debounce
 ```
 
 ### Счётчик за 10 строк (`examples/counter`)
@@ -95,6 +97,24 @@ SVG-неймспейсы (`<svg>`-поддеревья через `createElement
 зависит от числа наблюдателей: аккумуляция происходит один раз на тик. Денотация
 разрешение-независима, семплированный результат её приближает. Демо —
 [`examples/animation`](examples/animation) (`npm run example:animation`).
+
+## Работа с данными (HTTP)
+
+IO живёт на **границе** сети. `perform` принимает `Event` запросов, запускает
+асинхронный эффект в фазе post (после закрытия момента) и возвращает результат
+новым происшествием — уже как данные, с ошибкой, завёрнутой в `Result`, а не
+выброшенной. Поверх этого [`examples/data`](examples/data) собирает два
+переиспользуемых кирпичика:
+
+- `resource(trigger, fetcher): Behavior<Async<T>>` — конечный автомат
+  `idle → loading → ok | error`. Запросы нумеруются, поэтому запоздавший ответ на
+  устаревший запрос отбрасывается (last-request-wins) — декларативное решение
+  классического бага гонки ответов.
+- `debounce(event, ms)` — коалесинг всплеска в последнее значение после паузы.
+
+Вместе они дают живой поиск «по мере ввода»: `input → debounce → fetch →
+loading/error/empty/results`. Фетчер инжектируется, поэтому компонент
+тестируется без сети (`npm run example:data` бьёт в реальный GitHub API).
 
 ## Ограничения (см. дорожную карту §14 спецификации)
 
