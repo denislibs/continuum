@@ -19,6 +19,8 @@
 > `switch`, с отсылками к книге Blackheath & Jones «Functional Reactive
 > Programming» (Manning) — в [FRP-MODEL.md](FRP-MODEL.md).
 >
+> ⚛️ Тот же код на React и на Continuum, бок о бок — в [FROM-REACT.md](FROM-REACT.md).
+>
 > 🗺️ План развития по вехам (публикация → роутер → доки → устойчивость →
 > экосистема) — в [ROADMAP.md](ROADMAP.md).
 
