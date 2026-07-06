@@ -1,5 +1,7 @@
 # Continuum
 
+[![CI](https://github.com/denislibs/continuum/actions/workflows/ci.yml/badge.svg)](https://github.com/denislibs/continuum/actions/workflows/ci.yml)
+
 Реактивный фреймворк на **классическом FRP** (Behaviors + Events) с fine-grained
 рендерингом. Дискретная ветвь традиции Эллиотта в стиле Sodium: транзакции,
 ранговая протяжка, задержка `hold` на границе момента.
