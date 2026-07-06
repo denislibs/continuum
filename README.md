@@ -26,6 +26,8 @@ continuum/
 │  ├─ animation/  @continuum/example-animation   — integral + time warp (непрерывное время)
 │  ├─ showcase/   @continuum/example-showcase    — <Dynamic> (табы) + <Show>/<Portal> (модалка)
 │  └─ data/       @continuum/example-data        — HTTP-запросы: perform/Result + debounce + resource
+├─ benchmark/     @continuum/benchmark           — таблица js-framework-benchmark + Playwright-замер
+├─ .size-limit.json   — бюджеты размера бандла (npm run size)
 ├─ vitest.config.ts   — общий раннер (jsdom, automatic JSX), алиасы на исходники
 ├─ tsconfig.json      — solution-style, project references
 └─ tsconfig.base.json — общие compilerOptions
@@ -44,7 +46,14 @@ npm run example:counter  # vite dev-сервер для examples/counter
 npm run example:todo     # vite dev-сервер для examples/todo
 npm run example:showcase # <Dynamic>/<Show>/<Portal> демо
 npm run example:data     # живой поиск: fetch через perform/Result + debounce
+npm run size             # size-limit: gzip/brotli-размер @continuum/frp и /dom
+npm run bench            # Playwright-замер таблицы js-framework-benchmark
 ```
+
+Размер (brotli, с зависимостями): `@continuum/frp` ≈ **1.8 kB**, `@continuum/dom`
+(включая frp) ≈ **3.5 kB**. Бюджеты — в [`.size-limit.json`](.size-limit.json),
+`npm run size` падает при превышении. Замер производительности —
+см. [`benchmark/`](benchmark) (`npm run bench`, нужен `npx playwright install chromium`).
 
 ### Счётчик за 10 строк (`examples/counter`)
 
