@@ -76,7 +76,7 @@ the component's lifetime:
 The content is removed and disposed with the owning subtree, wherever it was
 mounted.
 
-## `<Catch>` — error boundary
+## `<Catch>` — error boundary {#catch}
 
 A throw while building a piece of the page should not kill the whole app.
 `<Catch>` shows a fallback instead and lets the user retry:

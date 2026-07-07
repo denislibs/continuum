@@ -204,6 +204,13 @@ the parent. More: [Ownership and lifecycle](/concepts/ownership).
 row creates its own scope: it has its own `onCleanup`/`onMount`, and it dies
 as a whole.
 
+### Error boundary {#error-boundary}
+
+**A safety net for a piece of the page.** If building or rebuilding a
+subtree throws, the nearest `<Catch>` above it disposes the broken subtree
+(with all its subscriptions) and shows a fallback instead of killing the
+whole app. More: [Conditional rendering](/concepts/conditional-rendering#catch).
+
 ### Cascading cleanup {#cascade}
 
 **Disposing a subtree frees everything inside automatically.** A page goes
