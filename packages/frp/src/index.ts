@@ -408,10 +408,19 @@ export class Behavior<A> {
 
   /** Deliver the current value immediately, then every change. */
   listen(h: (a: A) => void): Unlisten {
-    // Initial delivery is a pure read; sample directly instead of opening a
-    // fresh transaction per listener (hot path when building many bindings).
-    h(this.sampleNoTrans());
-    return this.updates.listen(h);
+    // Register BEFORE the initial delivery: if `h` fires a transaction while
+    // handling the initial value (e.g. an error boundary flipping its state
+    // during the first render), that update must not be lost.
+    const un = this.updates.listen(h);
+    try {
+      // Initial delivery is a pure read; sample directly instead of opening
+      // a fresh transaction per listener (hot path with many bindings).
+      h(this.sampleNoTrans());
+    } catch (err) {
+      un(); // don't leak the subscription if the initial delivery throws
+      throw err;
+    }
+    return un;
   }
 
   /** Detach this behavior's `updates` from the graph (see `Event.dispose`). */

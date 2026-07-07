@@ -8,7 +8,7 @@
 
 > **root**\<`T`\>(`fn`): `T`
 
-Defined in: [index.tsx:74](https://github.com/denislibs/continuum/blob/40ab9b6150468b12ff931c97fb4264ea8455bf9d/packages/dom/src/index.tsx#L74)
+Defined in: [index.tsx:74](https://github.com/denislibs/continuum/blob/8d71c388977ff9456393e0cbc710bd219c8150c3/packages/dom/src/index.tsx#L74)
 
 Root owner (a mount point). `fn` receives its dispose handle.
 

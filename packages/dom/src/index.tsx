@@ -2,7 +2,7 @@
 // Fine-grained rendering over the frp core: bindings, dynamic regions,
 // keyed lists, an ownership tree for lifecycle, and context.
 
-import { Behavior, Event, newEvent } from "@continuum-js/frp";
+import { Behavior, Event, newBehavior, newEvent } from "@continuum-js/frp";
 import type { Unlisten } from "@continuum-js/frp";
 
 // ---------------------------------------------------------------------------
@@ -322,27 +322,53 @@ export function h(
 // Build `child` into a fragment under a fresh scope of `owner`. Returns the
 // fragment's top-level nodes, the scope's dispose handle, and a `flush` that
 // runs the scope's pending onMount callbacks (call it after insertion).
+// A throw mid-build disposes the partial scope (its cleanups run) before
+// propagating — no half-built ownership survives.
 function buildScoped(
   owner: Owner | null,
   build: () => Child,
 ): { nodes: Node[]; dispose: () => void; flush: () => void } {
   const scopeOwner = createOwner(owner);
-  const nodes = runUnder(scopeOwner, () => {
-    const built = build();
-    // Fast path: a single element/text node (the common row/component case)
-    // needs no fragment or NodeList copy.
-    if (built instanceof Node && built.nodeType !== 11 /* DocumentFragment */) {
-      return [built];
-    }
-    const frag = document.createDocumentFragment();
-    appendChild(frag, built);
-    return Array.from(frag.childNodes);
-  });
+  let nodes: Node[];
+  try {
+    nodes = runUnder(scopeOwner, () => {
+      const built = build();
+      // Fast path: a single element/text node (the common row/component case)
+      // needs no fragment or NodeList copy.
+      if (
+        built instanceof Node &&
+        built.nodeType !== 11 /* DocumentFragment */
+      ) {
+        return [built];
+      }
+      const frag = document.createDocumentFragment();
+      appendChild(frag, built);
+      return Array.from(frag.childNodes);
+    });
+  } catch (err) {
+    disposeOwner(scopeOwner);
+    throw err;
+  }
   return {
     nodes,
     dispose: () => disposeOwner(scopeOwner),
     flush: () => flushMounts(scopeOwner),
   };
+}
+
+// Error-boundary channel over the ownership tree. `Catch` registers a
+// handler on its children's scope; a dynamic region whose rebuild throws
+// routes the error to the nearest handler up the chain (or rethrows).
+const ERROR_HANDLER = Symbol("continuum.catch");
+
+function lookupErrorHandler(
+  owner: Owner | null,
+): ((e: unknown) => void) | null {
+  for (let o = owner; o; o = o.parent) {
+    const h = o.contexts?.get(ERROR_HANDLER);
+    if (h) return h as (e: unknown) => void;
+  }
+  return null;
 }
 
 /** Conditional / switching subtree: rebuilds on each change of `b`. */
@@ -366,11 +392,17 @@ export function dyn<T>(b: Behavior<T>, render: (v: T) => Child): Node {
   // duplicate deliveries free.
   let hasRendered = false;
   let renderedValue: T;
+  // Guards against a re-entrant update superseding this one mid-build: if
+  // `render` itself fires a moment (an error boundary flipping its state),
+  // the nested update finishes first and the outer one must discard its
+  // now-stale build instead of clobbering the newer region.
+  let epoch = 0;
   const update = () => {
     const v = b.sampleNoTrans();
     if (hasRendered && Object.is(renderedValue, v)) return;
     hasRendered = true;
     renderedValue = v;
+    const myEpoch = ++epoch;
     if (current) {
       current.dispose();
       // Sweep the whole live range between the markers: a nested dynamic
@@ -383,7 +415,23 @@ export function dyn<T>(b: Behavior<T>, render: (v: T) => Child): Node {
         n = next;
       }
     }
-    current = buildScoped(owner, () => render(v));
+    let built: { nodes: Node[]; dispose: () => void; flush: () => void };
+    try {
+      built = buildScoped(owner, () => render(v));
+    } catch (err) {
+      // Route to the nearest error boundary; without one, keep the old
+      // behavior (the error propagates out of the transaction).
+      const handler = lookupErrorHandler(owner);
+      if (!handler) throw err;
+      handler(err); // opens a new moment; the boundary re-renders itself
+      built = { nodes: [], dispose: () => {}, flush: () => {} };
+    }
+    if (epoch !== myEpoch) {
+      // A re-entrant update already rendered a newer value.
+      built.dispose();
+      return;
+    }
+    current = built;
     const parent = end.parentNode!;
     for (const n of current.nodes) parent.insertBefore(n, end);
     // During the initial build the whole tree flushes at mount; afterwards
@@ -707,4 +755,50 @@ export function Dynamic<T>(props: {
  */
 export function Portal(props: { mount: Node; children?: Child }): Node {
   return portal(props.mount, props.children ?? null);
+}
+
+/**
+ * Error boundary. Catches a throw while building its children and a throw
+ * during any nested dynamic-region rebuild (`Show`/`Dynamic`/`dyn`), disposes
+ * the failed subtree's ownership, and renders `fallback` instead. `reset`
+ * re-renders the children from scratch.
+ *
+ * Children must be a thunk — eager JSX would run (and throw) before `Catch`
+ * gets control:
+ *
+ * ```tsx
+ * <Catch fallback={(e, reset) => <button onClick={reset}>retry</button>}>
+ *   {() => <Risky />}
+ * </Catch>
+ * ```
+ *
+ * Not covered: throws inside binding `map` functions (keep them pure) and
+ * inside `listen` effects. Async/IO errors never throw at all — `perform`
+ * and `resource` deliver them as data. An error thrown by `fallback` itself
+ * escalates to the next boundary up.
+ */
+export function Catch(props: {
+  children: Child | (() => Child);
+  fallback: (error: unknown, reset: () => void) => Child;
+}): Node {
+  const [failure, setFailure] = newBehavior<{ error: unknown } | null>(null);
+  const reset = () => setFailure(null);
+  const build = asRender<void>(props.children);
+  return dyn(failure, (f) => {
+    if (f) return props.fallback(f.error, reset);
+    // Handler for nested regions lives on the children's scope only — a
+    // throw inside `fallback` must escalate to the boundary above, not loop.
+    if (currentOwner) {
+      (currentOwner.contexts ??= new Map()).set(
+        ERROR_HANDLER,
+        (error: unknown) => setFailure({ error }),
+      );
+    }
+    try {
+      return build();
+    } catch (error) {
+      setFailure({ error }); // level-triggered dyn re-renders with the fallback
+      return null;
+    }
+  });
 }

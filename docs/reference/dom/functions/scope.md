@@ -8,7 +8,7 @@
 
 > **scope**\<`T`\>(`fn`): `object`
 
-Defined in: [index.tsx:80](https://github.com/denislibs/continuum/blob/40ab9b6150468b12ff931c97fb4264ea8455bf9d/packages/dom/src/index.tsx#L80)
+Defined in: [index.tsx:80](https://github.com/denislibs/continuum/blob/8d71c388977ff9456393e0cbc710bd219c8150c3/packages/dom/src/index.tsx#L80)
 
 Child owner under the current one. Returns its value and dispose handle.
 

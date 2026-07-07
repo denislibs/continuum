@@ -8,7 +8,7 @@
 
 > **click**(`el`): `boolean`
 
-Defined in: [index.ts:46](https://github.com/denislibs/continuum/blob/40ab9b6150468b12ff931c97fb4264ea8455bf9d/packages/test/src/index.ts#L46)
+Defined in: [index.ts:46](https://github.com/denislibs/continuum/blob/8d71c388977ff9456393e0cbc710bd219c8150c3/packages/test/src/index.ts#L46)
 
 Click an element (a bubbling, cancelable MouseEvent).
 

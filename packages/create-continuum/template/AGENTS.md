@@ -50,6 +50,7 @@ onMount(fn); onCleanup(fn);                 // register in component body only
 <Each each={listB} by={(item) => item.id}>{(item) => <Row/>}</Each>
 <Dynamic value={b}>{(v) => …}</Dynamic>     // prop is `value`, not `of`
 <input {...bindInput(textB, setText)} />
+<Catch fallback={(err, reset) => …}>{() => <Risky/>}</Catch> // children MUST be a thunk
 createContext(def); provide(ctx, v); use(ctx);
 
 // @continuum-js/std
