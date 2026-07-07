@@ -6,7 +6,7 @@
 
 # Class: Event\<A\>
 
-Defined in: [index.ts:150](https://github.com/denislibs/continuum/blob/6dcf7e4a1529edbb0b79752b06146206b3d754b5/packages/frp/src/index.ts#L150)
+Defined in: [index.ts:154](https://github.com/denislibs/continuum/blob/024c0131f28e2b026cf3029c8a40baa1c2fe4fdb/packages/frp/src/index.ts#L154)
 
 Discrete occurrences over time (push). Denotationally `[(Time, A)]`: at most
 one occurrence per moment — simultaneous inputs coalesce (see `merge`).
@@ -23,7 +23,7 @@ one occurrence per moment — simultaneous inputs coalesce (see `merge`).
 
 > **new Event**\<`A`\>(`rank?`): `Event`\<`A`\>
 
-Defined in: [index.ts:163](https://github.com/denislibs/continuum/blob/6dcf7e4a1529edbb0b79752b06146206b3d754b5/packages/frp/src/index.ts#L163)
+Defined in: [index.ts:171](https://github.com/denislibs/continuum/blob/024c0131f28e2b026cf3029c8a40baa1c2fe4fdb/packages/frp/src/index.ts#L171)
 
 #### Parameters
 
@@ -41,7 +41,7 @@ Defined in: [index.ts:163](https://github.com/denislibs/continuum/blob/6dcf7e4a1
 
 > **disposed**: `boolean` = `false`
 
-Defined in: [index.ts:159](https://github.com/denislibs/continuum/blob/6dcf7e4a1529edbb0b79752b06146206b3d754b5/packages/frp/src/index.ts#L159)
+Defined in: [index.ts:167](https://github.com/denislibs/continuum/blob/024c0131f28e2b026cf3029c8a40baa1c2fe4fdb/packages/frp/src/index.ts#L167)
 
 True once `dispose()` has run.
 
@@ -51,7 +51,7 @@ True once `dispose()` has run.
 
 > **rank**: `number`
 
-Defined in: [index.ts:152](https://github.com/denislibs/continuum/blob/6dcf7e4a1529edbb0b79752b06146206b3d754b5/packages/frp/src/index.ts#L152)
+Defined in: [index.ts:156](https://github.com/denislibs/continuum/blob/024c0131f28e2b026cf3029c8a40baa1c2fe4fdb/packages/frp/src/index.ts#L156)
 
 **`Internal`**
 
@@ -63,7 +63,7 @@ Topological height in the graph (propagation order).
 
 > **accum**\<`B`\>(`init`, `f`): [`Behavior`](Behavior.md)\<`B`\>
 
-Defined in: [index.ts:319](https://github.com/denislibs/continuum/blob/6dcf7e4a1529edbb0b79752b06146206b3d754b5/packages/frp/src/index.ts#L319)
+Defined in: [index.ts:349](https://github.com/denislibs/continuum/blob/024c0131f28e2b026cf3029c8a40baa1c2fe4fdb/packages/frp/src/index.ts#L349)
 
 Fold occurrences into a behavior.
 
@@ -93,7 +93,7 @@ Fold occurrences into a behavior.
 
 > **accumE**\<`B`\>(`init`, `f`): `Event`\<`B`\>
 
-Defined in: [index.ts:310](https://github.com/denislibs/continuum/blob/6dcf7e4a1529edbb0b79752b06146206b3d754b5/packages/frp/src/index.ts#L310)
+Defined in: [index.ts:340](https://github.com/denislibs/continuum/blob/024c0131f28e2b026cf3029c8a40baa1c2fe4fdb/packages/frp/src/index.ts#L340)
 
 Fold occurrences into a stream of accumulated states.
 
@@ -123,7 +123,7 @@ Fold occurrences into a stream of accumulated states.
 
 > **consume**\<`X`\>(`input`, `h`): `void`
 
-Defined in: [index.ts:233](https://github.com/denislibs/continuum/blob/6dcf7e4a1529edbb0b79752b06146206b3d754b5/packages/frp/src/index.ts#L233)
+Defined in: [index.ts:263](https://github.com/denislibs/continuum/blob/024c0131f28e2b026cf3029c8a40baa1c2fe4fdb/packages/frp/src/index.ts#L263)
 
 **`Internal`**
 
@@ -155,7 +155,7 @@ Subscribe to `input` and register the teardown for `dispose()`.
 
 > **dispose**(): `void`
 
-Defined in: [index.ts:247](https://github.com/denislibs/continuum/blob/6dcf7e4a1529edbb0b79752b06146206b3d754b5/packages/frp/src/index.ts#L247)
+Defined in: [index.ts:277](https://github.com/denislibs/continuum/blob/024c0131f28e2b026cf3029c8a40baa1c2fe4fdb/packages/frp/src/index.ts#L277)
 
 Detach this node from its inputs (breaking the push chain so it can be
 collected) and drop its downstream links. Idempotent. Cascades upstream
@@ -171,7 +171,7 @@ through derived intermediates that become unused, but never to sources.
 
 > **ensureBiggerThan**(`limit`, `visited`): `void`
 
-Defined in: [index.ts:172](https://github.com/denislibs/continuum/blob/6dcf7e4a1529edbb0b79752b06146206b3d754b5/packages/frp/src/index.ts#L172)
+Defined in: [index.ts:180](https://github.com/denislibs/continuum/blob/024c0131f28e2b026cf3029c8a40baa1c2fe4fdb/packages/frp/src/index.ts#L180)
 
 **`Internal`**
 
@@ -199,7 +199,7 @@ dependency cycles.
 
 > **filter**(`pred`): `Event`\<`A`\>
 
-Defined in: [index.ts:269](https://github.com/denislibs/continuum/blob/6dcf7e4a1529edbb0b79752b06146206b3d754b5/packages/frp/src/index.ts#L269)
+Defined in: [index.ts:299](https://github.com/denislibs/continuum/blob/024c0131f28e2b026cf3029c8a40baa1c2fe4fdb/packages/frp/src/index.ts#L299)
 
 #### Parameters
 
@@ -217,7 +217,7 @@ Defined in: [index.ts:269](https://github.com/denislibs/continuum/blob/6dcf7e4a1
 
 > **gate**(`b`): `Event`\<`A`\>
 
-Defined in: [index.ts:338](https://github.com/denislibs/continuum/blob/6dcf7e4a1529edbb0b79752b06146206b3d754b5/packages/frp/src/index.ts#L338)
+Defined in: [index.ts:368](https://github.com/denislibs/continuum/blob/024c0131f28e2b026cf3029c8a40baa1c2fe4fdb/packages/frp/src/index.ts#L368)
 
 Pass occurrences only while the behavior is true.
 
@@ -237,7 +237,7 @@ Pass occurrences only while the behavior is true.
 
 > **hold**(`init`): [`Behavior`](Behavior.md)\<`A`\>
 
-Defined in: [index.ts:285](https://github.com/denislibs/continuum/blob/6dcf7e4a1529edbb0b79752b06146206b3d754b5/packages/frp/src/index.ts#L285)
+Defined in: [index.ts:315](https://github.com/denislibs/continuum/blob/024c0131f28e2b026cf3029c8a40baa1c2fe4fdb/packages/frp/src/index.ts#L315)
 
 Step function: hold the last occurrence, committing at the moment boundary.
 
@@ -257,7 +257,7 @@ Step function: hold the last occurrence, committing at the moment boundary.
 
 > **listen**(`h`): [`Unlisten`](../type-aliases/Unlisten.md)
 
-Defined in: [index.ts:395](https://github.com/denislibs/continuum/blob/6dcf7e4a1529edbb0b79752b06146206b3d754b5/packages/frp/src/index.ts#L395)
+Defined in: [index.ts:425](https://github.com/denislibs/continuum/blob/024c0131f28e2b026cf3029c8a40baa1c2fe4fdb/packages/frp/src/index.ts#L425)
 
 Observer (phase post): fires after the moment closes, FIFO.
 
@@ -277,7 +277,7 @@ Observer (phase post): fires after the moment closes, FIFO.
 
 > **listen\_**(`target`, `h`): [`Unlisten`](../type-aliases/Unlisten.md)
 
-Defined in: [index.ts:183](https://github.com/denislibs/continuum/blob/6dcf7e4a1529edbb0b79752b06146206b3d754b5/packages/frp/src/index.ts#L183)
+Defined in: [index.ts:203](https://github.com/denislibs/continuum/blob/024c0131f28e2b026cf3029c8a40baa1c2fe4fdb/packages/frp/src/index.ts#L203)
 
 **`Internal`**
 
@@ -303,7 +303,7 @@ Register an in-graph subscriber. Returns an unsubscribe handle.
 
 > **map**\<`B`\>(`f`): `Event`\<`B`\>
 
-Defined in: [index.ts:259](https://github.com/denislibs/continuum/blob/6dcf7e4a1529edbb0b79752b06146206b3d754b5/packages/frp/src/index.ts#L259)
+Defined in: [index.ts:289](https://github.com/denislibs/continuum/blob/024c0131f28e2b026cf3029c8a40baa1c2fe4fdb/packages/frp/src/index.ts#L289)
 
 #### Type Parameters
 
@@ -327,7 +327,7 @@ Defined in: [index.ts:259](https://github.com/denislibs/continuum/blob/6dcf7e4a1
 
 > **mapTo**\<`B`\>(`b`): `Event`\<`B`\>
 
-Defined in: [index.ts:265](https://github.com/denislibs/continuum/blob/6dcf7e4a1529edbb0b79752b06146206b3d754b5/packages/frp/src/index.ts#L265)
+Defined in: [index.ts:295](https://github.com/denislibs/continuum/blob/024c0131f28e2b026cf3029c8a40baa1c2fe4fdb/packages/frp/src/index.ts#L295)
 
 #### Type Parameters
 
@@ -351,7 +351,7 @@ Defined in: [index.ts:265](https://github.com/denislibs/continuum/blob/6dcf7e4a1
 
 > **once**(): `Event`\<`A`\>
 
-Defined in: [index.ts:324](https://github.com/denislibs/continuum/blob/6dcf7e4a1529edbb0b79752b06146206b3d754b5/packages/frp/src/index.ts#L324)
+Defined in: [index.ts:354](https://github.com/denislibs/continuum/blob/024c0131f28e2b026cf3029c8a40baa1c2fe4fdb/packages/frp/src/index.ts#L354)
 
 Only the first occurrence passes.
 
@@ -365,7 +365,7 @@ Only the first occurrence passes.
 
 > **onDispose**(`fn`): `void`
 
-Defined in: [index.ts:238](https://github.com/denislibs/continuum/blob/6dcf7e4a1529edbb0b79752b06146206b3d754b5/packages/frp/src/index.ts#L238)
+Defined in: [index.ts:268](https://github.com/denislibs/continuum/blob/024c0131f28e2b026cf3029c8a40baa1c2fe4fdb/packages/frp/src/index.ts#L268)
 
 **`Internal`**
 
@@ -387,7 +387,7 @@ Register an extra teardown to run on `dispose()`.
 
 > **orElse**(`other`): `Event`\<`A`\>
 
-Defined in: [index.ts:347](https://github.com/denislibs/continuum/blob/6dcf7e4a1529edbb0b79752b06146206b3d754b5/packages/frp/src/index.ts#L347)
+Defined in: [index.ts:377](https://github.com/denislibs/continuum/blob/024c0131f28e2b026cf3029c8a40baa1c2fe4fdb/packages/frp/src/index.ts#L377)
 
 Left-biased merge: on simultaneous occurrences the left wins.
 
@@ -407,7 +407,7 @@ Left-biased merge: on simultaneous occurrences the left wins.
 
 > **retain**(): `this`
 
-Defined in: [index.ts:416](https://github.com/denislibs/continuum/blob/6dcf7e4a1529edbb0b79752b06146206b3d754b5/packages/frp/src/index.ts#L416)
+Defined in: [index.ts:450](https://github.com/denislibs/continuum/blob/024c0131f28e2b026cf3029c8a40baa1c2fe4fdb/packages/frp/src/index.ts#L450)
 
 Keep this node alive when its last listener unsubscribes. Derived nodes
 normally auto-dispose at that point (so per-component derivations don't
@@ -424,7 +424,7 @@ intentionally share across mounts (e.g. a module-level one).
 
 > **send\_**(`t`, `a`): `void`
 
-Defined in: [index.ts:208](https://github.com/denislibs/continuum/blob/6dcf7e4a1529edbb0b79752b06146206b3d754b5/packages/frp/src/index.ts#L208)
+Defined in: [index.ts:238](https://github.com/denislibs/continuum/blob/024c0131f28e2b026cf3029c8a40baa1c2fe4fdb/packages/frp/src/index.ts#L238)
 
 **`Internal`**
 
@@ -450,7 +450,7 @@ Push an occurrence to every current subscriber.
 
 > **snapshot**\<`B`, `C`\>(`b`, `f`): `Event`\<`C`\>
 
-Defined in: [index.ts:278](https://github.com/denislibs/continuum/blob/6dcf7e4a1529edbb0b79752b06146206b3d754b5/packages/frp/src/index.ts#L278)
+Defined in: [index.ts:308](https://github.com/denislibs/continuum/blob/024c0131f28e2b026cf3029c8a40baa1c2fe4fdb/packages/frp/src/index.ts#L308)
 
 Sample a behavior at the instant of each occurrence (sees pre-moment value).
 
@@ -484,7 +484,7 @@ Sample a behavior at the instant of each occurrence (sees pre-moment value).
 
 > **subscribe**\<`X`\>(`input`, `h`): [`Unlisten`](../type-aliases/Unlisten.md)
 
-Defined in: [index.ts:218](https://github.com/denislibs/continuum/blob/6dcf7e4a1529edbb0b79752b06146206b3d754b5/packages/frp/src/index.ts#L218)
+Defined in: [index.ts:248](https://github.com/denislibs/continuum/blob/024c0131f28e2b026cf3029c8a40baa1c2fe4fdb/packages/frp/src/index.ts#L248)
 
 **`Internal`**
 
@@ -518,7 +518,7 @@ too. Sources (no cleanups of their own) are never auto-disposed.
 
 > `static` **merge**\<`A`\>(`ea`, `eb`, `combine`): `Event`\<`A`\>
 
-Defined in: [index.ts:352](https://github.com/denislibs/continuum/blob/6dcf7e4a1529edbb0b79752b06146206b3d754b5/packages/frp/src/index.ts#L352)
+Defined in: [index.ts:382](https://github.com/denislibs/continuum/blob/024c0131f28e2b026cf3029c8a40baa1c2fe4fdb/packages/frp/src/index.ts#L382)
 
 Merge two events; simultaneous occurrences coalesce once via `combine`.
 

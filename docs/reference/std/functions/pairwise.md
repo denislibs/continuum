@@ -8,7 +8,7 @@
 
 > **pairwise**\<`A`\>(`e`): `Event`\<\[`A`, `A`\]\>
 
-Defined in: [index.ts:103](https://github.com/denislibs/continuum/blob/6dcf7e4a1529edbb0b79752b06146206b3d754b5/packages/std/src/index.ts#L103)
+Defined in: [index.ts:104](https://github.com/denislibs/continuum/blob/024c0131f28e2b026cf3029c8a40baa1c2fe4fdb/packages/std/src/index.ts#L104)
 
 Pair each occurrence with the previous one; emits from the 2nd occurrence.
 

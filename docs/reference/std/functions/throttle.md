@@ -8,7 +8,7 @@
 
 > **throttle**\<`A`\>(`e`, `ms`): `Event`\<`A`\>
 
-Defined in: [index.ts:38](https://github.com/denislibs/continuum/blob/6dcf7e4a1529edbb0b79752b06146206b3d754b5/packages/std/src/index.ts#L38)
+Defined in: [index.ts:39](https://github.com/denislibs/continuum/blob/024c0131f28e2b026cf3029c8a40baa1c2fe4fdb/packages/std/src/index.ts#L39)
 
 Emit the leading occurrence immediately, then ignore further ones for `ms`.
 (Leading throttle / rate limit.)

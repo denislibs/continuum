@@ -6,7 +6,7 @@
 
 # Class: Transaction
 
-Defined in: [index.ts:25](https://github.com/denislibs/continuum/blob/6dcf7e4a1529edbb0b79752b06146206b3d754b5/packages/frp/src/index.ts#L25)
+Defined in: [index.ts:25](https://github.com/denislibs/continuum/blob/024c0131f28e2b026cf3029c8a40baa1c2fe4fdb/packages/frp/src/index.ts#L25)
 
 One logical instant of time (a "moment"). Engine-level API: application
 code normally never touches it — `fire`/`listen`/`sample` manage moments.
@@ -27,7 +27,7 @@ code normally never touches it — `fire`/`listen`/`sample` manage moments.
 
 > `static` **current**: `Transaction` \| `null` = `null`
 
-Defined in: [index.ts:27](https://github.com/denislibs/continuum/blob/6dcf7e4a1529edbb0b79752b06146206b3d754b5/packages/frp/src/index.ts#L27)
+Defined in: [index.ts:27](https://github.com/denislibs/continuum/blob/024c0131f28e2b026cf3029c8a40baa1c2fe4fdb/packages/frp/src/index.ts#L27)
 
 **`Internal`**
 
@@ -37,7 +37,7 @@ Defined in: [index.ts:27](https://github.com/denislibs/continuum/blob/6dcf7e4a15
 
 > **last**(`action`): `void`
 
-Defined in: [index.ts:41](https://github.com/denislibs/continuum/blob/6dcf7e4a1529edbb0b79752b06146206b3d754b5/packages/frp/src/index.ts#L41)
+Defined in: [index.ts:41](https://github.com/denislibs/continuum/blob/024c0131f28e2b026cf3029c8a40baa1c2fe4fdb/packages/frp/src/index.ts#L41)
 
 #### Parameters
 
@@ -55,7 +55,7 @@ Defined in: [index.ts:41](https://github.com/denislibs/continuum/blob/6dcf7e4a15
 
 > **post**(`action`): `void`
 
-Defined in: [index.ts:46](https://github.com/denislibs/continuum/blob/6dcf7e4a1529edbb0b79752b06146206b3d754b5/packages/frp/src/index.ts#L46)
+Defined in: [index.ts:46](https://github.com/denislibs/continuum/blob/024c0131f28e2b026cf3029c8a40baa1c2fe4fdb/packages/frp/src/index.ts#L46)
 
 #### Parameters
 
@@ -73,7 +73,7 @@ Defined in: [index.ts:46](https://github.com/denislibs/continuum/blob/6dcf7e4a15
 
 > **prioritized**(`rank`, `action`): `void`
 
-Defined in: [index.ts:36](https://github.com/denislibs/continuum/blob/6dcf7e4a1529edbb0b79752b06146206b3d754b5/packages/frp/src/index.ts#L36)
+Defined in: [index.ts:36](https://github.com/denislibs/continuum/blob/024c0131f28e2b026cf3029c8a40baa1c2fe4fdb/packages/frp/src/index.ts#L36)
 
 #### Parameters
 
@@ -95,7 +95,7 @@ Defined in: [index.ts:36](https://github.com/denislibs/continuum/blob/6dcf7e4a15
 
 > `static` **run**\<`A`\>(`f`): `A`
 
-Defined in: [index.ts:106](https://github.com/denislibs/continuum/blob/6dcf7e4a1529edbb0b79752b06146206b3d754b5/packages/frp/src/index.ts#L106)
+Defined in: [index.ts:106](https://github.com/denislibs/continuum/blob/024c0131f28e2b026cf3029c8a40baa1c2fe4fdb/packages/frp/src/index.ts#L106)
 
 #### Type Parameters
 
