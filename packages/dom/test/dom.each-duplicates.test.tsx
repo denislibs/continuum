@@ -35,7 +35,7 @@ describe("<Each> with duplicate keys", () => {
       { id: 2, text: "two" },
       { id: 2, text: "also shadowed" },
     ]);
-    const texts = [...container.querySelectorAll("li")].map(
+    const texts = Array.from(container.querySelectorAll("li")).map(
       (li) => li.textContent,
     );
     expect(texts).toEqual(["first", "two"]);
@@ -62,7 +62,7 @@ describe("<Each> with duplicate keys", () => {
       { id: 1, text: "one" },
       { id: 2, text: "two" },
     ]);
-    const [one, two] = [...container.querySelectorAll("li")];
+    const [one, two] = Array.from(container.querySelectorAll("li"));
 
     setList([
       { id: 2, text: "two" },
@@ -70,7 +70,7 @@ describe("<Each> with duplicate keys", () => {
       { id: 2, text: "dup of two" },
     ]);
 
-    const lis = [...container.querySelectorAll("li")];
+    const lis = Array.from(container.querySelectorAll("li"));
     expect(lis.length).toBe(2);
     expect(lis[0]).toBe(two); // reordered, not rebuilt
     expect(lis[1]).toBe(one);
