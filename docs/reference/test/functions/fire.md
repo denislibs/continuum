@@ -8,7 +8,7 @@
 
 > **fire**(`el`, `event`): `boolean`
 
-Defined in: [index.ts:41](https://github.com/denislibs/continuum/blob/8e7ee39923fe03f7015d85000909971978a707f2/packages/test/src/index.ts#L41)
+Defined in: [index.ts:41](https://github.com/denislibs/continuum/blob/d1f864a62eca67ab5b08c508a18d1e6c54cf8387/packages/test/src/index.ts#L41)
 
 Dispatch `event` on `el`. Returns the `dispatchEvent` result.
 

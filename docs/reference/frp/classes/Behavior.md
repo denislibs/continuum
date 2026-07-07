@@ -6,7 +6,7 @@
 
 # Class: Behavior\<A\>
 
-Defined in: [index.ts:464](https://github.com/denislibs/continuum/blob/8e7ee39923fe03f7015d85000909971978a707f2/packages/frp/src/index.ts#L464)
+Defined in: [index.ts:487](https://github.com/denislibs/continuum/blob/d1f864a62eca67ab5b08c508a18d1e6c54cf8387/packages/frp/src/index.ts#L487)
 
 A value across time (pull) with discrete change notifications (push).
 Denotationally `Time → A`: it always has a value — `sample()` never misses.
@@ -23,7 +23,7 @@ Denotationally `Time → A`: it always has a value — `sample()` never misses.
 
 > **new Behavior**\<`A`\>(`sampleNoTrans`, `updates`): `Behavior`\<`A`\>
 
-Defined in: [index.ts:465](https://github.com/denislibs/continuum/blob/8e7ee39923fe03f7015d85000909971978a707f2/packages/frp/src/index.ts#L465)
+Defined in: [index.ts:488](https://github.com/denislibs/continuum/blob/d1f864a62eca67ab5b08c508a18d1e6c54cf8387/packages/frp/src/index.ts#L488)
 
 #### Parameters
 
@@ -49,7 +49,7 @@ Push notifications of discrete changes (empty for continuous behaviors).
 
 > **sampleNoTrans**: () => `A`
 
-Defined in: [index.ts:467](https://github.com/denislibs/continuum/blob/8e7ee39923fe03f7015d85000909971978a707f2/packages/frp/src/index.ts#L467)
+Defined in: [index.ts:490](https://github.com/denislibs/continuum/blob/d1f864a62eca67ab5b08c508a18d1e6c54cf8387/packages/frp/src/index.ts#L490)
 
 Pull the current value without opening a transaction.
 
@@ -63,7 +63,7 @@ Pull the current value without opening a transaction.
 
 > **updates**: [`Event`](Event.md)\<`A`\>
 
-Defined in: [index.ts:469](https://github.com/denislibs/continuum/blob/8e7ee39923fe03f7015d85000909971978a707f2/packages/frp/src/index.ts#L469)
+Defined in: [index.ts:492](https://github.com/denislibs/continuum/blob/d1f864a62eca67ab5b08c508a18d1e6c54cf8387/packages/frp/src/index.ts#L492)
 
 Push notifications of discrete changes (empty for continuous behaviors).
 
@@ -73,7 +73,7 @@ Push notifications of discrete changes (empty for continuous behaviors).
 
 > **dispose**(): `void`
 
-Defined in: [index.ts:499](https://github.com/denislibs/continuum/blob/8e7ee39923fe03f7015d85000909971978a707f2/packages/frp/src/index.ts#L499)
+Defined in: [index.ts:522](https://github.com/denislibs/continuum/blob/d1f864a62eca67ab5b08c508a18d1e6c54cf8387/packages/frp/src/index.ts#L522)
 
 Detach this behavior's `updates` from the graph (see `Event.dispose`).
 
@@ -87,7 +87,7 @@ Detach this behavior's `updates` from the graph (see `Event.dispose`).
 
 > **listen**(`h`): [`Unlisten`](../type-aliases/Unlisten.md)
 
-Defined in: [index.ts:482](https://github.com/denislibs/continuum/blob/8e7ee39923fe03f7015d85000909971978a707f2/packages/frp/src/index.ts#L482)
+Defined in: [index.ts:505](https://github.com/denislibs/continuum/blob/d1f864a62eca67ab5b08c508a18d1e6c54cf8387/packages/frp/src/index.ts#L505)
 
 Deliver the current value immediately, then every change.
 
@@ -107,7 +107,7 @@ Deliver the current value immediately, then every change.
 
 > **map**\<`B`\>(`f`): `Behavior`\<`B`\>
 
-Defined in: [index.ts:477](https://github.com/denislibs/continuum/blob/8e7ee39923fe03f7015d85000909971978a707f2/packages/frp/src/index.ts#L477)
+Defined in: [index.ts:500](https://github.com/denislibs/continuum/blob/d1f864a62eca67ab5b08c508a18d1e6c54cf8387/packages/frp/src/index.ts#L500)
 
 Pointwise transform (continuous-safe: recomputed on each sample).
 
@@ -133,7 +133,7 @@ Pointwise transform (continuous-safe: recomputed on each sample).
 
 > **retain**(): `this`
 
-Defined in: [index.ts:504](https://github.com/denislibs/continuum/blob/8e7ee39923fe03f7015d85000909971978a707f2/packages/frp/src/index.ts#L504)
+Defined in: [index.ts:527](https://github.com/denislibs/continuum/blob/d1f864a62eca67ab5b08c508a18d1e6c54cf8387/packages/frp/src/index.ts#L527)
 
 Keep this behavior's update chain alive across listener churn (see `Event.retain`).
 
@@ -147,7 +147,7 @@ Keep this behavior's update chain alive across listener churn (see `Event.retain
 
 > **sample**(): `A`
 
-Defined in: [index.ts:472](https://github.com/denislibs/continuum/blob/8e7ee39923fe03f7015d85000909971978a707f2/packages/frp/src/index.ts#L472)
+Defined in: [index.ts:495](https://github.com/denislibs/continuum/blob/d1f864a62eca67ab5b08c508a18d1e6c54cf8387/packages/frp/src/index.ts#L495)
 
 #### Returns
 
@@ -159,7 +159,7 @@ Defined in: [index.ts:472](https://github.com/denislibs/continuum/blob/8e7ee3992
 
 > `static` **apply**\<`A`, `B`\>(`bf`, `ba`): `Behavior`\<`B`\>
 
-Defined in: [index.ts:512](https://github.com/denislibs/continuum/blob/8e7ee39923fe03f7015d85000909971978a707f2/packages/frp/src/index.ts#L512)
+Defined in: [index.ts:535](https://github.com/denislibs/continuum/blob/d1f864a62eca67ab5b08c508a18d1e6c54cf8387/packages/frp/src/index.ts#L535)
 
 Applicative with coalescing: apply a behavior-of-function to a value.
 
@@ -193,7 +193,7 @@ Applicative with coalescing: apply a behavior-of-function to a value.
 
 > `static` **fromPoll**\<`A`\>(`poll`): `Behavior`\<`A`\>
 
-Defined in: [index.ts:567](https://github.com/denislibs/continuum/blob/8e7ee39923fe03f7015d85000909971978a707f2/packages/frp/src/index.ts#L567)
+Defined in: [index.ts:590](https://github.com/denislibs/continuum/blob/d1f864a62eca67ab5b08c508a18d1e6c54cf8387/packages/frp/src/index.ts#L590)
 
 Continuous behavior: sampled fresh on each read; no discrete updates.
 
@@ -219,7 +219,7 @@ Continuous behavior: sampled fresh on each read; no discrete updates.
 
 > `static` **lift2**\<`A`, `B`, `C`\>(`f`, `ba`, `bb`): `Behavior`\<`C`\>
 
-Defined in: [index.ts:517](https://github.com/denislibs/continuum/blob/8e7ee39923fe03f7015d85000909971978a707f2/packages/frp/src/index.ts#L517)
+Defined in: [index.ts:540](https://github.com/denislibs/continuum/blob/d1f864a62eca67ab5b08c508a18d1e6c54cf8387/packages/frp/src/index.ts#L540)
 
 Combine two behaviors pointwise; simultaneous updates coalesce once.
 
@@ -261,7 +261,7 @@ Combine two behaviors pointwise; simultaneous updates coalesce once.
 
 > `static` **lift3**\<`A`, `B`, `C`, `D`\>(`f`, `ba`, `bb`, `bc`): `Behavior`\<`D`\>
 
-Defined in: [index.ts:552](https://github.com/denislibs/continuum/blob/8e7ee39923fe03f7015d85000909971978a707f2/packages/frp/src/index.ts#L552)
+Defined in: [index.ts:575](https://github.com/denislibs/continuum/blob/d1f864a62eca67ab5b08c508a18d1e6c54cf8387/packages/frp/src/index.ts#L575)
 
 Combine three behaviors pointwise.
 
@@ -311,7 +311,7 @@ Combine three behaviors pointwise.
 
 > `static` **switchB**\<`A`\>(`bb`): `Behavior`\<`A`\>
 
-Defined in: [index.ts:572](https://github.com/denislibs/continuum/blob/8e7ee39923fe03f7015d85000909971978a707f2/packages/frp/src/index.ts#L572)
+Defined in: [index.ts:595](https://github.com/denislibs/continuum/blob/d1f864a62eca67ab5b08c508a18d1e6c54cf8387/packages/frp/src/index.ts#L595)
 
 Follow the behavior currently selected by an outer behavior.
 
@@ -337,7 +337,7 @@ Follow the behavior currently selected by an outer behavior.
 
 > `static` **switchE**\<`A`\>(`be`): [`Event`](Event.md)\<`A`\>
 
-Defined in: [index.ts:597](https://github.com/denislibs/continuum/blob/8e7ee39923fe03f7015d85000909971978a707f2/packages/frp/src/index.ts#L597)
+Defined in: [index.ts:620](https://github.com/denislibs/continuum/blob/d1f864a62eca67ab5b08c508a18d1e6c54cf8387/packages/frp/src/index.ts#L620)
 
 Follow the event currently selected by a behavior.
 

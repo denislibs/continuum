@@ -1,7 +1,7 @@
 # Patterns
 
 ::: tip In plain words
-A cookbook. Twenty-one recipes from "every app needs this" to "niche but
+A cookbook. Twenty-two recipes from "every app needs this" to "niche but
 delightful" — each one is a small, complete idea you can lift into your code.
 Skim the headings, steal what you need.
 :::
@@ -421,6 +421,60 @@ onMount(() => {
 
 Add a todo in one tab — every tab updates, and the reducer didn't change by
 a letter.
+
+### 22. A shareable, polymorphic button — `ComponentProps`
+
+**When:** one design-system component that renders as a `<button>` or as a
+link, accepting exactly the right props for each.
+
+`ComponentProps<"button">` gives you a tag's full typed attribute set (the
+`React.ComponentProps` you're used to); a discriminated union on `as` picks
+which set applies:
+
+```tsx
+import type { ComponentProps, Reactive } from "@continuum-js/dom";
+
+type ButtonOwnProps = {
+  variant?: "primary" | "secondary";
+  loading?: Reactive<boolean>;
+};
+
+type ButtonProps =
+  // `href?: never` closes a TS union hole: with the optional discriminant,
+  // link props would otherwise be accepted on the button branch.
+  | (ComponentProps<"button"> &
+      ButtonOwnProps & { as?: "button"; href?: never })
+  | (ComponentProps<"a"> & ButtonOwnProps & { as: "a" });
+
+export function Button(props: ButtonProps) {
+  const { as, variant = "primary", loading, ...rest } = props;
+  const cls = `btn btn-${variant}`;
+  return as === "a" ? (
+    <a class={cls} {...(rest as ComponentProps<"a">)} />
+  ) : (
+    <button
+      class={cls}
+      disabled={loading}
+      {...(rest as ComponentProps<"button">)}
+    />
+  );
+}
+```
+
+```tsx
+<Button type="submit" loading={saving} onClick={(e) => save(e)}>Save</Button>
+<Button as="a" href="/docs" target="_blank">Docs</Button>
+<Button href="/docs">…</Button> // ✗ compile error: href requires as="a"
+```
+
+Notes worth stealing:
+
+- **children forward through the spread** — the runtime delivers them as
+  `props.children`, so `{...rest}` carries them into the tag;
+- `loading` is `Reactive<boolean>`: callers pass a plain `true` or a live
+  `Behavior<boolean>` and `disabled` tracks it — no wiring;
+- handlers on the result are fully typed, including `e.currentTarget` (an
+  `HTMLButtonElement` or `HTMLAnchorElement` per branch).
 
 ---
 

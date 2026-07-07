@@ -1,7 +1,7 @@
 # Паттерны
 
 ::: tip На пальцах
-Кулинарная книга. Двадцать один рецепт — от «нужно каждому приложению» до
+Кулинарная книга. Двадцать два рецепта — от «нужно каждому приложению» до
 «нишевых, но восхитительных». Каждый — маленькая законченная идея, которую
 можно унести к себе в код. Пробегитесь по заголовкам и берите нужное.
 :::
@@ -426,6 +426,60 @@ onMount(() => {
 
 Добавили туду в одной вкладке — обновились все, а редьюсер не изменился ни
 на букву.
+
+### 22. Шарируемая полиморфная кнопка — `ComponentProps`
+
+**Когда:** один компонент дизайн-системы, который рендерится как `<button>`
+или как ссылка — и принимает ровно те пропсы, что положены каждому варианту.
+
+`ComponentProps<"button">` даёт полный типизированный набор атрибутов тега
+(тот самый `React.ComponentProps`, к которому вы привыкли); размеченное
+объединение по `as` выбирает, какой набор действует:
+
+```tsx
+import type { ComponentProps, Reactive } from "@continuum-js/dom";
+
+type ButtonOwnProps = {
+  variant?: "primary" | "secondary";
+  loading?: Reactive<boolean>;
+};
+
+type ButtonProps =
+  // `href?: never` закрывает дыру TS в юнионах: с необязательным
+  // дискриминантом ссылочные пропсы иначе пролезали бы в кнопочную ветку.
+  | (ComponentProps<"button"> &
+      ButtonOwnProps & { as?: "button"; href?: never })
+  | (ComponentProps<"a"> & ButtonOwnProps & { as: "a" });
+
+export function Button(props: ButtonProps) {
+  const { as, variant = "primary", loading, ...rest } = props;
+  const cls = `btn btn-${variant}`;
+  return as === "a" ? (
+    <a class={cls} {...(rest as ComponentProps<"a">)} />
+  ) : (
+    <button
+      class={cls}
+      disabled={loading}
+      {...(rest as ComponentProps<"button">)}
+    />
+  );
+}
+```
+
+```tsx
+<Button type="submit" loading={saving} onClick={(e) => save(e)}>Сохранить</Button>
+<Button as="a" href="/docs" target="_blank">Документация</Button>
+<Button href="/docs">…</Button> // ✗ ошибка компиляции: href требует as="a"
+```
+
+Что стоит унести с собой:
+
+- **children проходят через спред** — рантайм доставляет их в
+  `props.children`, так что `{...rest}` уносит их в тег;
+- `loading` — это `Reactive<boolean>`: вызывающий передаёт хоть `true`, хоть
+  живой `Behavior<boolean>`, и `disabled` следит за ним без проводки;
+- обработчики результата полностью типизированы, включая `e.currentTarget`
+  (`HTMLButtonElement` или `HTMLAnchorElement` по ветке).
 
 ---
 

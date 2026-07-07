@@ -8,7 +8,7 @@
 
 > **flush**(`rounds?`): `Promise`\<`void`\>
 
-Defined in: [index.ts:66](https://github.com/denislibs/continuum/blob/8e7ee39923fe03f7015d85000909971978a707f2/packages/test/src/index.ts#L66)
+Defined in: [index.ts:66](https://github.com/denislibs/continuum/blob/d1f864a62eca67ab5b08c508a18d1e6c54cf8387/packages/test/src/index.ts#L66)
 
 Drain the microtask queue so settled promises (e.g. `perform` results)
 re-enter the network. Transactions themselves are synchronous — this only

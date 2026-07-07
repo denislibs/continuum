@@ -11,6 +11,10 @@
 ## Type Aliases
 
 - [Child](type-aliases/Child.md)
+- [ComponentProps](type-aliases/ComponentProps.md)
+- [EventHandler](type-aliases/EventHandler.md)
+- [Reactive](type-aliases/Reactive.md)
+- [Ref](type-aliases/Ref.md)
 
 ## Functions
 
