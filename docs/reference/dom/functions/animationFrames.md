@@ -8,7 +8,7 @@
 
 > **animationFrames**(): `Event`\<`number`\>
 
-Defined in: [index.tsx:661](https://github.com/denislibs/continuum/blob/8d71c388977ff9456393e0cbc710bd219c8150c3/packages/dom/src/index.tsx#L661)
+Defined in: [index.tsx:661](https://github.com/denislibs/continuum/blob/6dcf7e4a1529edbb0b79752b06146206b3d754b5/packages/dom/src/index.tsx#L661)
 
 An `Event<number>` of `requestAnimationFrame` timestamps (ms). Drives the
 continuous-time combinators (`integral`/`derivative`/`warp` from the core).

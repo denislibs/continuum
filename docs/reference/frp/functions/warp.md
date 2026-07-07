@@ -8,7 +8,7 @@
 
 > **warp**(`tick`, `remap`): [`Event`](../classes/Event.md)\<`number`\>
 
-Defined in: [continuous.ts:58](https://github.com/denislibs/continuum/blob/8d71c388977ff9456393e0cbc710bd219c8150c3/packages/frp/src/continuous.ts#L58)
+Defined in: [continuous.ts:58](https://github.com/denislibs/continuum/blob/6dcf7e4a1529edbb0b79752b06146206b3d754b5/packages/frp/src/continuous.ts#L58)
 
 Time warping: remap the clock's timestamps. Integrating/differentiating over
 a warped clock stretches or compresses time — e.g. `warp(tick, t => 2*t)`

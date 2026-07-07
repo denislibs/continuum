@@ -17,6 +17,6 @@
   {
     "name": "@continuum-js/router (incl. frp+dom+std)",
     "path": "packages/router/src/index.ts",
-    "limit": "4 kB"
+    "limit": "4.5 kB"
   }
 ]

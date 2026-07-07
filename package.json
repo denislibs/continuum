@@ -19,6 +19,7 @@
     "typecheck": "tsc -b",
     "build": "npm run build -w @continuum-js/frp && npm run build -w @continuum-js/std && npm run build -w @continuum-js/dom && npm run build -w @continuum-js/test && npm run build -w @continuum-js/router",
     "smoke": "node scripts/smoke.mjs",
+    "stress": "vitest run --config vitest.stress.config.ts",
     "changeset": "changeset",
     "release": "npm run build && changeset publish",
     "lint": "eslint .",

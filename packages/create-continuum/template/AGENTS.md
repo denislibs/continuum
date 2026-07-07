@@ -71,6 +71,9 @@ lazy(() => import("./Page.js"), { fallback: () => <p>…</p> });
 
 - `e.listen(handler)` returns an unsubscribe and is NOT tied to the
   component automatically. Always: `onCleanup(e.listen(handler))`.
+- A derivation (`map`/`hold`/…) shared at MODULE level across mounts must be
+  marked `.retain()` — otherwise it auto-disposes when its last listener
+  leaves, and re-use throws. Derivations inside components need nothing.
 - `interval`/`delay` timers stop on `dispose()`:
   `onCleanup(() => ticks.dispose())`.
 - Reading state: in plain DOM handlers `b.sample()` is fine

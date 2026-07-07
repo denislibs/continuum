@@ -8,7 +8,7 @@
 
 > **distinct**\<`A`\>(`e`, `eq?`): [`Event`](../classes/Event.md)\<`A`\>
 
-Defined in: [index.ts:574](https://github.com/denislibs/continuum/blob/8d71c388977ff9456393e0cbc710bd219c8150c3/packages/frp/src/index.ts#L574)
+Defined in: [index.ts:620](https://github.com/denislibs/continuum/blob/6dcf7e4a1529edbb0b79752b06146206b3d754b5/packages/frp/src/index.ts#L620)
 
 De-duplicate consecutive equal values (filter with one-value memory).
 Default comparison is `Object.is`.
