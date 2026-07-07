@@ -217,6 +217,10 @@ export type {
   Ref,
   EventHandler,
 } from "./jsx-runtime.js";
+export type * from "./events.js";
+// The same aliases as a namespace — `Events.MouseEvent<…>` — for files that
+// prefer not to shadow the DOM globals.
+export type * as Events from "./events.js";
 
 type Props = Record<string, unknown> | null;
 

@@ -318,10 +318,23 @@ Continuum вешает **нативные** DOM-слушатели, а нати�
 
 События полностью типизированы — редактор подсказывает их и знает тип
 события; работают оба написания: `onKeyDown` и `onKeydown` вешают один и
-тот же слушатель. События **нативные**, не синтетические: где в React был
-`React.MouseEvent<HTMLButtonElement>`, здесь обычный DOM `MouseEvent`, у
-которого `e.currentTarget` уже типизирован тегом (без каста, как выше). Для
-обёрточных компонентов есть `ComponentProps<"button">` — см. [рецепт
+тот же слушатель. События **нативные**, не синтетические: в инлайн-обработчике
+`e.currentTarget` уже типизирован тегом (без каста, как выше). А когда
+обработчик **выносится** — аннотируйте параметр ровно как в React, алиасы
+есть в пакете:
+
+```tsx
+import type { SubmitEvent, MouseEvent } from "@continuum-js/dom";
+
+const onSubmit = (e: SubmitEvent) => e.currentTarget.elements; // HTMLFormElement по умолчанию
+const onClick = (e: MouseEvent<HTMLButtonElement>) => e.currentTarget.type;
+```
+
+Не хотите затенять DOM-глобалы — те же алиасы есть неймспейсом:
+`import type { Events } from "@continuum-js/dom"` →
+`(e: Events.MouseEvent<HTMLButtonElement>) => …`.
+
+Для обёрточных компонентов есть `ComponentProps<"button">` — см. [рецепт
 полиморфной кнопки](/ru/guides/patterns#_22-шарируемая-полиморфная-кнопка-componentprops).
 :::
 

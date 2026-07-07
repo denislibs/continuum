@@ -8,7 +8,7 @@
 
 > **dyn**\<`T`\>(`b`, `render`): `Node`
 
-Defined in: [index.tsx:401](https://github.com/denislibs/continuum/blob/d1f864a62eca67ab5b08c508a18d1e6c54cf8387/packages/dom/src/index.tsx#L401)
+Defined in: [index.tsx:405](https://github.com/denislibs/continuum/blob/9e6d8fee1895bb34167cfe31c364b635d2b71604/packages/dom/src/index.tsx#L405)
 
 Conditional / switching subtree: rebuilds on each change of `b`.
 

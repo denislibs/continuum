@@ -6,7 +6,7 @@
 
 # Interface: RouteDef
 
-Defined in: [match.ts:12](https://github.com/denislibs/continuum/blob/d1f864a62eca67ab5b08c508a18d1e6c54cf8387/packages/router/src/match.ts#L12)
+Defined in: [match.ts:12](https://github.com/denislibs/continuum/blob/9e6d8fee1895bb34167cfe31c364b635d2b71604/packages/router/src/match.ts#L12)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [match.ts:12](https://github.com/denislibs/continuum/blob/d1f864a62e
 
 > `optional` **children?**: `RouteDef`[]
 
-Defined in: [match.ts:21](https://github.com/denislibs/continuum/blob/d1f864a62eca67ab5b08c508a18d1e6c54cf8387/packages/router/src/match.ts#L21)
+Defined in: [match.ts:21](https://github.com/denislibs/continuum/blob/9e6d8fee1895bb34167cfe31c364b635d2b71604/packages/router/src/match.ts#L21)
 
 Nested routes, rendered into the parent's `<Outlet>`.
 
@@ -24,7 +24,7 @@ Nested routes, rendered into the parent's `<Outlet>`.
 
 > `optional` **component?**: [`Component`](../type-aliases/Component.md)
 
-Defined in: [match.ts:19](https://github.com/denislibs/continuum/blob/d1f864a62eca67ab5b08c508a18d1e6c54cf8387/packages/router/src/match.ts#L19)
+Defined in: [match.ts:19](https://github.com/denislibs/continuum/blob/9e6d8fee1895bb34167cfe31c364b635d2b71604/packages/router/src/match.ts#L19)
 
 What to render. A layout without content may omit it (children render through).
 
@@ -34,7 +34,7 @@ What to render. A layout without content may omit it (children render through).
 
 > `optional` **guard?**: (`params`) => `string` \| `true`
 
-Defined in: [match.ts:26](https://github.com/denislibs/continuum/blob/d1f864a62eca67ab5b08c508a18d1e6c54cf8387/packages/router/src/match.ts#L26)
+Defined in: [match.ts:26](https://github.com/denislibs/continuum/blob/9e6d8fee1895bb34167cfe31c364b635d2b71604/packages/router/src/match.ts#L26)
 
 Pure guard: return `true` to pass or a path to redirect to
 (applied with `replace`, so the guarded URL doesn't pollute history).
@@ -55,7 +55,7 @@ Pure guard: return `true` to pass or a path to redirect to
 
 > **path**: `string`
 
-Defined in: [match.ts:17](https://github.com/denislibs/continuum/blob/d1f864a62eca67ab5b08c508a18d1e6c54cf8387/packages/router/src/match.ts#L17)
+Defined in: [match.ts:17](https://github.com/denislibs/continuum/blob/9e6d8fee1895bb34167cfe31c364b635d2b71604/packages/router/src/match.ts#L17)
 
 Path relative to the parent: `""` (index), `"users"`, `":id"`,
 `"docs/api"`, or `"*"` (catch-all, rest available as `params["*"]`).
