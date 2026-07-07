@@ -8,7 +8,7 @@
 
 > **debounce**\<`A`\>(`e`, `ms`): `Event`\<`A`\>
 
-Defined in: [index.ts:17](https://github.com/denislibs/continuum/blob/8d71c388977ff9456393e0cbc710bd219c8150c3/packages/std/src/index.ts#L17)
+Defined in: [index.ts:17](https://github.com/denislibs/continuum/blob/6dcf7e4a1529edbb0b79752b06146206b3d754b5/packages/std/src/index.ts#L17)
 
 Emit only after `ms` of quiet, coalescing a burst into its last value.
 (Trailing debounce.)

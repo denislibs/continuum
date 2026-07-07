@@ -90,6 +90,25 @@ That is how the router's `location()` works — one singleton Behavior per
 page. A component's local state lives in its body and dies with the subtree
 (see [Ownership and lifecycle](/concepts/ownership)).
 
+One nuance about **module-level derivations**. A derivation
+(`map`/`lift`/`hold`) automatically detaches from its source when its last
+listener unsubscribes — otherwise every binding to a value that outlives
+its component would leak. So a source (`newBehavior`) can be shared at
+module level freely, but a derivation only if you mark it `retain()`:
+
+```ts
+// BAD: after the first unmount, re-use throws a descriptive error
+export const page = location().map((u) => u.pathname);
+
+// GOOD: retain() opts out of the auto-cleanup — its lifetime is yours
+export const page = location()
+  .map((u) => u.pathname)
+  .retain();
+```
+
+Inside a component none of this matters: derivations there are created
+fresh per build and cleaned up by the ownership tree.
+
 ---
 
 > Unfamiliar term? Every piece of jargon in these docs is explained in the [glossary](/glossary).

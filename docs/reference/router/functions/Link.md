@@ -8,7 +8,7 @@
 
 > **Link**(`props`): `Node`
 
-Defined in: [index.ts:116](https://github.com/denislibs/continuum/blob/8d71c388977ff9456393e0cbc710bd219c8150c3/packages/router/src/index.ts#L116)
+Defined in: [index.ts:116](https://github.com/denislibs/continuum/blob/6dcf7e4a1529edbb0b79752b06146206b3d754b5/packages/router/src/index.ts#L116)
 
 Client-side link: intercepts plain left clicks into `navigate`, carries an
 `active` class (exact for `/`, prefix otherwise; `end` forces exact).

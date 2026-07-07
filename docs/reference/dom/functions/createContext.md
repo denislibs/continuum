@@ -8,7 +8,7 @@
 
 > **createContext**\<`T`\>(`defaultValue`): [`Context`](../interfaces/Context.md)\<`T`\>
 
-Defined in: [index.tsx:563](https://github.com/denislibs/continuum/blob/8d71c388977ff9456393e0cbc710bd219c8150c3/packages/dom/src/index.tsx#L563)
+Defined in: [index.tsx:563](https://github.com/denislibs/continuum/blob/6dcf7e4a1529edbb0b79752b06146206b3d754b5/packages/dom/src/index.tsx#L563)
 
 Create a context. Provide with `provide`, read with `use`.
 

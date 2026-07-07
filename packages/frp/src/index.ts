@@ -157,6 +157,8 @@ export class Event<A> {
   private cleanups: Array<() => void> = [];
   /** True once `dispose()` has run. */
   disposed = false;
+  /** Exempt from the listener-count cascade (see `retain`). */
+  private pinned = false;
 
   constructor(rank = 0) {
     this.rank = rank;
@@ -179,6 +181,16 @@ export class Event<A> {
 
   /** @internal Register an in-graph subscriber. Returns an unsubscribe handle. */
   listen_(target: Event<any> | null, h: Handler<A>): Unlisten {
+    if (this.disposed) {
+      // Loud beats silent-dead: a derivation auto-disposes when its last
+      // listener leaves (see `listen`), so it cannot be re-used afterwards.
+      throw new Error(
+        "Continuum: this derived event/behavior was disposed after its last " +
+          "listener unsubscribed. Create derivations (map/filter/hold/…) " +
+          "inside the scope that uses them instead of sharing one across " +
+          "mounts.",
+      );
+    }
     this.listeners.push(h);
     if (target) {
       this.targets.add(target);
@@ -207,7 +219,11 @@ export class Event<A> {
     const un = input.listen_(this, h);
     return () => {
       un();
-      if (input.listeners.length === 0 && input.cleanups.length > 0) {
+      if (
+        !input.pinned &&
+        input.listeners.length === 0 &&
+        input.cleanups.length > 0
+      ) {
         input.dispose();
       }
     };
@@ -377,7 +393,33 @@ export class Event<A> {
 
   /** Observer (phase post): fires after the moment closes, FIFO. */
   listen(h: (a: A) => void): Unlisten {
-    return this.listen_(null, (t, a) => t.post(() => h(a)));
+    const un = this.listen_(null, (t, a) => t.post(() => h(a)));
+    return () => {
+      un();
+      // Mirror the in-graph cascade (see `subscribe`): a derived node left
+      // with no listeners detaches from its inputs, so long-lived sources
+      // don't accumulate dead chains — every `{b.map(f)}` binding on a
+      // behavior that outlives its component would otherwise leak. Sources
+      // (no cleanups of their own) are never auto-disposed.
+      if (
+        !this.pinned &&
+        this.listeners.length === 0 &&
+        this.cleanups.length > 0
+      ) {
+        this.dispose();
+      }
+    };
+  }
+
+  /**
+   * Keep this node alive when its last listener unsubscribes. Derived nodes
+   * normally auto-dispose at that point (so per-component derivations don't
+   * leak onto long-lived sources); call `retain()` on a derivation you
+   * intentionally share across mounts (e.g. a module-level one).
+   */
+  retain(): this {
+    this.pinned = true;
+    return this;
   }
 }
 
@@ -426,6 +468,12 @@ export class Behavior<A> {
   /** Detach this behavior's `updates` from the graph (see `Event.dispose`). */
   dispose(): void {
     this.updates.dispose();
+  }
+
+  /** Keep this behavior's update chain alive across listener churn (see `Event.retain`). */
+  retain(): this {
+    this.updates.retain();
+    return this;
   }
 
   // --- static combinators -----------------------------------------------
@@ -541,7 +589,9 @@ export function newEvent<A>(): [Event<A>, (a: A) => void] {
 /** A source behavior (a `hold` over a source event) plus its setter. */
 export function newBehavior<A>(init: A): [Behavior<A>, (a: A) => void] {
   const [e, fire] = newEvent<A>();
-  const b = e.hold(init);
+  // A source construct: the internal hold must survive listener churn
+  // (bindings come and go with mounts) — exempt it from the cascade.
+  const b = e.hold(init).retain();
   return [b, fire];
 }
 

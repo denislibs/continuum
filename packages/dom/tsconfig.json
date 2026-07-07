@@ -7,5 +7,5 @@
     "jsxImportSource": "@continuum-js/dom"
   },
   "include": ["src", "test"],
-  "references": [{ "path": "../frp" }]
+  "references": [{ "path": "../frp" }, { "path": "../std" }]
 }
