@@ -1,8 +1,16 @@
 # Events
 
-`Event<A>` is a stream of **[discrete occurrences](/glossary#occurrence)**: at some moments something
-happens carrying an `A`; between them, nothing exists. Denotationally —
-`[(Time, A)]`.
+`Event<A>` is a stream of **things that happen**: clicks, key presses,
+server responses. Each firing (an [occurrence](/glossary#occurrence))
+carries a value; between firings the event simply isn't there — unlike a
+Behavior, it has no "current value" to read.
+
+::: tip You may not need Events yet
+For most UI code, `newBehavior` + plain callbacks
+(`onClick={() => setX(…)}`) is all you need. Reach for Events when you work
+with _streams_: debouncing input, merging sources, capturing form state at
+submit, feeding requests into `resource`.
+:::
 
 ## Creating
 

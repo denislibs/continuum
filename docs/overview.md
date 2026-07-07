@@ -1,63 +1,81 @@
 # Overview
 
-Continuum is a UI framework built on **classic FRP** — the discrete branch of
-Functional Reactive Programming (Sodium-style), put to work for the DOM.
+Continuum is a UI framework where **components run once** and state keeps
+the DOM in sync by itself.
 
-## What it is
-
-Two abstractions model everything that happens in a UI:
-
-- **`Behavior<A>`** — a value that exists at every moment: the text of an
-  input, the current user, the URL.
-- **`Event<A>`** — [discrete occurrences](/glossary#occurrence): clicks, responses, ticks.
-
-Components are plain functions that run **once**. They build an FRP network
-and DOM wired to it; after that, updates are values propagating through the
-network into individual text nodes and attributes. There is no re-rendering,
-no virtual DOM, no dependency tracking at runtime — the dependency graph _is_
-the program you wrote.
+## The 30-second version
 
 ```tsx
-import { newEvent } from "@continuum-js/frp";
+import { newBehavior } from "@continuum-js/frp";
 import { mount } from "@continuum-js/dom";
 
 function Counter() {
-  const [clicks, fire] = newEvent<MouseEvent>();
-  const count = clicks.accum(0, (_e, n) => n + 1);
-  return <button onClick={fire}>count: {count}</button>;
+  const [count, setCount] = newBehavior(0);
+  const double = count.map((n) => n * 2);
+  return (
+    <div>
+      <button onClick={() => setCount(count.sample() + 1)}>+1</button>
+      <p>
+        count: {count}, double: {double}
+      </p>
+    </div>
+  );
 }
 
 mount(document.getElementById("app")!, () => <Counter />);
 ```
 
-## Why it's different
+Three moves, and they are the whole core model:
 
-**Transactions.** Every update runs in an atomic moment of logical time.
-Derived values never observe half-updated state ("glitches") — not because
-they are batched as an optimization, but because simultaneity is part of the
-model.
+1. **Create state** — `newBehavior(0)` gives you a reactive value and a
+   setter. Like `useState`, but the component never re-runs.
+2. **Derive** — `count.map(n => n * 2)` is a value computed from another
+   one. No dependency array: `double` depends on `count` because it is
+   built from it.
+3. **Bind** — putting a value in JSX (`{count}`, `class={cls}`) wires that
+   exact text node or attribute to it. Change the value, and only that node
+   updates.
 
-**Honest async.** IO enters the network as data: an error is a `Result`
-branch, a loading state is a value. Response races are solved once, in the
-library, not with a `cancelled` flag per effect.
+No hooks, no re-renders, no memoization, no virtual DOM.
 
-**Small.** The whole stack — core, DOM renderer, std utilities, router — is
-under 8 kB brotli, with hard size budgets enforced in CI.
+## Why trust it
+
+Under the plain surface sits a rigorous engine — classic FRP (the
+Sodium-style discrete branch). What that buys you in practice:
+
+- **Atomic updates.** When one change fans out to many derived values,
+  everything updates as a single step. A derived value can never observe a
+  half-updated state — a whole class of subtle UI bugs is impossible, not
+  just unlikely.
+- **Honest async.** IO results and errors come back as ordinary data;
+  response races are solved once, in the library (`resource`,
+  last-request-wins).
+- **Deterministic cleanup.** Everything a component creates is disposed
+  with its subtree — subscriptions, timers, portals.
+
+You don't need the theory to use the framework — it's there when you want
+to know _why_ it works: see [the deep dive](/tutorial/thinking-in-frp).
 
 ## The packages
 
-| Package                | What's inside                                                                | Size (brotli)     |
-| ---------------------- | ---------------------------------------------------------------------------- | ----------------- |
-| `@continuum-js/frp`    | Behaviors, Events, transactions, `perform`, continuous time                  | ~1.8 kB           |
-| `@continuum-js/dom`    | JSX renderer, `dyn`/`Show`/`Each`, ownership, context, `onMount`/`onCleanup` | ~3.7 kB incl. frp |
-| `@continuum-js/std`    | `debounce`/`throttle`/`interval`, `resource`, `distinctB`, …                 | ~2 kB incl. frp   |
-| `@continuum-js/router` | URL as a Behavior, nested routes, guards, `lazy` code splitting              | ~3.9 kB incl. all |
-| `@continuum-js/test`   | `render`/`fire`/`type`/`flush` helpers for vitest                            | dev-only          |
+| Package                | What's inside                                     | Size (brotli)     |
+| ---------------------- | ------------------------------------------------- | ----------------- |
+| `@continuum-js/frp`    | reactive values and events, the update engine     | ~1.8 kB           |
+| `@continuum-js/dom`    | JSX renderer, `Show`/`Each`, lifecycle, context   | ~3.7 kB incl. frp |
+| `@continuum-js/std`    | `debounce`, `interval`, `resource`, …             | ~2 kB incl. frp   |
+| `@continuum-js/router` | nested routes, guards, lazy code splitting        | ~3.9 kB incl. all |
+| `@continuum-js/test`   | `render`/`fire`/`type`/`flush` helpers for vitest | dev-only          |
 
 ## Where to go next
 
+0. New to reactivity itself? [What is FRP — in plain words](/frp-in-plain-words).
 1. [Quick start](/quick-start) — a running app in one command.
-2. [Thinking in Behaviors and Events](/tutorial/thinking-in-frp) — the
-   mental model, in 15 minutes.
+2. [Examples](/examples) — small complete apps, runnable in the browser.
 3. [Concepts](/concepts/components) — one idea per page.
-4. [From React](/from-react) — if you're migrating habits.
+4. [From React](/from-react) — a construct-by-construct migration map.
+5. When you're curious about the engine:
+   [Thinking in Behaviors and Events](/tutorial/thinking-in-frp).
+
+---
+
+> Unfamiliar term? Every piece of jargon in these docs is explained in the [glossary](/glossary).

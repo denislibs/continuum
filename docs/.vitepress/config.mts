@@ -13,11 +13,10 @@ function sidebar(
       text: t.introduction,
       items: [
         { text: t.overview, link: `${prefix}/overview` },
-        { text: t.history, link: `${prefix}/history` },
+        { text: t.plainWords, link: `${prefix}/frp-in-plain-words` },
         { text: t.quickStart, link: `${prefix}/quick-start` },
-        { text: t.tutorial, link: `${prefix}/tutorial/thinking-in-frp` },
-        { text: t.glossary, link: `${prefix}/glossary` },
         { text: t.examples, link: `${prefix}/examples` },
+        { text: t.glossary, link: `${prefix}/glossary` },
       ],
     },
     {
@@ -26,7 +25,6 @@ function sidebar(
         { text: t.components, link: `${prefix}/concepts/components` },
         { text: "Behaviors", link: `${prefix}/concepts/behaviors` },
         { text: "Events", link: `${prefix}/concepts/events` },
-        { text: t.transactions, link: `${prefix}/concepts/transactions` },
         {
           text: t.conditional,
           link: `${prefix}/concepts/conditional-rendering`,
@@ -51,6 +49,15 @@ function sidebar(
       items: [{ text: t.fromReact, link: `${prefix}/from-react` }],
     },
     {
+      // The engine room: read when you want to know WHY it works.
+      text: t.deeper,
+      items: [
+        { text: t.tutorial, link: `${prefix}/tutorial/thinking-in-frp` },
+        { text: t.transactions, link: `${prefix}/concepts/transactions` },
+        { text: t.history, link: `${prefix}/history` },
+      ],
+    },
+    {
       // Generated from JSDoc (npm run docs:api) — English only, shared by
       // both locales.
       text: t.reference,
@@ -69,6 +76,7 @@ function sidebar(
 const en = {
   introduction: "Introduction",
   overview: "Overview",
+  plainWords: "What is FRP — in plain words",
   history: "History and context",
   glossary: "Glossary",
   examples: "Examples",
@@ -90,11 +98,13 @@ const en = {
   migration: "Migration",
   fromReact: "From React",
   reference: "API Reference",
+  deeper: "Under the hood",
 };
 
 const ru = {
   introduction: "Введение",
   overview: "Обзор",
+  plainWords: "Что такое FRP — на пальцах",
   history: "История и контекст",
   glossary: "Глоссарий",
   examples: "Примеры",
@@ -116,6 +126,7 @@ const ru = {
   migration: "Миграция",
   fromReact: "Из React",
   reference: "Справочник API",
+  deeper: "Под капотом",
 };
 
 export default defineConfig({
@@ -128,7 +139,7 @@ export default defineConfig({
       label: "English",
       lang: "en",
       description:
-        "Classic FRP for the DOM: Behaviors, Events, and fine-grained rendering with no re-renders.",
+        "Reactive UI with no re-renders: pinpoint DOM updates on a classic-FRP foundation.",
       themeConfig: {
         nav: [
           { text: "Learn", link: "/overview" },
@@ -146,7 +157,7 @@ export default defineConfig({
       label: "Русский",
       lang: "ru",
       description:
-        "Классический FRP для DOM: Behaviors, Events и тонкозернистый рендеринг без ре-рендеров.",
+        "Реактивный UI без ре-рендеров: точечные обновления DOM на фундаменте классического FRP.",
       themeConfig: {
         nav: [
           { text: "Учиться", link: "/ru/overview" },

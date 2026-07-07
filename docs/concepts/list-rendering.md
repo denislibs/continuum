@@ -1,5 +1,9 @@
 # List rendering
 
+::: tip In plain words
+Rendering changing lists: Each recognizes rows by key and moves ready-made DOM nodes instead of repainting the list.
+:::
+
 ## `<Each>`: the key is the row's identity
 
 ```tsx

@@ -1,5 +1,9 @@
 # Async
 
+::: tip In plain words
+Loading data, showing the loading and error states, and never hitting a response race.
+:::
+
 The FRP network is pure and synchronous: the moment closes, effects run
 after it. The asynchronous world enters and leaves through two hatches.
 

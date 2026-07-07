@@ -1,8 +1,10 @@
 # Behaviors
 
-`Behavior<A>` is a **value across time**. Denotationally it is a function
-`Time → A`: at every moment it has a value — you can always ask "what is it
-now?", never "did it arrive?".
+`Behavior<A>` is a **reactive value**: the text of an input, the current
+user, a counter. It always has a value you can read, JSX can bind to it, and
+other values can be derived from it. (The name comes from FRP, where it
+formally means "a value across time" — but you don't need the theory to use
+it.)
 
 ## Creating
 
@@ -16,9 +18,10 @@ const pi = constant(3.14159); // never changes
 const now = Behavior.fromPoll(() => Date.now()); // read the world on sample
 ```
 
-`newBehavior` is the hatch for state driven from outside. When there is a
-stream of causes, prefer folding it (`accum`, `hold`) — the state's history
-stays readable.
+`newBehavior` is the everyday way to create state — a value plus a setter,
+like `useState` without re-runs. The event-based forms (`accum`, `hold`)
+shine when state is naturally "a history of things that happened"; they live
+in [Events](/concepts/events).
 
 ## Deriving
 

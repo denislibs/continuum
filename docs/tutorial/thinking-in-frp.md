@@ -1,5 +1,12 @@
 # Thinking in Behaviors and Events
 
+::: info The engine room
+You don't need this page to build with Continuum — the
+[Concepts](/concepts/components) cover everyday use. Read it when you want
+to know **why** the framework can promise "no update bugs": the model
+underneath is classic FRP, and it is genuinely elegant.
+:::
+
 Continuum is a classic-FRP framework. Not "reactivity" in the signals or
 proxy-wrapper sense: two precisely defined abstractions of time and hard
 guarantees about how they compose. This tutorial teaches you to **think** in

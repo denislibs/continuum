@@ -56,19 +56,21 @@ function Counter() {
 **Continuum**
 
 ```tsx
-import { newEvent } from "@continuum-js/frp";
+import { newBehavior } from "@continuum-js/frp";
 
 function Counter() {
-  const [clicks, fire] = newEvent<MouseEvent>();
-  const count = clicks.accum(0, (_e, n) => n + 1);
-  return <button onClick={fire}>count: {count}</button>;
+  const [count, setCount] = newBehavior(0);
+  return (
+    <button onClick={() => setCount(count.sample() + 1)}>count: {count}</button>
+  );
 }
 ```
 
-Внешне похоже, но семантика разная: React перезапустит `Counter` на каждый
-клик и переrender'ит поддерево; Continuum выполнит `Counter` один раз, клик
-потечёт по сети `clicks → accum → count`, и патчится ровно один текстовый
-узел. `count` в JSX — это не «текущее значение», это сама величина-во-времени.
+Почти одинаково — но семантика разная: React перезапустит `Counter` на
+каждый клик и пере-render'ит поддерево; Continuum выполнит `Counter` один
+раз, а клик патчит ровно один текстовый узел — тот, что привязан к `count`.
+Любители потоков могут выразить тот же счётчик событием:
+`clicks.accum(0, (_e, n) => n + 1)` — «count есть свёртка кликов».
 
 ## 2. Производное состояние
 

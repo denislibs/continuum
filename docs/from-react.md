@@ -52,20 +52,21 @@ function Counter() {
 **Continuum**
 
 ```tsx
-import { newEvent } from "@continuum-js/frp";
+import { newBehavior } from "@continuum-js/frp";
 
 function Counter() {
-  const [clicks, fire] = newEvent<MouseEvent>();
-  const count = clicks.accum(0, (_e, n) => n + 1);
-  return <button onClick={fire}>count: {count}</button>;
+  const [count, setCount] = newBehavior(0);
+  return (
+    <button onClick={() => setCount(count.sample() + 1)}>count: {count}</button>
+  );
 }
 ```
 
-They look alike, but the semantics differ: React re-runs `Counter` on every
-click and re-renders the subtree; Continuum runs `Counter` once, the click
-flows through the `clicks → accum → count` network, and exactly one text node
-is patched. `count` in JSX is not "the current value" — it is the
-value-across-time itself.
+Nearly identical — but the semantics differ: React re-runs `Counter` on
+every click and re-renders the subtree; Continuum runs `Counter` once, and a
+click patches exactly one text node — the one bound to `count`. If you like
+streams, the same counter can be an event fold:
+`clicks.accum(0, (_e, n) => n + 1)` — "count is a fold of clicks".
 
 ## 2. Derived state
 

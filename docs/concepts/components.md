@@ -1,5 +1,9 @@
 # Components
 
+::: tip In plain words
+A component is a function that assembles its piece of the page once and hands it over. No repaints: everything live inside updates through bound values.
+:::
+
 A component is a plain function that returns DOM. It runs **exactly once**
 per appearance in the tree — it is a _constructor of a live subtree_, not a
 render function.

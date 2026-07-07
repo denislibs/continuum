@@ -1,5 +1,9 @@
 # Context
 
+::: tip In plain words
+How to hand a value to all descendants without threading it through every prop.
+:::
+
 Context passes values down the tree without threading them through every
 prop. In Continuum it lives on the **ownership tree**: `provide` writes into
 the current owner, `use` looks up through ancestors.

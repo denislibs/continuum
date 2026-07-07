@@ -1,5 +1,9 @@
 # Conditional rendering
 
+::: tip In plain words
+How to show or hide a piece of the page on a condition — and why these are components (Show, Dynamic) rather than a plain ternary.
+:::
+
 Values in JSX are bindings — they patch text and attributes in place. When
 the **structure** of the DOM must change, you declare a dynamic region.
 
