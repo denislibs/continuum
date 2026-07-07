@@ -1,5 +1,14 @@
 # @continuum-js/example-data
 
+## 0.2.5
+
+### Patch Changes
+
+- Updated dependencies [20ecab7]
+  - @continuum-js/dom@0.5.0
+  - @continuum-js/frp@0.5.0
+  - @continuum-js/std@0.5.0
+
 ## 0.2.4
 
 ### Patch Changes
