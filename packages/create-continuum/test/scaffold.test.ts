@@ -64,6 +64,32 @@ describe("scaffold", () => {
     expect(() => scaffold(join(work, "x"), "Bad Name!")).toThrow(/name/i);
   });
 
+  test("ships eslint (with the continuum plugin) and prettier preconfigured", () => {
+    const dir = join(work, "app");
+    scaffold(dir, "app");
+
+    expect(existsSync(join(dir, "eslint.config.js"))).toBe(true);
+    expect(existsSync(join(dir, "prettier.config.js"))).toBe(true);
+
+    const pkg = JSON.parse(readFileSync(join(dir, "package.json"), "utf8"));
+    expect(pkg.scripts.lint).toBe("eslint .");
+    expect(pkg.scripts.format).toBe("prettier --write .");
+    for (const dep of [
+      "@continuum-js/eslint-plugin",
+      "eslint",
+      "typescript-eslint",
+      "prettier",
+      "eslint-config-prettier",
+    ]) {
+      expect(pkg.devDependencies[dep], dep).toBeDefined();
+    }
+
+    // the flat config actually wires our plugin in
+    const config = readFileSync(join(dir, "eslint.config.js"), "utf8");
+    expect(config).toContain("@continuum-js/eslint-plugin");
+    expect(config).toContain("configs.recommended");
+  });
+
   test("stamps a resolved continuum version onto the runtime deps", () => {
     const dir = join(work, "app");
     scaffold(dir, "app", { continuumVersion: "9.9.9" });
