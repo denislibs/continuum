@@ -1,6 +1,6 @@
 {
   "name": "@continuum-js/benchmark",
-  "version": "0.2.3",
+  "version": "0.2.4",
   "private": true,
   "type": "module",
   "scripts": {
@@ -10,7 +10,7 @@
     "bench": "node bench.mjs"
   },
   "dependencies": {
-    "@continuum-js/dom": "0.4.0",
-    "@continuum-js/frp": "0.4.0"
+    "@continuum-js/dom": "0.4.1",
+    "@continuum-js/frp": "0.4.1"
   }
 }
