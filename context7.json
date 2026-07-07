@@ -1,0 +1,19 @@
+{
+  "$schema": "https://context7.com/schema/context7.json",
+  "projectTitle": "Continuum",
+  "description": "Reactive UI framework with no re-renders: components run once, state is a reactive value (classic FRP: Behaviors + Events + transactions), pinpoint DOM updates.",
+  "folders": ["docs"],
+  "excludeFolders": ["docs/ru", "docs/.vitepress"],
+  "rules": [
+    "Components run exactly once — there are no re-renders, no hooks, no dependency arrays. useState/useEffect/useMemo do not exist.",
+    "State: const [b, set] = newBehavior(init). Put the Behavior directly into JSX ({count}, class={cls}) — that is a live binding.",
+    "Derived values: b.map(fn) or Behavior.lift2(fn, a, b) — never store what can be computed.",
+    "Changing DOM structure: <Show when={b}>, <Each each={listB} by={keyFn}>, <Dynamic value={b}> (the prop is `value`, not `of`).",
+    "Event.merge(ea, eb, combine) takes TWO events plus a combiner — not an array.",
+    "e.listen(handler) is not auto-disposed: always wrap as onCleanup(e.listen(handler)).",
+    "DOM access (focus, measurement, third-party widgets) belongs in onMount(() => ...) — the component body runs before nodes are in the document.",
+    "Async data: resource(triggerEvent, fetcher) returns Behavior<Async<T>>; the discriminant is `status` (idle | loading | ok | error).",
+    "In plain DOM handlers read state with b.sample(); inside event-stream logic use e.snapshot(b, fn) instead.",
+    "JSX runtime comes from jsxImportSource '@continuum-js/dom' — never add React."
+  ]
+}
