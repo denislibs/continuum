@@ -83,9 +83,23 @@ export function scope<T>(fn: () => T): { value: T; dispose: () => void } {
   return { value, dispose: () => disposeOwner(owner) };
 }
 
-/** Register a cleanup in the current owner (no-op outside any owner). */
+// Lifecycle registrations need an owner; silently dropping them (the old
+// behavior) meant cleanups that never ran. Loud beats silent-dead.
+function needOwner(what: string): Owner {
+  if (!currentOwner) {
+    throw new Error(
+      what +
+        " was called outside a component/scope — there is no owner to " +
+        "attach it to, so it would never run. Call it synchronously during " +
+        "component build (or inside root()/scope()).",
+    );
+  }
+  return currentOwner;
+}
+
+/** Register a cleanup in the current owner. Throws outside any owner. */
 export function onCleanup(fn: () => void): void {
-  if (currentOwner) currentOwner.cleanups.push(fn);
+  needOwner("onCleanup()").cleanups.push(fn);
 }
 
 // Run the subtree's pending onMount callbacks: child scopes first, then this
@@ -109,12 +123,15 @@ function flushMounts(owner: Owner): void {
  * third-party libraries that need a live element. No-op outside any owner.
  */
 export function onMount(fn: () => void): void {
-  if (currentOwner) (currentOwner.mounts ??= []).push(fn);
+  const owner = needOwner("onMount()");
+  (owner.mounts ??= []).push(fn);
 }
 
-/** Attach an frp subscription to the current owner's lifecycle. */
+// Attach an frp subscription to the current owner's lifecycle. Deliberately
+// NOT guarded: JSX built outside any owner (an unowned static fragment) has
+// always been allowed — its bindings just live forever.
 function bind(un: Unlisten): void {
-  onCleanup(un);
+  if (currentOwner) currentOwner.cleanups.push(un);
 }
 
 // ---------------------------------------------------------------------------
@@ -564,11 +581,10 @@ export function createContext<T>(defaultValue: T): Context<T> {
   return { id: Symbol("context"), defaultValue };
 }
 
-/** Write a context value into the current owner. */
+/** Write a context value into the current owner. Throws outside any owner. */
 export function provide<T>(ctx: Context<T>, value: T): void {
-  if (currentOwner) {
-    (currentOwner.contexts ??= new Map()).set(ctx.id, value);
-  }
+  const owner = needOwner("provide()");
+  (owner.contexts ??= new Map()).set(ctx.id, value);
 }
 
 /** Read the nearest provided value up the owner tree, else the default. */

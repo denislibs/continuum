@@ -8,7 +8,7 @@
 
 > **h**(`tag`, `props`, ...`children`): `Node`
 
-Defined in: [index.tsx:295](https://github.com/denislibs/continuum/blob/024c0131f28e2b026cf3029c8a40baa1c2fe4fdb/packages/dom/src/index.tsx#L295)
+Defined in: [index.tsx:312](https://github.com/denislibs/continuum/blob/8e7ee39923fe03f7015d85000909971978a707f2/packages/dom/src/index.tsx#L312)
 
 JSX factory (`--jsxFactory h`). A component function runs exactly once.
 

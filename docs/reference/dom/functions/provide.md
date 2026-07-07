@@ -8,9 +8,9 @@
 
 > **provide**\<`T`\>(`ctx`, `value`): `void`
 
-Defined in: [index.tsx:568](https://github.com/denislibs/continuum/blob/024c0131f28e2b026cf3029c8a40baa1c2fe4fdb/packages/dom/src/index.tsx#L568)
+Defined in: [index.tsx:585](https://github.com/denislibs/continuum/blob/8e7ee39923fe03f7015d85000909971978a707f2/packages/dom/src/index.tsx#L585)
 
-Write a context value into the current owner.
+Write a context value into the current owner. Throws outside any owner.
 
 ## Type Parameters
 
