@@ -73,3 +73,58 @@ describe("ranks do not break existing coalescing", () => {
     expect(seen).toEqual([1, 2]);
   });
 });
+
+describe("long-run rank stability (§14 #6)", () => {
+  test("re-pointing a switch from a deep chain back to a shallow one rebases its rank", () => {
+    const [shallow] = newEvent<number>();
+    const [deepSrc] = newEvent<number>();
+    let deep: Event<number> = deepSrc;
+    for (let i = 0; i < 40; i++) deep = deep.map((x) => x);
+
+    const [sel, setSel] = newBehavior<Event<number>>(shallow);
+    const out = Behavior.switchE(sel);
+    const un = out.listen(() => {});
+
+    setSel(deep); // rank must climb above the deep chain
+    expect(out.rank).toBeGreaterThan(40);
+    setSel(shallow); // ...and come back down to the live topology
+    expect(out.rank).toBeLessThan(10);
+    un();
+  });
+
+  test("a dependency cycle woven through switches fails loudly, not silently degrades", () => {
+    // Two switches, each re-pointed at a FRESH chain derived from the other's
+    // output. Before dead targets were refcounted away, this ratcheted ranks
+    // upward forever (each round +4, unbounded); with only live edges left,
+    // the ordinary cycle detector sees the truth and throws immediately.
+    const [selA, setSelA] = newBehavior<Event<number>>(newEvent<number>()[0]);
+    const [selB, setSelB] = newBehavior<Event<number>>(newEvent<number>()[0]);
+    const swA = Behavior.switchE(selA);
+    const swB = Behavior.switchE(selB);
+    const unA = swA.listen(() => {});
+    const unB = swB.listen(() => {});
+
+    expect(() => {
+      for (let i = 0; i < 100; i++) {
+        setSelA(swB.map((x) => x + 1));
+        setSelB(swA.map((x) => x + 1));
+      }
+    }).toThrow(/cycle/i);
+    unA();
+    unB();
+  });
+
+  test("a long-lived source does not accumulate dead targets", () => {
+    const [src, fire] = newEvent<number>();
+    for (let i = 0; i < 1_000; i++) {
+      const derived = src.map((x) => x);
+      const un = derived.listen(() => {});
+      un(); // cascade disposes `derived`
+    }
+    fire(1);
+    const targets = (
+      src as unknown as { targets: Map<unknown, unknown> | Set<unknown> }
+    ).targets;
+    expect(targets.size).toBeLessThanOrEqual(1);
+  });
+});
