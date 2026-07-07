@@ -43,6 +43,7 @@ function sidebar(
         { text: t.forms, link: `${prefix}/guides/forms` },
         { text: t.routing, link: `${prefix}/guides/routing` },
         { text: t.animation, link: `${prefix}/guides/animation` },
+        { text: t.mistakes, link: `${prefix}/guides/common-mistakes` },
       ],
     },
     {
@@ -99,6 +100,7 @@ const en = {
   forms: "Forms",
   routing: "Routing",
   animation: "Animation",
+  mistakes: "Common mistakes",
   migration: "Migration",
   fromReact: "From React",
   fromRxjs: "From RxJS",
@@ -128,6 +130,7 @@ const ru = {
   forms: "Формы",
   routing: "Роутинг",
   animation: "Анимация",
+  mistakes: "Частые ошибки",
   migration: "Миграция",
   fromReact: "Из React",
   fromRxjs: "Из RxJS",
