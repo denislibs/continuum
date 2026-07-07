@@ -1,4 +1,6 @@
 {
+  "url": "https://context7.com/denislibs/continuum",
+  "public_key": "pk_AQHyBWS2y53Oh2uXMam2n",
   "$schema": "https://context7.com/schema/context7.json",
   "projectTitle": "Continuum",
   "description": "Reactive UI framework with no re-renders: components run once, state is a reactive value (classic FRP: Behaviors + Events + transactions), pinpoint DOM updates.",
