@@ -87,7 +87,30 @@ export class Transaction {
     return a.rank < b.rank || (a.rank === b.rank && a.seq < b.seq);
   }
 
+  // The moment's pure zone: a source's send chain is executing (linear
+  // chains propagate synchronously) or the heap is draining (join nodes).
+  // User code running then is a combinator callback — a `fire` from there
+  // is a side effect in the pure zone; sources check this and throw. The
+  // batching body between sends and the post phase (current === null) are
+  // unaffected.
+  /** @internal */
+  sending = 0;
+  private draining = false;
+  /** @internal */
+  get pureZone(): boolean {
+    return this.sending > 0 || this.draining;
+  }
+
   private drainPrioritizedAndLast(): void {
+    this.draining = true;
+    try {
+      this.drainLoop();
+    } finally {
+      this.draining = false;
+    }
+  }
+
+  private drainLoop(): void {
     for (;;) {
       let e = this.heapPop();
       while (e !== undefined) {
@@ -621,7 +644,22 @@ export class Behavior<A> {
 /** A source event plus its `fire`. Each `fire` opens a fresh moment. */
 export function newEvent<A>(): [Event<A>, (a: A) => void] {
   const e = new Event<A>(0);
-  const fire = (a: A) => Transaction.run((t) => e.send_(t, a));
+  const fire = (a: A) => {
+    if (Transaction.current?.pureZone) {
+      throw new Error(
+        "Source fired inside a pure combinator (map/filter/snapshot/accum). " +
+          "Keep those callbacks pure — fire from a handler, `listen`, or `perform`.",
+      );
+    }
+    Transaction.run((t) => {
+      t.sending++;
+      try {
+        e.send_(t, a);
+      } finally {
+        t.sending--;
+      }
+    });
+  };
   return [e, fire];
 }
 
