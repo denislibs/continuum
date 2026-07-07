@@ -1,6 +1,6 @@
 {
   "name": "@continuum-js/dom",
-  "version": "0.6.0",
+  "version": "0.6.1",
   "description": "Continuum DOM renderer — fine-grained bindings, dynamic regions, ownership, context",
   "license": "MIT",
   "repository": {
@@ -38,6 +38,6 @@
     "access": "public"
   },
   "dependencies": {
-    "@continuum-js/frp": "0.6.0"
+    "@continuum-js/frp": "0.6.1"
   }
 }

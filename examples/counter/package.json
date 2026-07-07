@@ -1,6 +1,6 @@
 {
   "name": "@continuum-js/example-counter",
-  "version": "0.2.6",
+  "version": "0.2.7",
   "private": true,
   "type": "module",
   "scripts": {
@@ -9,8 +9,8 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@continuum-js/dom": "0.6.0",
-    "@continuum-js/frp": "0.6.0"
+    "@continuum-js/dom": "0.6.1",
+    "@continuum-js/frp": "0.6.1"
   },
   "devDependencies": {
     "vite": "^5.4.0"

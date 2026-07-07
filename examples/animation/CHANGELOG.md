@@ -1,5 +1,13 @@
 # @continuum-js/example-animation
 
+## 0.2.7
+
+### Patch Changes
+
+- Updated dependencies [02891f9]
+  - @continuum-js/frp@0.6.1
+  - @continuum-js/dom@0.6.1
+
 ## 0.2.6
 
 ### Patch Changes

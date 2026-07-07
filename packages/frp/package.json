@@ -1,6 +1,6 @@
 {
   "name": "@continuum-js/frp",
-  "version": "0.6.0",
+  "version": "0.6.1",
   "description": "Continuum FRP core — Event, Behavior, transactional scheduler",
   "license": "MIT",
   "repository": {
