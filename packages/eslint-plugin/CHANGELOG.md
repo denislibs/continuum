@@ -1,5 +1,16 @@
 # @continuum-js/eslint-plugin
 
+## 0.2.0
+
+### Minor Changes
+
+- 5f3274a: `no-impure-combinators` now also flags `alert`/`confirm`/`prompt`, timers
+  (`setTimeout`/`setInterval`/`clearTimeout`/`clearInterval`),
+  `requestAnimationFrame`/`requestIdleCallback`/`queueMicrotask`,
+  `XMLHttpRequest` and `WebSocket` inside pure combinator callbacks. `console`
+  stays deliberately unflagged — temporary debug logging in a reducer is
+  harmless and common.
+
 ## 0.1.0
 
 ### Minor Changes
