@@ -2,15 +2,18 @@
 
 ## Two ways to create state
 
-**`newBehavior`** — when state is driven from outside (an imperative setter):
+**`newBehavior`** — the default: a value plus a setter, changed from
+handlers. If you know `useState`, this is it (minus the re-runs):
 
-```ts
+```tsx
 import { newBehavior } from "@continuum-js/frp";
 
 const [theme, setTheme] = newBehavior<"light" | "dark">("light");
+<button onClick={() => setTheme("dark")}>dark</button>;
 ```
 
-**`newEvent` + `accum`** — when state is a fold over what happens:
+**`newEvent` + `accum`** — the stream form, for when state is naturally a
+fold over things that happened:
 
 ```ts
 import { newEvent } from "@continuum-js/frp";
@@ -19,11 +22,10 @@ const [clicks, fire] = newEvent<MouseEvent>();
 const count = clicks.accum(0, (_e, n) => n + 1);
 ```
 
-Prefer the second whenever there is an explicit stream of causes: it keeps
-the state's history readable ("count is the number of clicks") instead of
-smeared across setter calls. The `setX` from `newBehavior` is a hatch for
-places where there is no event to fold (initialization, integrating external
-code).
+Start with `newBehavior` — it covers most UI state. The fold form pays off
+when a value has many independent sources of change or when you want its
+history spelled out ("count _is_ the number of clicks"); it composes
+directly with stream tools like `debounce` and `snapshot`.
 
 ## Derived values — only `map`/`lift`
 

@@ -57,7 +57,7 @@ mount(document.getElementById("app")!, () => <App />);
 Откройте `src/App.tsx` и заставьте счётчик считать вдвое:
 
 ```tsx
-const count = clicks.accum(0, (_e, n) => n + 1);
+const [count, setCount] = newBehavior(0);
 const doubled = count.map((n) => n * 2); // [!code ++]
 ```
 

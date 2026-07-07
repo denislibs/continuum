@@ -13,11 +13,9 @@ function sidebar(
       text: t.introduction,
       items: [
         { text: t.overview, link: `${prefix}/overview` },
-        { text: t.history, link: `${prefix}/history` },
         { text: t.quickStart, link: `${prefix}/quick-start` },
-        { text: t.tutorial, link: `${prefix}/tutorial/thinking-in-frp` },
-        { text: t.glossary, link: `${prefix}/glossary` },
         { text: t.examples, link: `${prefix}/examples` },
+        { text: t.glossary, link: `${prefix}/glossary` },
       ],
     },
     {
@@ -26,7 +24,6 @@ function sidebar(
         { text: t.components, link: `${prefix}/concepts/components` },
         { text: "Behaviors", link: `${prefix}/concepts/behaviors` },
         { text: "Events", link: `${prefix}/concepts/events` },
-        { text: t.transactions, link: `${prefix}/concepts/transactions` },
         {
           text: t.conditional,
           link: `${prefix}/concepts/conditional-rendering`,
@@ -49,6 +46,15 @@ function sidebar(
     {
       text: t.migration,
       items: [{ text: t.fromReact, link: `${prefix}/from-react` }],
+    },
+    {
+      // The engine room: read when you want to know WHY it works.
+      text: t.deeper,
+      items: [
+        { text: t.tutorial, link: `${prefix}/tutorial/thinking-in-frp` },
+        { text: t.transactions, link: `${prefix}/concepts/transactions` },
+        { text: t.history, link: `${prefix}/history` },
+      ],
     },
     {
       // Generated from JSDoc (npm run docs:api) — English only, shared by
@@ -90,6 +96,7 @@ const en = {
   migration: "Migration",
   fromReact: "From React",
   reference: "API Reference",
+  deeper: "Under the hood",
 };
 
 const ru = {
@@ -116,6 +123,7 @@ const ru = {
   migration: "Миграция",
   fromReact: "Из React",
   reference: "Справочник API",
+  deeper: "Под капотом",
 };
 
 export default defineConfig({
