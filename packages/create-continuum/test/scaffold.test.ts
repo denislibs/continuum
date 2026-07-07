@@ -10,7 +10,7 @@ import {
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 // @ts-expect-error — plain-JS module without type declarations (buildless CLI)
-import { scaffold } from "../src/scaffold.mjs";
+import { scaffold, resolveLatestContinuum } from "../src/scaffold.mjs";
 
 let work: string;
 beforeEach(() => {
@@ -62,5 +62,47 @@ describe("scaffold", () => {
 
   test("refuses an invalid npm package name", () => {
     expect(() => scaffold(join(work, "x"), "Bad Name!")).toThrow(/name/i);
+  });
+
+  test("stamps a resolved continuum version onto the runtime deps", () => {
+    const dir = join(work, "app");
+    scaffold(dir, "app", { continuumVersion: "9.9.9" });
+    const pkg = JSON.parse(readFileSync(join(dir, "package.json"), "utf8"));
+    expect(pkg.dependencies["@continuum-js/dom"]).toBe("^9.9.9");
+    expect(pkg.dependencies["@continuum-js/frp"]).toBe("^9.9.9");
+    // tooling deps are not touched by the stamp
+    expect(pkg.devDependencies.vite).toMatch(/^\^/);
+  });
+
+  test("without a resolved version the template's baked ranges stay", () => {
+    const dir = join(work, "app");
+    scaffold(dir, "app");
+    const pkg = JSON.parse(readFileSync(join(dir, "package.json"), "utf8"));
+    // vitest runs from the repo root; import.meta.url is virtual here.
+    const template = JSON.parse(
+      readFileSync(
+        join(process.cwd(), "packages/create-continuum/template/package.json"),
+        "utf8",
+      ),
+    );
+    expect(pkg.dependencies).toEqual(template.dependencies);
+  });
+});
+
+describe("resolveLatestContinuum", () => {
+  test("returns the version reported by the registry lookup", () => {
+    expect(resolveLatestContinuum(() => "0.9.9\n")).toBe("0.9.9");
+  });
+
+  test("returns null when the lookup fails (offline scaffolding stays possible)", () => {
+    expect(
+      resolveLatestContinuum(() => {
+        throw new Error("ENOTFOUND");
+      }),
+    ).toBeNull();
+  });
+
+  test("returns null on garbage output instead of stamping it", () => {
+    expect(resolveLatestContinuum(() => "npm WARN something")).toBeNull();
   });
 });

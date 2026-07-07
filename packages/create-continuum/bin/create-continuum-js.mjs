@@ -6,7 +6,7 @@
 
 import { createInterface } from "node:readline/promises";
 import { basename, resolve } from "node:path";
-import { scaffold } from "../src/scaffold.mjs";
+import { scaffold, resolveLatestContinuum } from "../src/scaffold.mjs";
 
 let name = process.argv[2];
 
@@ -23,8 +23,12 @@ if (!name) {
 
 const dir = resolve(process.cwd(), name);
 
+// Always scaffold onto the latest published Continuum, however old this CLI
+// build is; offline, the template's baked ranges are kept.
+const continuumVersion = resolveLatestContinuum();
+
 try {
-  scaffold(dir, basename(dir));
+  scaffold(dir, basename(dir), { continuumVersion });
 } catch (err) {
   console.error(`✗ ${err instanceof Error ? err.message : err}`);
   process.exit(1);
