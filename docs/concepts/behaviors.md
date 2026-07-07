@@ -6,6 +6,13 @@ other values can be derived from it. (The name comes from FRP, where it
 formally means "a value across time" — but you don't need the theory to use
 it.)
 
+::: tip Behavior or Event?
+If you can **draw it on the screen**, it's a Behavior. If you can **react
+to it**, it's an [Event](/concepts/events). The longer version, with a
+thermometer and a knock on the door:
+[Event vs Behavior](/frp-in-plain-words#event-vs-behavior).
+:::
+
 ## Creating
 
 ```ts
