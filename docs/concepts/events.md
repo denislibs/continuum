@@ -10,6 +10,11 @@ For most UI code, `newBehavior` + plain callbacks
 (`onClick={() => setX(…)}`) is all you need. Reach for Events when you work
 with _streams_: debouncing input, merging sources, capturing form state at
 submit, feeding requests into `resource`.
+
+The one-sentence test: if you can **draw it on the screen**, it is a
+[Behavior](/concepts/behaviors); if you can **react to it**, it is an
+Event. The longer version:
+[Event vs Behavior](/frp-in-plain-words#event-vs-behavior).
 :::
 
 ## Creating

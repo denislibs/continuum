@@ -59,6 +59,42 @@ value" — it either happened or it didn't. As a beginner, plain callbacks
 (`onClick={() => …}`) are all you need; events become useful later, for
 streams like debounced search.
 
+## Event vs Behavior — as plainly as it gets {#event-vs-behavior}
+
+Compare two things from everyday life:
+
+- **The temperature outside.** It exists _at all times_. Any second you can
+  look at the thermometer and get an answer. "What's the temperature right
+  now?" always makes sense.
+- **A knock on the door.** It _happens_. Between knocks there is no knock —
+  "what's the current knock?" is a meaningless question. What makes sense
+  is "did someone knock?" and "what do we do when they knock?".
+
+The temperature is a **Behavior**. The knock is an **Event**. The whole
+difference is which question you are asking:
+
+| Question                                         | Type       | Examples                                                                 |
+| ------------------------------------------------ | ---------- | ------------------------------------------------------------------------ |
+| "What is it **right now**?"                      | `Behavior` | text in a field, a counter, the selected tab, "logged in?", window width |
+| "**Did** it happen? What do we do when it does?" | `Event`    | a click, Enter pressed, a server response arrived, a timer ticked        |
+
+The one-sentence test: **if you can draw it on the screen, it's a Behavior.
+If you can react to it, it's an Event.** The number on a button gets drawn —
+Behavior. The click itself can't be drawn — it gets reacted to — Event.
+
+Why not make do with one type? Try stuffing a click into a "cell": what
+value does it hold between clicks? You'd invent a `clicked = true` flag and
+have to remember to reset it — the classic source of "the button fired
+twice" bugs. Now try the reverse and make temperature an event: to learn
+"what is it now" you'd have to remember the last notification, and before
+the first one arrives you have no answer at all. Each thing is awkward in
+the other one's skin — which is why there are two types.
+
+They cooperate and convert into each other: "the latest server response" is
+already a _value_ (`responses.hold(null)`: event → Behavior), and "the
+moments when the counter changed" is already an _event_ (`count.updates`:
+Behavior → event).
+
 ## Where the "functional" comes in
 
 Excel formulas are pure: `=A1+B1` cannot secretly turn on your TV or tamper
