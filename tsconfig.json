@@ -6,6 +6,7 @@
     { "path": "./packages/std" },
     { "path": "./packages/test" },
     { "path": "./packages/router" },
+    { "path": "./packages/eslint-plugin" },
     { "path": "./examples/counter" },
     { "path": "./examples/todo" },
     { "path": "./examples/animation" },

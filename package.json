@@ -17,7 +17,7 @@
     "docs:preview": "vitepress preview docs",
     "docs:api": "node scripts/docs-api.mjs",
     "typecheck": "tsc -b",
-    "build": "npm run build -w @continuum-js/frp && npm run build -w @continuum-js/std && npm run build -w @continuum-js/dom && npm run build -w @continuum-js/test && npm run build -w @continuum-js/router",
+    "build": "npm run build -w @continuum-js/frp && npm run build -w @continuum-js/std && npm run build -w @continuum-js/dom && npm run build -w @continuum-js/test && npm run build -w @continuum-js/router && npm run build -w @continuum-js/eslint-plugin",
     "smoke": "node scripts/smoke.mjs",
     "stress": "vitest run --config vitest.stress.config.ts",
     "changeset": "changeset",

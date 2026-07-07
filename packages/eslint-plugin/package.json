@@ -1,0 +1,35 @@
+{
+  "name": "@continuum-js/eslint-plugin",
+  "version": "0.0.0",
+  "description": "ESLint rules for Continuum — catch impure combinator callbacks, frozen sample() in JSX, missing retain() and onChange-on-blur before they bite",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/denislibs/continuum.git",
+    "directory": "packages/eslint-plugin"
+  },
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist"
+  ],
+  "sideEffects": false,
+  "scripts": {
+    "build": "rm -rf dist && tsc -p tsconfig.build.json"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "peerDependencies": {
+    "eslint": ">=9"
+  }
+}
