@@ -47,5 +47,12 @@ npm run docs:build / docs:api
 - Both docs locales must stay mirrored: any en page edit needs the ru twin
   (and vice versa). The sidebar is generated from one tree in
   `docs/.vitepress/config.mts`.
-- Node floor is 20.9: no `import.meta.dirname`, and dev-tool versions are
-  pinned accordingly (eslint ^9, lint-staged ^15, human-id 3.0.1).
+- Toolchain floor is Node 20.19+/22.12+ (Vite 8); dev tooling rides the
+  current majors (ESLint 10, Vitest 4, TypeScript 6). The `human-id@3.0.1`
+  override stays — it is about changesets' CJS compatibility, not Node.
+- **Naming convention**: scope-dependent functions (they call
+  `onCleanup`/`onMount` inside, so they must run during component build) are
+  prefixed `createX` — `createWindowSize`, `createPersistedTodos`. Pure
+  value-to-value helpers get plain names. Never `useX`: there are no Rules
+  of Hooks here, and the React prefix would import that mental model.
+  See docs/guides/composables.md.
