@@ -3,6 +3,10 @@
 [English](README.md) | **Русский** | [Українська](README.uk.md)
 
 [![CI](https://github.com/denislibs/continuum/actions/workflows/ci.yml/badge.svg)](https://github.com/denislibs/continuum/actions/workflows/ci.yml)
+[![npm](https://img.shields.io/npm/v/%40continuum-js%2Fdom?label=npm%20%40continuum-js%2Fdom)](https://www.npmjs.com/package/@continuum-js/dom)
+[![bundle size](https://img.shields.io/bundlephobia/minzip/%40continuum-js%2Fdom?label=dom%20minzip)](https://bundlephobia.com/package/@continuum-js/dom)
+[![docs](https://img.shields.io/badge/docs-denislibs.github.io-blue)](https://denislibs.github.io/continuum/)
+[![license](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
 Реактивный фреймворк на **классическом FRP** (Behaviors + Events) с fine-grained
 рендерингом. Дискретная ветвь традиции Эллиотта в стиле Sodium: транзакции,
