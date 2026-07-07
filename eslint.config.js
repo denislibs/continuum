@@ -12,11 +12,21 @@ export default tseslint.config(
       "**/.tsout/**",
       "**/node_modules/**",
       "coverage/**",
+      // The scaffold template is another project's code (own eslint config,
+      // own tsconfig root) — linted by the smoke e2e, not by the monorepo.
+      "packages/create-continuum/template/**",
     ],
   },
   eslint.configs.recommended,
   ...tseslint.configs.recommended,
   prettier,
+  {
+    // Two flat configs live in this repo (the scaffold template ships its
+    // own) — typescript-eslint then refuses to infer the tsconfig root.
+    languageOptions: {
+      parserOptions: { tsconfigRootDir: import.meta.dirname },
+    },
+  },
   {
     rules: {
       // The FRP core intentionally erases event/behavior payload types at the

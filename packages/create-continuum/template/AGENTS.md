@@ -27,6 +27,14 @@ Full docs for machines: https://denislibs.github.io/continuum/llms.txt
   detected by reading values inside a closure. `map`/`lift2` declare them
   explicitly.
 
+## Verify your changes
+
+Run `npm run lint` after editing — ESLint ships preconfigured with
+`@continuum-js/eslint-plugin`, which catches Continuum-specific mistakes
+(side effects inside `accum`/`snapshot` callbacks, `sample()` rendered into
+JSX, missing `.retain()`, `onChange` on text fields). Format with
+`npm run format` (prettier). Tests: `npm test`.
+
 ## Exact signatures (do not guess)
 
 ```ts

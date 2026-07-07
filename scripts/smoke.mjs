@@ -23,7 +23,7 @@ import { join, resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
-const PACKAGES = ["frp", "dom", "std", "test", "router"];
+const PACKAGES = ["frp", "dom", "std", "test", "router", "eslint-plugin"];
 
 function run(cmd, args, cwd) {
   execFileSync(cmd, args, { cwd, stdio: "inherit" });
@@ -193,11 +193,14 @@ const cliPkgPath = join(cliApp, "package.json");
 const cliPkg = JSON.parse(readFileSync(cliPkgPath, "utf8"));
 cliPkg.dependencies["@continuum-js/frp"] = `file:${tarballs.frp}`;
 cliPkg.dependencies["@continuum-js/dom"] = `file:${tarballs.dom}`;
+cliPkg.devDependencies["@continuum-js/eslint-plugin"] =
+  `file:${tarballs["eslint-plugin"]}`;
 writeFileSync(cliPkgPath, JSON.stringify(cliPkg, null, 2));
 
 run("npm", ["install", "--no-audit", "--no-fund"], cliApp);
 run("npm", ["run", "build"], cliApp); // tsc --noEmit && vite build
 run("npm", ["test"], cliApp); // the scaffolded counter test
+run("npm", ["run", "lint"], cliApp); // eslint flat config + continuum plugin
 
 console.log(
   "\n✓ smoke: tarballs install and build; scaffolded app builds and its test passes",
