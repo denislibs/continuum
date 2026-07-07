@@ -1,5 +1,9 @@
 # Forms
 
+::: tip In plain words
+Inputs, validation, submit: field values are reactive, errors are computed, the form is captured at the moment of submission.
+:::
+
 ## A controlled input
 
 `bindInput` wires a `Behavior<string>` to a field both ways:

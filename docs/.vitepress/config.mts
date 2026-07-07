@@ -13,6 +13,7 @@ function sidebar(
       text: t.introduction,
       items: [
         { text: t.overview, link: `${prefix}/overview` },
+        { text: t.plainWords, link: `${prefix}/frp-in-plain-words` },
         { text: t.quickStart, link: `${prefix}/quick-start` },
         { text: t.examples, link: `${prefix}/examples` },
         { text: t.glossary, link: `${prefix}/glossary` },
@@ -75,6 +76,7 @@ function sidebar(
 const en = {
   introduction: "Introduction",
   overview: "Overview",
+  plainWords: "What is FRP — in plain words",
   history: "History and context",
   glossary: "Glossary",
   examples: "Examples",
@@ -102,6 +104,7 @@ const en = {
 const ru = {
   introduction: "Введение",
   overview: "Обзор",
+  plainWords: "Что такое FRP — на пальцах",
   history: "История и контекст",
   glossary: "Глоссарий",
   examples: "Примеры",
@@ -136,7 +139,7 @@ export default defineConfig({
       label: "English",
       lang: "en",
       description:
-        "Classic FRP for the DOM: Behaviors, Events, and fine-grained rendering with no re-renders.",
+        "Reactive UI with no re-renders: pinpoint DOM updates on a classic-FRP foundation.",
       themeConfig: {
         nav: [
           { text: "Learn", link: "/overview" },
@@ -154,7 +157,7 @@ export default defineConfig({
       label: "Русский",
       lang: "ru",
       description:
-        "Классический FRP для DOM: Behaviors, Events и тонкозернистый рендеринг без ре-рендеров.",
+        "Реактивный UI без ре-рендеров: точечные обновления DOM на фундаменте классического FRP.",
       themeConfig: {
         nav: [
           { text: "Учиться", link: "/ru/overview" },

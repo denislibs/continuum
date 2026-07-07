@@ -1,5 +1,9 @@
 # Animation
 
+::: tip In plain words
+Smooth motion: a frame clock and position as accumulated velocity — or just a CSS transition when that is enough.
+:::
+
 Continuum inherits Conal Elliott's original idea: an animation is not a loop
 mutating pixels but an **equation over continuous time**. Position is the
 integral of velocity; velocity is the derivative of position; fast-forward

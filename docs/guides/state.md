@@ -1,5 +1,9 @@
 # State and derived values
 
+::: tip In plain words
+Creating state and computing other values from it — no hooks, no dependency arrays.
+:::
+
 ## Two ways to create state
 
 **`newBehavior`** — the default: a value plus a setter, changed from

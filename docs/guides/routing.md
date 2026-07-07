@@ -1,5 +1,9 @@
 # Routing
 
+::: tip In plain words
+Pages, nested sections, URL parameters, and lazy-loading code.
+:::
+
 `@continuum-js/router` treats the URL as what it is in this model: a
 **Behavior**. A route change is a change of a dynamic region; leaving a page
 disposes its subtree through the ownership tree.

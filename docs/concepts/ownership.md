@@ -1,5 +1,9 @@
 # Ownership and lifecycle
 
+::: tip In plain words
+Everything a component creates — timers, subscriptions — cleans itself up when its piece of the page goes away. This page explains how, plus the two callbacks: onMount and onCleanup.
+:::
+
 Everything a component creates — subscriptions, timers, nested regions —
 registers in the **ownership tree**. When a subtree goes away, its resources
 are released in a cascade, children first. That is the entire lifecycle

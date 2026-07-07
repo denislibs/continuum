@@ -68,6 +68,7 @@ to know _why_ it works: see [the deep dive](/tutorial/thinking-in-frp).
 
 ## Where to go next
 
+0. New to reactivity itself? [What is FRP — in plain words](/frp-in-plain-words).
 1. [Quick start](/quick-start) — a running app in one command.
 2. [Examples](/examples) — small complete apps, runnable in the browser.
 3. [Concepts](/concepts/components) — one idea per page.
