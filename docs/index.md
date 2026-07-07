@@ -24,7 +24,7 @@ features:
   - title: No update bugs, guaranteed
     details: All updates are atomic — derived values can never observe a half-updated state. Backed by classic FRP semantics rather than discipline.
   - title: Small enough to read
-    details: "The whole stack — core, DOM renderer, utilities, router — fits in under 8 kB brotli. Hard size budgets are enforced in CI."
+    details: "A complete app — framework, state and your code — builds to 3.7 kB of gzipped JS; React + ReactDOM alone are ~12× that. Hard size budgets are enforced in CI."
 ---
 
 ## Try it

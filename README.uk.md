@@ -16,6 +16,11 @@
 реактивну величину передають як об'єкт (`<div>{count}</div>`), і рендереру не
 потрібен build-time-трансформ.
 
+**Легкий по-чесному:** цілий застосунок — фреймворк, стан, рендерер _і код
+самого застосунку_ — збирається у **3,7 кБ gzip** JavaScript (увесь бандл
+`examples/counter`). Самі React + ReactDOM важать у ~12 разів більше — ще до
+стейт-менеджера.
+
 > 📖 Концептуальний опис моделі — від філософії до алгебри та наслідків —
 > у [PHILOSOPHY.md](PHILOSOPHY.md) (російською).
 >
@@ -82,9 +87,9 @@ npm run build            # збірка dist/ (ESM + .d.ts) усіх публі�
 npm run smoke            # контракт публікації: pack → npm i в чистий Vite-проєкт → tsc + vite build
 ```
 
-Розмір (brotli, із залежностями): `@continuum-js/frp` ≈ **1.8 kB**,
-`@continuum-js/dom` (разом із frp) ≈ **3.5 kB**, `@continuum-js/std` (разом із
-frp) ≈ **2.0 kB**. Бюджети — у [`.size-limit.json`](.size-limit.json),
+Розмір (brotli, із залежностями): `@continuum-js/frp` ≈ **2.1 kB**,
+`@continuum-js/dom` (разом із frp) ≈ **4.2 kB**, `@continuum-js/std` (разом із
+frp) ≈ **2.4 kB**. Бюджети — у [`.size-limit.json`](.size-limit.json),
 `npm run size` падає при перевищенні. Замір продуктивності —
 див. [`benchmark/`](benchmark) (`npm run bench`, потрібен
 `npx playwright install chromium`).
