@@ -9,8 +9,7 @@ export default {
     ...(base as { test?: object }).test,
     include: ["packages/dom/test/dom.heap.stress.test.tsx"],
     pool: "forks",
-    poolOptions: {
-      forks: { execArgv: ["--expose-gc"] },
-    },
+    // vitest 4: `poolOptions` is gone, exec arguments are top-level.
+    execArgv: ["--expose-gc"],
   },
 };
