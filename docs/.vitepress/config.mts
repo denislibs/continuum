@@ -47,7 +47,10 @@ function sidebar(
     },
     {
       text: t.migration,
-      items: [{ text: t.fromReact, link: `${prefix}/from-react` }],
+      items: [
+        { text: t.fromReact, link: `${prefix}/from-react` },
+        { text: t.fromRxjs, link: `${prefix}/from-rxjs` },
+      ],
     },
     {
       // The engine room: read when you want to know WHY it works.
@@ -98,6 +101,7 @@ const en = {
   animation: "Animation",
   migration: "Migration",
   fromReact: "From React",
+  fromRxjs: "From RxJS",
   reference: "API Reference",
   deeper: "Under the hood",
 };
@@ -126,6 +130,7 @@ const ru = {
   animation: "Анимация",
   migration: "Миграция",
   fromReact: "Из React",
+  fromRxjs: "Из RxJS",
   reference: "Справочник API",
   deeper: "Под капотом",
 };
