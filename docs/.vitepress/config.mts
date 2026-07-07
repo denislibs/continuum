@@ -1,4 +1,5 @@
 import { defineConfig, type DefaultTheme } from "vitepress";
+import llmstxt from "vitepress-plugin-llms";
 
 // Deployed as a GitHub Pages project site: https://denislibs.github.io/continuum/
 
@@ -133,6 +134,19 @@ export default defineConfig({
   title: "Continuum",
   base: "/continuum/",
   lastUpdated: true,
+
+  vite: {
+    plugins: [
+      // llms.txt + llms-full.txt + a raw .md twin of every page, so AI
+      // assistants can ingest the docs without HTML noise. English only —
+      // the ru locale mirrors it and would double the tokens.
+      llmstxt({
+        // The plugin appends the site base itself — domain only.
+        domain: "https://denislibs.github.io",
+        ignoreFiles: ["ru/**"],
+      }),
+    ],
+  },
 
   locales: {
     root: {
