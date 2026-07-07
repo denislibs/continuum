@@ -1,5 +1,14 @@
 # @continuum-js/std
 
+## 0.4.1
+
+### Patch Changes
+
+- a54119c: Ship the MIT LICENSE file inside every published package (the license was
+  declared in package.json but the file itself was missing from tarballs).
+- Updated dependencies [a54119c]
+  - @continuum-js/frp@0.4.1
+
 ## 0.4.0
 
 ### Patch Changes

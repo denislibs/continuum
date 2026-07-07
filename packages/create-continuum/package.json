@@ -1,6 +1,6 @@
 {
   "name": "create-continuum-js",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "Scaffold a Continuum + Vite + TypeScript project: npm create continuum-js",
   "license": "MIT",
   "repository": {

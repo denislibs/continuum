@@ -1,5 +1,13 @@
 # @continuum-js/example-todo
 
+## 0.2.4
+
+### Patch Changes
+
+- Updated dependencies [a54119c]
+  - @continuum-js/frp@0.4.1
+  - @continuum-js/dom@0.4.1
+
 ## 0.2.3
 
 ### Patch Changes

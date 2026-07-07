@@ -1,5 +1,12 @@
 # create-continuum-js
 
+## 0.1.3
+
+### Patch Changes
+
+- a54119c: Ship the MIT LICENSE file inside every published package (the license was
+  declared in package.json but the file itself was missing from tarballs).
+
 ## 0.1.2
 
 ### Patch Changes
