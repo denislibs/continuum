@@ -13,6 +13,6 @@
     "@continuum-js/frp": "0.6.1"
   },
   "devDependencies": {
-    "vite": "^5.4.0"
+    "vite": "^8.1.3"
   }
 }

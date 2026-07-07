@@ -1,3 +1,4 @@
+/// <reference types="node" />
 // Heap-level leak stress (ROADMAP v0.6 «Долгосрочная устойчивость»).
 // Needs --expose-gc: run via `npm run stress`. Skipped silently in a normal
 // vitest run / CI — heap numbers are environment-sensitive by nature, so the
@@ -7,13 +8,14 @@ import { describe, test, expect } from "vitest";
 import { mount, Show, Each, onCleanup } from "@continuum-js/dom";
 import { newBehavior } from "@continuum-js/frp";
 import { interval } from "@continuum-js/std";
+import { memoryUsage } from "node:process";
 
 const gc = (globalThis as { gc?: () => void }).gc;
 
 function heapAfterGc(): number {
   gc!();
   gc!(); // twice: let finalizers from the first pass settle
-  return process.memoryUsage().heapUsed;
+  return memoryUsage().heapUsed;
 }
 
 // A representative little app: state, a derived binding, a conditional
