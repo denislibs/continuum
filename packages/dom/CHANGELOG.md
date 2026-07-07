@@ -1,5 +1,11 @@
 # @continuum-js/dom
 
+## 0.8.0
+
+### Patch Changes
+
+- @continuum-js/frp@0.8.0
+
 ## 0.7.0
 
 ### Minor Changes

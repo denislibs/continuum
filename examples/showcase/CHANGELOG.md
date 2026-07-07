@@ -1,5 +1,12 @@
 # @continuum-js/example-showcase
 
+## 0.2.9
+
+### Patch Changes
+
+- @continuum-js/frp@0.8.0
+- @continuum-js/dom@0.8.0
+
 ## 0.2.8
 
 ### Patch Changes
