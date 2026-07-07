@@ -319,10 +319,23 @@ keystroke, use `onInput` (that is what `bindInput` does):
 
 Event props are fully typed — the editor autocompletes them and knows the
 event type — and both casings work: `onKeyDown` and `onKeydown` attach the
-same listener. Events are **native**, not synthetic: where React has
-`React.MouseEvent<HTMLButtonElement>`, here it's the plain DOM `MouseEvent`
-with `e.currentTarget` already typed to the tag (no cast, as above). For
-wrapping components there is `ComponentProps<"button">` — see the
+same listener. Events are **native**, not synthetic: inline handlers get
+`e.currentTarget` already typed to the tag (no cast, as above). When you
+**extract** a handler, annotate the parameter exactly like in React — the
+aliases ship in the package:
+
+```tsx
+import type { SubmitEvent, MouseEvent } from "@continuum-js/dom";
+
+const onSubmit = (e: SubmitEvent) => e.currentTarget.elements; // HTMLFormElement by default
+const onClick = (e: MouseEvent<HTMLButtonElement>) => e.currentTarget.type;
+```
+
+Prefer not to shadow the DOM globals? The same aliases come as a namespace:
+`import type { Events } from "@continuum-js/dom"` →
+`(e: Events.MouseEvent<HTMLButtonElement>) => …`.
+
+For wrapping components there is `ComponentProps<"button">` — see the
 [polymorphic button recipe](/guides/patterns#22-a-shareable-polymorphic-button-componentprops).
 :::
 

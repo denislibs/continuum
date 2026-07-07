@@ -8,7 +8,7 @@
 
 > **bindInput**(`value`, `set`): `object`
 
-Defined in: [index.tsx:642](https://github.com/denislibs/continuum/blob/d1f864a62eca67ab5b08c508a18d1e6c54cf8387/packages/dom/src/index.tsx#L642)
+Defined in: [index.tsx:646](https://github.com/denislibs/continuum/blob/9e6d8fee1895bb34167cfe31c364b635d2b71604/packages/dom/src/index.tsx#L646)
 
 Two-way binding props for a text input. Spread onto an `<input>`.
 

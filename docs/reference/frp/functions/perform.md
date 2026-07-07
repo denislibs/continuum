@@ -8,7 +8,7 @@
 
 > **perform**\<`A`, `B`\>(`e`, `run`): [`Event`](../classes/Event.md)\<[`Result`](../type-aliases/Result.md)\<`unknown`, `B`\>\>
 
-Defined in: [index.ts:723](https://github.com/denislibs/continuum/blob/d1f864a62eca67ab5b08c508a18d1e6c54cf8387/packages/frp/src/index.ts#L723)
+Defined in: [index.ts:723](https://github.com/denislibs/continuum/blob/9e6d8fee1895bb34167cfe31c364b635d2b71604/packages/frp/src/index.ts#L723)
 
 IO boundary: run an async effect per request occurrence and feed the
 result back into the network as a fresh occurrence (new moment).
