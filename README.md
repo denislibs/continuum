@@ -88,9 +88,9 @@ npm run build            # build dist/ (ESM + .d.ts) for all published packages
 npm run smoke            # publish contract: pack → npm i into a clean Vite app → tsc + vite build
 ```
 
-Size (brotli, with dependencies): `@continuum-js/frp` ≈ **1.8 kB**,
-`@continuum-js/dom` (incl. frp) ≈ **3.5 kB**, `@continuum-js/std` (incl. frp)
-≈ **2.0 kB**. Budgets live in [`.size-limit.json`](.size-limit.json);
+Size (brotli, with dependencies): `@continuum-js/frp` ≈ **2.1 kB**,
+`@continuum-js/dom` (incl. frp) ≈ **4.2 kB**, `@continuum-js/std` (incl. frp)
+≈ **2.4 kB**. Budgets live in [`.size-limit.json`](.size-limit.json);
 `npm run size` fails when exceeded. Performance measurement — see
 [`benchmark/`](benchmark) (`npm run bench`, needs
 `npx playwright install chromium`).

@@ -74,7 +74,7 @@ cd my-app && npm install && npm run dev
 
 ```bash
 npm install
-npm test              # vitest run — 69 тестов
+npm test              # vitest run
 npm run typecheck     # tsc -b по всем пакетам
 npm run example:counter  # vite dev-сервер для examples/counter
 npm run example:todo     # vite dev-сервер для examples/todo
@@ -87,8 +87,8 @@ npm run build            # сборка dist/ (ESM + .d.ts) всех публи�
 npm run smoke            # контракт публикации: pack → npm i в чистый Vite-проект → tsc + vite build
 ```
 
-Размер (brotli, с зависимостями): `@continuum-js/frp` ≈ **1.8 kB**, `@continuum-js/dom`
-(включая frp) ≈ **3.5 kB**. Бюджеты — в [`.size-limit.json`](.size-limit.json),
+Размер (brotli, с зависимостями): `@continuum-js/frp` ≈ **2.1 kB**, `@continuum-js/dom`
+(включая frp) ≈ **4.2 kB**. Бюджеты — в [`.size-limit.json`](.size-limit.json),
 `npm run size` падает при превышении. Замер производительности —
 см. [`benchmark/`](benchmark) (`npm run bench`, нужен `npx playwright install chromium`).
 
