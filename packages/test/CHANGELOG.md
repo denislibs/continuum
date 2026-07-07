@@ -1,5 +1,12 @@
 # @continuum-js/test
 
+## 0.1.6
+
+### Patch Changes
+
+- @continuum-js/frp@0.8.0
+- @continuum-js/dom@0.8.0
+
 ## 0.1.5
 
 ### Patch Changes

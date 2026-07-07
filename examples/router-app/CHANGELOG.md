@@ -1,5 +1,15 @@
 # @continuum-js/example-router-app
 
+## 0.0.8
+
+### Patch Changes
+
+- Updated dependencies [b83d961]
+  - @continuum-js/std@0.8.0
+  - @continuum-js/router@0.1.6
+  - @continuum-js/frp@0.8.0
+  - @continuum-js/dom@0.8.0
+
 ## 0.0.7
 
 ### Patch Changes
