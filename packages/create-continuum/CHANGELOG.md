@@ -1,5 +1,13 @@
 # create-continuum-js
 
+## 0.1.1
+
+### Patch Changes
+
+- 97819e3: The scaffolded App.tsx now uses the beginner-friendly `newBehavior` counter
+  (plain callback + `sample`) instead of `newEvent` + `accum`, so the first
+  code a newcomer sees needs no FRP vocabulary.
+
 ## 0.1.0
 
 ### Minor Changes
