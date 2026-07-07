@@ -8,7 +8,7 @@
 
 > **location**(): `Behavior`\<`URL`\>
 
-Defined in: [location.ts:22](https://github.com/denislibs/continuum/blob/8e7ee39923fe03f7015d85000909971978a707f2/packages/router/src/location.ts#L22)
+Defined in: [location.ts:22](https://github.com/denislibs/continuum/blob/d1f864a62eca67ab5b08c508a18d1e6c54cf8387/packages/router/src/location.ts#L22)
 
 The current URL across time. Updates on `navigate` and popstate.
 

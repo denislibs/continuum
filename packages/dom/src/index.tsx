@@ -209,6 +209,15 @@ export type Child =
   | undefined
   | Child[];
 
+// Helper types for writing typed components (type-only: no runtime import
+// cycle — jsx-runtime imports our values, we re-export only its types).
+export type {
+  ComponentProps,
+  Reactive,
+  Ref,
+  EventHandler,
+} from "./jsx-runtime.js";
+
 type Props = Record<string, unknown> | null;
 
 function toText(v: unknown): string {

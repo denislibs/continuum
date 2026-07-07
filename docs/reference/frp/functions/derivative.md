@@ -8,7 +8,7 @@
 
 > **derivative**(`b`, `tick`): [`Behavior`](../classes/Behavior.md)\<`number`\>
 
-Defined in: [continuous.ts:36](https://github.com/denislibs/continuum/blob/8e7ee39923fe03f7015d85000909971978a707f2/packages/frp/src/continuous.ts#L36)
+Defined in: [continuous.ts:36](https://github.com/denislibs/continuum/blob/d1f864a62eca67ab5b08c508a18d1e6c54cf8387/packages/frp/src/continuous.ts#L36)
 
 Differentiate a behavior with respect to a clock (finite differences).
 The first tick establishes the baseline (derivative 0).

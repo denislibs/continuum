@@ -42,7 +42,23 @@ export function jsxs(type: unknown, props: RuntimeProps | null): Node {
 // same listener; the aliases below only teach the type system about it.
 
 /** A plain value or a live-bound `Behavior` of it. */
-type Reactive<T> = T | Behavior<T>;
+export type Reactive<T> = T | Behavior<T>;
+
+/** A ref prop: callback (typed to the tag's element) or an object cell. */
+export type Ref<E extends Element = Element> =
+  ((el: E) => void) | { current: Element | null };
+
+/**
+ * Props of an intrinsic tag (`ComponentProps<"button">`) or of a component
+ * function (`ComponentProps<typeof Card>`) — for wrapping and forwarding.
+ */
+export type ComponentProps<
+  T extends keyof JSX.IntrinsicElements | ((props: never) => unknown),
+> = T extends keyof JSX.IntrinsicElements
+  ? JSX.IntrinsicElements[T]
+  : T extends (props: infer P) => unknown
+    ? P
+    : never;
 
 /** Primitive attribute values the renderer knows how to apply. */
 type AttrValue = string | number | boolean;
@@ -72,62 +88,70 @@ type DomProps<E> = {
   ]?: Reactive<AttrIn<E[P]>>;
 };
 
-type EventHandler<Ev extends globalThis.Event> = (e: Ev) => void;
+/**
+ * A handler whose `currentTarget` carries the tag's concrete element type —
+ * the native-event answer to React's `MouseEvent<HTMLButtonElement>`:
+ * `onSubmit` on a `<form>` gives `e.currentTarget: HTMLFormElement`, no cast.
+ */
+export type EventHandler<
+  Ev extends globalThis.Event,
+  E extends Element = Element,
+> = (e: Ev & { currentTarget: E }) => void;
 
 /** Every DOM event, in native casing: `onClick`, `onKeydown`, `onDblclick`… */
-type NativeEventHandlers = {
+type NativeEventHandlers<E extends Element> = {
   [
     K in keyof GlobalEventHandlersEventMap as `on${Capitalize<K>}`
-  ]?: EventHandler<GlobalEventHandlersEventMap[K]>;
+  ]?: EventHandler<GlobalEventHandlersEventMap[K], E>;
 };
 
 /** React-style casing for the multi-word events (same listener at runtime). */
-interface AliasedEventHandlers {
-  onKeyDown?: EventHandler<KeyboardEvent>;
-  onKeyUp?: EventHandler<KeyboardEvent>;
-  onKeyPress?: EventHandler<KeyboardEvent>;
-  onMouseDown?: EventHandler<MouseEvent>;
-  onMouseUp?: EventHandler<MouseEvent>;
-  onMouseMove?: EventHandler<MouseEvent>;
-  onMouseEnter?: EventHandler<MouseEvent>;
-  onMouseLeave?: EventHandler<MouseEvent>;
-  onMouseOver?: EventHandler<MouseEvent>;
-  onMouseOut?: EventHandler<MouseEvent>;
-  onDblClick?: EventHandler<MouseEvent>;
-  onContextMenu?: EventHandler<MouseEvent>;
-  onPointerDown?: EventHandler<PointerEvent>;
-  onPointerUp?: EventHandler<PointerEvent>;
-  onPointerMove?: EventHandler<PointerEvent>;
-  onPointerEnter?: EventHandler<PointerEvent>;
-  onPointerLeave?: EventHandler<PointerEvent>;
-  onPointerOver?: EventHandler<PointerEvent>;
-  onPointerOut?: EventHandler<PointerEvent>;
-  onPointerCancel?: EventHandler<PointerEvent>;
-  onTouchStart?: EventHandler<TouchEvent>;
-  onTouchMove?: EventHandler<TouchEvent>;
-  onTouchEnd?: EventHandler<TouchEvent>;
-  onTouchCancel?: EventHandler<TouchEvent>;
-  onFocusIn?: EventHandler<FocusEvent>;
-  onFocusOut?: EventHandler<FocusEvent>;
-  onBeforeInput?: EventHandler<InputEvent>;
-  onCompositionStart?: EventHandler<CompositionEvent>;
-  onCompositionUpdate?: EventHandler<CompositionEvent>;
-  onCompositionEnd?: EventHandler<CompositionEvent>;
-  onAnimationStart?: EventHandler<AnimationEvent>;
-  onAnimationEnd?: EventHandler<AnimationEvent>;
-  onAnimationIteration?: EventHandler<AnimationEvent>;
-  onTransitionEnd?: EventHandler<TransitionEvent>;
-  onDragStart?: EventHandler<DragEvent>;
-  onDragEnd?: EventHandler<DragEvent>;
-  onDragEnter?: EventHandler<DragEvent>;
-  onDragLeave?: EventHandler<DragEvent>;
-  onDragOver?: EventHandler<DragEvent>;
-  onTimeUpdate?: EventHandler<globalThis.Event>;
-  onDurationChange?: EventHandler<globalThis.Event>;
-  onVolumeChange?: EventHandler<globalThis.Event>;
-  onCanPlay?: EventHandler<globalThis.Event>;
-  onLoadedData?: EventHandler<globalThis.Event>;
-  onLoadedMetadata?: EventHandler<globalThis.Event>;
+interface AliasedEventHandlers<E extends Element> {
+  onKeyDown?: EventHandler<KeyboardEvent, E>;
+  onKeyUp?: EventHandler<KeyboardEvent, E>;
+  onKeyPress?: EventHandler<KeyboardEvent, E>;
+  onMouseDown?: EventHandler<MouseEvent, E>;
+  onMouseUp?: EventHandler<MouseEvent, E>;
+  onMouseMove?: EventHandler<MouseEvent, E>;
+  onMouseEnter?: EventHandler<MouseEvent, E>;
+  onMouseLeave?: EventHandler<MouseEvent, E>;
+  onMouseOver?: EventHandler<MouseEvent, E>;
+  onMouseOut?: EventHandler<MouseEvent, E>;
+  onDblClick?: EventHandler<MouseEvent, E>;
+  onContextMenu?: EventHandler<MouseEvent, E>;
+  onPointerDown?: EventHandler<PointerEvent, E>;
+  onPointerUp?: EventHandler<PointerEvent, E>;
+  onPointerMove?: EventHandler<PointerEvent, E>;
+  onPointerEnter?: EventHandler<PointerEvent, E>;
+  onPointerLeave?: EventHandler<PointerEvent, E>;
+  onPointerOver?: EventHandler<PointerEvent, E>;
+  onPointerOut?: EventHandler<PointerEvent, E>;
+  onPointerCancel?: EventHandler<PointerEvent, E>;
+  onTouchStart?: EventHandler<TouchEvent, E>;
+  onTouchMove?: EventHandler<TouchEvent, E>;
+  onTouchEnd?: EventHandler<TouchEvent, E>;
+  onTouchCancel?: EventHandler<TouchEvent, E>;
+  onFocusIn?: EventHandler<FocusEvent, E>;
+  onFocusOut?: EventHandler<FocusEvent, E>;
+  onBeforeInput?: EventHandler<InputEvent, E>;
+  onCompositionStart?: EventHandler<CompositionEvent, E>;
+  onCompositionUpdate?: EventHandler<CompositionEvent, E>;
+  onCompositionEnd?: EventHandler<CompositionEvent, E>;
+  onAnimationStart?: EventHandler<AnimationEvent, E>;
+  onAnimationEnd?: EventHandler<AnimationEvent, E>;
+  onAnimationIteration?: EventHandler<AnimationEvent, E>;
+  onTransitionEnd?: EventHandler<TransitionEvent, E>;
+  onDragStart?: EventHandler<DragEvent, E>;
+  onDragEnd?: EventHandler<DragEvent, E>;
+  onDragEnter?: EventHandler<DragEvent, E>;
+  onDragLeave?: EventHandler<DragEvent, E>;
+  onDragOver?: EventHandler<DragEvent, E>;
+  onTimeUpdate?: EventHandler<globalThis.Event, E>;
+  onDurationChange?: EventHandler<globalThis.Event, E>;
+  onVolumeChange?: EventHandler<globalThis.Event, E>;
+  onCanPlay?: EventHandler<globalThis.Event, E>;
+  onLoadedData?: EventHandler<globalThis.Event, E>;
+  onLoadedMetadata?: EventHandler<globalThis.Event, E>;
 }
 
 /** Attributes shared by every element, plus renderer-special props. */
@@ -135,7 +159,7 @@ interface SharedProps<E extends Element> {
   children?: Child;
   // The object form is deliberately wide: refs are commonly declared as
   // `{ current: HTMLElement | null }` and filled by the renderer.
-  ref?: ((el: E) => void) | { current: Element | null };
+  ref?: Ref<E>;
   class?: Reactive<string>;
   className?: Reactive<string>;
   style?: Reactive<string | Partial<CSSStyleDeclaration>>;
@@ -156,14 +180,14 @@ interface SharedProps<E extends Element> {
 
 type HTMLProps<E extends HTMLElement> = DomProps<E> &
   SharedProps<E> &
-  NativeEventHandlers &
-  AliasedEventHandlers;
+  NativeEventHandlers<E> &
+  AliasedEventHandlers<E>;
 
 // SVG attributes rarely surface as IDL properties (`viewBox`, `cx`, `d`, …),
 // so SVG stays permissive on attributes while keeping events/ref/class typed.
 type SVGProps<E extends SVGElement> = SharedProps<E> &
-  NativeEventHandlers &
-  AliasedEventHandlers & { [attr: string]: unknown };
+  NativeEventHandlers<E> &
+  AliasedEventHandlers<E> & { [attr: string]: unknown };
 
 type IntrinsicHTML = {
   [K in keyof HTMLElementTagNameMap]: HTMLProps<HTMLElementTagNameMap[K]>;

@@ -314,15 +314,16 @@ a text input fires only when the field loses focus. To react to every
 keystroke, use `onInput` (that is what `bindInput` does):
 
 ```tsx
-<input
-  value={text}
-  onInput={(e) => setText((e.target as HTMLInputElement).value)}
-/>
+<input value={text} onInput={(e) => setText(e.currentTarget.value)} />
 ```
 
 Event props are fully typed — the editor autocompletes them and knows the
 event type — and both casings work: `onKeyDown` and `onKeydown` attach the
-same listener.
+same listener. Events are **native**, not synthetic: where React has
+`React.MouseEvent<HTMLButtonElement>`, here it's the plain DOM `MouseEvent`
+with `e.currentTarget` already typed to the tag (no cast, as above). For
+wrapping components there is `ComponentProps<"button">` — see the
+[polymorphic button recipe](/guides/patterns#22-a-shareable-polymorphic-button-componentprops).
 :::
 
 ## 8. Context
