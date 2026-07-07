@@ -82,8 +82,8 @@ onCleanup(() => ticks.dispose());
 ```
 
 For animation there is `animationFrames()` from dom — it registers with the
-owner by itself — and continuous time (`integral`/`warp`) in the core; they
-get their own guide.
+owner by itself — and continuous time (`integral`/`warp`) in the core; see
+the [animation guide](/guides/animation).
 
 ## The one-direction rule
 
