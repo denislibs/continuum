@@ -308,6 +308,23 @@ const [text, setText] = newBehavior("");
 
 The same, minus a component re-run per keystroke.
 
+::: warning onChange is not React's onChange
+Continuum attaches **native** DOM listeners, and the native `change` event on
+a text input fires only when the field loses focus. To react to every
+keystroke, use `onInput` (that is what `bindInput` does):
+
+```tsx
+<input
+  value={text}
+  onInput={(e) => setText((e.target as HTMLInputElement).value)}
+/>
+```
+
+Event props are fully typed — the editor autocompletes them and knows the
+event type — and both casings work: `onKeyDown` and `onKeydown` attach the
+same listener.
+:::
+
 ## 8. Context
 
 **React**
