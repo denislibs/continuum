@@ -143,6 +143,10 @@ export class Transaction {
 // Event<A> — discrete occurrences (push).
 // ---------------------------------------------------------------------------
 
+// A rank beyond any realistic static graph depth. Reaching it means the live
+// topology is cyclic through time (see the error in `ensureBiggerThan`).
+const RANK_LIMIT = 1 << 16;
+
 /**
  * Discrete occurrences over time (push). Denotationally `[(Time, A)]`: at most
  * one occurrence per moment — simultaneous inputs coalesce (see `merge`).
@@ -151,8 +155,12 @@ export class Event<A> {
   /** @internal Topological height in the graph (propagation order). */
   rank: number;
   private listeners: Handler<A>[] = [];
-  /** Downstream nodes, used to keep ranks topologically sorted. */
-  private targets = new Set<Event<any>>();
+  /**
+   * Downstream nodes, used to keep ranks topologically sorted. Refcounted:
+   * an entry is dropped when its last subscription unlistens, so a
+   * long-lived source doesn't accumulate dead targets across churn.
+   */
+  private targets = new Map<Event<any>, number>();
   /** Teardown handles for this node's own subscriptions to its inputs. */
   private cleanups: Array<() => void> = [];
   /** True once `dispose()` has run. */
@@ -173,9 +181,21 @@ export class Event<A> {
     if (this.rank > limit) return;
     if (visited.has(this))
       throw new Error("Continuum: dependency cycle detected");
+    if (limit + 1 > RANK_LIMIT) {
+      // Only a topology that is cyclic THROUGH TIME (a switch re-pointed at
+      // chains derived from its own output) can push ranks this far — no
+      // rank assignment stays bounded there, so fail loudly instead of
+      // silently degrading forever.
+      throw new Error(
+        "Continuum: rank overflow — a switch appears to be re-pointed at " +
+          "chains derived from its own output (a temporal dependency " +
+          "cycle). Break the loop with hold/snapshot (a pull edge) instead " +
+          "of a push edge.",
+      );
+    }
     visited.add(this);
     this.rank = limit + 1;
-    for (const t of this.targets) t.ensureBiggerThan(this.rank, visited);
+    for (const t of this.targets.keys()) t.ensureBiggerThan(this.rank, visited);
     visited.delete(this);
   }
 
@@ -193,14 +213,24 @@ export class Event<A> {
     }
     this.listeners.push(h);
     if (target) {
-      this.targets.add(target);
+      this.targets.set(target, (this.targets.get(target) ?? 0) + 1);
       // keep the target strictly above this source (handles dynamic
       // subscriptions from switchB/switchE onto deeper events).
       target.ensureBiggerThan(this.rank, new Set());
     }
+    let done = false;
     return () => {
+      if (done) return;
+      done = true;
       const i = this.listeners.indexOf(h);
       if (i >= 0) this.listeners.splice(i, 1);
+      if (target) {
+        const n = this.targets.get(target);
+        if (n !== undefined) {
+          if (n <= 1) this.targets.delete(target);
+          else this.targets.set(target, n - 1);
+        }
+      }
     };
   }
 
@@ -550,6 +580,12 @@ export class Behavior<A> {
       t.last(() => {
         innerUn();
         current = nb;
+        // Rebase: after leaving a deep inner, come back down to the live
+        // topology. Lowering is safe — downstream nodes stayed strictly
+        // above the old (larger) rank, and the floor keeps `out` above
+        // both of its live inputs.
+        const floor = Math.max(bb.updates.rank, current.updates.rank) + 1;
+        if (floor < out.rank) out.rank = floor;
         innerUn = out.subscribe(current.updates, (t2, a) => out.send_(t2, a));
       });
     });
@@ -567,6 +603,9 @@ export class Behavior<A> {
       t.last(() => {
         innerUn();
         current = ne;
+        // Rebase to the live topology (see switchB for the safety argument).
+        const floor = Math.max(be.updates.rank, current.rank) + 1;
+        if (floor < out.rank) out.rank = floor;
         innerUn = out.subscribe(current, (t2, a) => out.send_(t2, a));
       });
     });
