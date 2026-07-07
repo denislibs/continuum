@@ -1,5 +1,15 @@
 # @continuum-js/router
 
+## 0.1.7
+
+### Patch Changes
+
+- Updated dependencies [1539199]
+- Updated dependencies [8f7b67e]
+  - @continuum-js/frp@0.9.0
+  - @continuum-js/dom@0.9.0
+  - @continuum-js/std@0.9.0
+
 ## 0.1.6
 
 ### Patch Changes
