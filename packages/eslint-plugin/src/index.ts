@@ -30,7 +30,8 @@ const PURE_CALLBACK_MEMBERS = new Set([
 const RETAIN_MEMBERS = new Set(["hold", "accum", "snapshot", "lift2", "lift3"]);
 
 // Globals whose mere use inside a pure callback is an effect or a read of
-// the outside world.
+// the outside world. `console` is deliberately absent: temporary debug
+// logging in a reducer is harmless and common.
 const IMPURE_GLOBALS = new Set([
   "localStorage",
   "sessionStorage",
@@ -39,6 +40,19 @@ const IMPURE_GLOBALS = new Set([
   "history",
   "navigator",
   "fetch",
+  "alert",
+  "confirm",
+  "prompt",
+  "setTimeout",
+  "setInterval",
+  "clearTimeout",
+  "clearInterval",
+  "requestAnimationFrame",
+  "cancelAnimationFrame",
+  "requestIdleCallback",
+  "queueMicrotask",
+  "XMLHttpRequest",
+  "WebSocket",
 ]);
 
 function memberName(callee: AnyNode): string | null {
@@ -110,9 +124,11 @@ const noImpureCombinators: Rule.RuleModule = {
       },
       CallExpression(node) {
         const callee = (node as unknown as AnyNode).callee as AnyNode;
-        // setX(...) / fireX(...) / dispatch(...)
+        // setX(...) / fireX(...) / dispatch(...); known globals (setTimeout…)
+        // are already reported once by the Identifier visitor above.
         if (
           callee.type === "Identifier" &&
+          !IMPURE_GLOBALS.has(callee.name as string) &&
           /^(set|fire)[A-Z0-9_]|^dispatch$/.test(callee.name as string)
         ) {
           report(node);

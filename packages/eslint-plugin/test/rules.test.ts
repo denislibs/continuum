@@ -19,6 +19,7 @@ tester.run("no-impure-combinators", plugin.rules["no-impure-combinators"], {
     `const todos = actions.accum([], (a, acc) => [...acc, a]);`,
     // effects are fine outside combinators
     `const onSubmit = () => { fetch("/api"); dispatch({ type: "x" }); };`,
+    `const onClick = () => { alert("saved"); setTimeout(poll, 100); };`,
     // Array.prototype.map is not in the flagged set
     `const ids = items.map((t) => { fetch("/api"); return t.id; });`,
     // reading captured values is fine
@@ -51,6 +52,22 @@ tester.run("no-impure-combinators", plugin.rules["no-impure-combinators"], {
     },
     {
       code: `const x = src.accum(0, (a, n) => { fetch("/log"); return n; });`,
+      errors: [{ messageId: "impure" }],
+    },
+    {
+      code: `const x = src.accum(0, (a, n) => { alert(a); return n; });`,
+      errors: [{ messageId: "impure" }],
+    },
+    {
+      code: `const x = src.accum(0, (a, n) => (confirm("sure?") ? n + 1 : n));`,
+      errors: [{ messageId: "impure" }],
+    },
+    {
+      code: `const x = src.accum(0, (a, n) => { setTimeout(() => {}, 0); return n; });`,
+      errors: [{ messageId: "impure" }],
+    },
+    {
+      code: `const x = src.accum(0, (a, n) => { queueMicrotask(() => {}); return n; });`,
       errors: [{ messageId: "impure" }],
     },
   ],
