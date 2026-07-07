@@ -76,6 +76,37 @@ the component's lifetime:
 The content is removed and disposed with the owning subtree, wherever it was
 mounted.
 
+## `<Catch>` — error boundary {#catch}
+
+A throw while building a piece of the page should not kill the whole app.
+`<Catch>` shows a fallback instead and lets the user retry:
+
+```tsx
+import { Catch } from "@continuum-js/dom";
+
+<Catch
+  fallback={(error, reset) => (
+    <div class="error">
+      Something broke: {String(error)}
+      <button onClick={reset}>Try again</button>
+    </div>
+  )}
+>
+  {() => <RiskyWidget />}
+</Catch>;
+```
+
+- **Children must be a thunk** (`{() => …}`) — eager JSX would run (and
+  throw) before `Catch` gets control.
+- Caught: a throw while building the children, and a throw during any
+  nested `Show`/`Dynamic`/`dyn` rebuild inside the boundary. The failed
+  subtree's ownership is disposed — no leaked subscriptions or timers.
+- `reset` rebuilds the children from scratch; an error thrown by the
+  fallback itself escalates to the next boundary up.
+- Not caught: throws inside binding `map` functions (keep them pure).
+  Async/IO errors never throw at all — `perform` and `resource` deliver
+  them as data (`Result`, `Async`), which you render like any value.
+
 ---
 
 > Unfamiliar term? Every piece of jargon in these docs is explained in the [glossary](/glossary).

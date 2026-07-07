@@ -6,7 +6,7 @@
 
 # Interface: RenderResult
 
-Defined in: [index.ts:8](https://github.com/denislibs/continuum/blob/40ab9b6150468b12ff931c97fb4264ea8455bf9d/packages/test/src/index.ts#L8)
+Defined in: [index.ts:8](https://github.com/denislibs/continuum/blob/8d71c388977ff9456393e0cbc710bd219c8150c3/packages/test/src/index.ts#L8)
 
 A mounted view under test.
 
@@ -16,7 +16,7 @@ A mounted view under test.
 
 > **container**: `HTMLElement`
 
-Defined in: [index.ts:10](https://github.com/denislibs/continuum/blob/40ab9b6150468b12ff931c97fb4264ea8455bf9d/packages/test/src/index.ts#L10)
+Defined in: [index.ts:10](https://github.com/denislibs/continuum/blob/8d71c388977ff9456393e0cbc710bd219c8150c3/packages/test/src/index.ts#L10)
 
 The container element, attached to `document.body`.
 
@@ -26,7 +26,7 @@ The container element, attached to `document.body`.
 
 > **dispose**: () => `void`
 
-Defined in: [index.ts:12](https://github.com/denislibs/continuum/blob/40ab9b6150468b12ff931c97fb4264ea8455bf9d/packages/test/src/index.ts#L12)
+Defined in: [index.ts:12](https://github.com/denislibs/continuum/blob/8d71c388977ff9456393e0cbc710bd219c8150c3/packages/test/src/index.ts#L12)
 
 Unmount the view (cascading FRP/ownership cleanup) and drop the container.
 

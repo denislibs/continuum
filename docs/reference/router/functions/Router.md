@@ -8,7 +8,7 @@
 
 > **Router**(`props`): `Node`
 
-Defined in: [index.ts:76](https://github.com/denislibs/continuum/blob/40ab9b6150468b12ff931c97fb4264ea8455bf9d/packages/router/src/index.ts#L76)
+Defined in: [index.ts:76](https://github.com/denislibs/continuum/blob/8d71c388977ff9456393e0cbc710bd219c8150c3/packages/router/src/index.ts#L76)
 
 Route the current URL through `routes`. `fallback` renders when nothing
 matches (404). A guard returning a path triggers a replace-navigation.

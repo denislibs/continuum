@@ -134,3 +134,28 @@ describe("continuous behaviors", () => {
     expect(b).toBeGreaterThanOrEqual(a);
   });
 });
+
+describe("listen registration order", () => {
+  test("a set fired during the initial delivery is still delivered", () => {
+    const [b, set] = newBehavior(0);
+    const seen: number[] = [];
+    b.listen((v) => {
+      seen.push(v);
+      if (v === 0) set(1);
+    });
+    expect(seen).toEqual([0, 1]);
+  });
+
+  test("a throw in the initial delivery does not leak the subscription", () => {
+    const [b, set] = newBehavior(0);
+    let delivered = 0;
+    expect(() =>
+      b.listen(() => {
+        throw new Error("initial boom");
+      }),
+    ).toThrow("initial boom");
+    b.listen(() => delivered++);
+    set(1);
+    expect(delivered).toBe(2); // initial + update; the broken listener is gone
+  });
+});

@@ -16,6 +16,7 @@
 
 - [animationFrames](functions/animationFrames.md)
 - [bindInput](functions/bindInput.md)
+- [Catch](functions/Catch.md)
 - [createContext](functions/createContext.md)
 - [dyn](functions/dyn.md)
 - [Dynamic](functions/Dynamic.md)

@@ -8,7 +8,7 @@
 
 > **never**\<`A`\>(): [`Event`](../classes/Event.md)\<`A`\>
 
-Defined in: [index.ts:545](https://github.com/denislibs/continuum/blob/40ab9b6150468b12ff931c97fb4264ea8455bf9d/packages/frp/src/index.ts#L545)
+Defined in: [index.ts:554](https://github.com/denislibs/continuum/blob/8d71c388977ff9456393e0cbc710bd219c8150c3/packages/frp/src/index.ts#L554)
 
 The event with no occurrences (identity of `merge`).
 
