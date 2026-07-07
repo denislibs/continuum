@@ -6,7 +6,7 @@
 
 # Interface: Context\<T\>
 
-Defined in: [index.tsx:557](https://github.com/denislibs/continuum/blob/6dcf7e4a1529edbb0b79752b06146206b3d754b5/packages/dom/src/index.tsx#L557)
+Defined in: [index.tsx:557](https://github.com/denislibs/continuum/blob/024c0131f28e2b026cf3029c8a40baa1c2fe4fdb/packages/dom/src/index.tsx#L557)
 
 A context handle: identity plus the value used when nothing was provided.
 
@@ -22,7 +22,7 @@ A context handle: identity plus the value used when nothing was provided.
 
 > `readonly` **defaultValue**: `T`
 
-Defined in: [index.tsx:559](https://github.com/denislibs/continuum/blob/6dcf7e4a1529edbb0b79752b06146206b3d754b5/packages/dom/src/index.tsx#L559)
+Defined in: [index.tsx:559](https://github.com/denislibs/continuum/blob/024c0131f28e2b026cf3029c8a40baa1c2fe4fdb/packages/dom/src/index.tsx#L559)
 
 ***
 
@@ -30,4 +30,4 @@ Defined in: [index.tsx:559](https://github.com/denislibs/continuum/blob/6dcf7e4a
 
 > `readonly` **id**: `symbol`
 
-Defined in: [index.tsx:558](https://github.com/denislibs/continuum/blob/6dcf7e4a1529edbb0b79752b06146206b3d754b5/packages/dom/src/index.tsx#L558)
+Defined in: [index.tsx:558](https://github.com/denislibs/continuum/blob/024c0131f28e2b026cf3029c8a40baa1c2fe4fdb/packages/dom/src/index.tsx#L558)

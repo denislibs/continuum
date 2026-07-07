@@ -4,6 +4,7 @@
 // touches internals the core doesn't already expose.
 
 import { Event, Behavior, newEvent, perform } from "@continuum-js/frp";
+import type { Unlisten } from "@continuum-js/frp";
 
 // ===========================================================================
 // Timing — bridges to the wall clock via setTimeout/setInterval. Each returns
@@ -205,4 +206,50 @@ export function resource<A, T>(
 
   // loading (request moment) and settled (later moment) never coincide.
   return loading.orElse(settled).hold({ status: "idle" });
+}
+
+// ===========================================================================
+// Persistence — a sink at the boundary: mirror a behavior into a Storage.
+// ===========================================================================
+
+/** The slice of the Storage interface persistence relies on. */
+export type StorageLike = Pick<Storage, "getItem" | "setItem">;
+
+/**
+ * Read a persisted value back, or `fallback` when the key is missing, the
+ * JSON is corrupted, or storage is unavailable (SSR) — loading state must
+ * never be the reason an app fails to start.
+ */
+export function loadPersisted<T>(
+  key: string,
+  fallback: T,
+  storage: StorageLike | undefined = globalThis.localStorage,
+): T {
+  try {
+    const raw = storage?.getItem(key);
+    return raw == null ? fallback : (JSON.parse(raw) as T);
+  } catch {
+    return fallback;
+  }
+}
+
+/**
+ * Mirror every value of `b` (including the current one) into storage as JSON.
+ * Best-effort: a throwing `setItem` (quota, private mode) is swallowed — the
+ * network must not break because a mirror did. Returns the unlisten; tie it
+ * to a scope (`onCleanup(persist(key, b))`) or keep it for a manual stop.
+ */
+export function persist<T>(
+  key: string,
+  b: Behavior<T>,
+  storage: StorageLike | undefined = globalThis.localStorage,
+): Unlisten {
+  if (!storage) return () => {};
+  return b.listen((v) => {
+    try {
+      storage.setItem(key, JSON.stringify(v));
+    } catch {
+      // best-effort by contract
+    }
+  });
 }

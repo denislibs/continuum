@@ -8,7 +8,7 @@
 
 > **delay**\<`A`\>(`e`, `ms`): `Event`\<`A`\>
 
-Defined in: [index.ts:58](https://github.com/denislibs/continuum/blob/6dcf7e4a1529edbb0b79752b06146206b3d754b5/packages/std/src/index.ts#L58)
+Defined in: [index.ts:59](https://github.com/denislibs/continuum/blob/024c0131f28e2b026cf3029c8a40baa1c2fe4fdb/packages/std/src/index.ts#L59)
 
 Shift every occurrence later by `ms`, preserving order and multiplicity.
 

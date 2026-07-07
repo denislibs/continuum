@@ -8,7 +8,7 @@
 
 > **newEvent**\<`A`\>(): \[[`Event`](../classes/Event.md)\<`A`\>, (`a`) => `void`\]
 
-Defined in: [index.ts:579](https://github.com/denislibs/continuum/blob/6dcf7e4a1529edbb0b79752b06146206b3d754b5/packages/frp/src/index.ts#L579)
+Defined in: [index.ts:622](https://github.com/denislibs/continuum/blob/024c0131f28e2b026cf3029c8a40baa1c2fe4fdb/packages/frp/src/index.ts#L622)
 
 A source event plus its `fire`. Each `fire` opens a fresh moment.
 

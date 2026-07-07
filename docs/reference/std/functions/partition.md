@@ -8,7 +8,7 @@
 
 > **partition**\<`A`\>(`e`, `pred`): \[`Event`\<`A`\>, `Event`\<`A`\>\]
 
-Defined in: [index.ts:116](https://github.com/denislibs/continuum/blob/6dcf7e4a1529edbb0b79752b06146206b3d754b5/packages/std/src/index.ts#L116)
+Defined in: [index.ts:117](https://github.com/denislibs/continuum/blob/024c0131f28e2b026cf3029c8a40baa1c2fe4fdb/packages/std/src/index.ts#L117)
 
 Split a stream by a predicate into `[matching, rest]`.
 

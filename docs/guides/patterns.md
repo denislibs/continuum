@@ -1,7 +1,7 @@
 # Patterns
 
 ::: tip In plain words
-A cookbook. Twenty recipes from "every app needs this" to "niche but
+A cookbook. Twenty-one recipes from "every app needs this" to "niche but
 delightful" — each one is a small, complete idea you can lift into your code.
 Skim the headings, steal what you need.
 :::
@@ -388,6 +388,39 @@ function Chart(props: { data: Behavior<number[]> }) {
 The pattern is always the same three lines: create in `onMount`, bridge with
 `listen`, tear down in `onCleanup`. Nothing leaks — the ownership tree calls
 your cleanup when the component goes.
+
+### 21. Persistence — `persist` + `loadPersisted`
+
+**When:** state should survive a page reload (todos, drafts, UI preferences).
+
+Persistence is a _sink at the boundary_: read once at creation, mirror every
+change. Both halves ship in std — safe against corrupted JSON, missing
+storage (SSR) and quota errors:
+
+```ts
+import { persist, loadPersisted } from "@continuum-js/std";
+
+const todos = actions.accum<Todo[]>(loadPersisted("todos", []), reduce);
+onCleanup(persist("todos", todos));
+```
+
+For chatty state, debounce the mirror; and since you already have the actions
+pattern, cross-tab sync is just one more dispatcher — the browser fires
+`storage` in _other_ tabs on every write:
+
+```ts
+onMount(() => {
+  const onStorage = (e: StorageEvent) => {
+    if (e.key === "todos" && e.newValue)
+      dispatch({ type: "replace", todos: JSON.parse(e.newValue) });
+  };
+  window.addEventListener("storage", onStorage);
+  onCleanup(() => window.removeEventListener("storage", onStorage));
+});
+```
+
+Add a todo in one tab — every tab updates, and the reducer didn't change by
+a letter.
 
 ---
 
