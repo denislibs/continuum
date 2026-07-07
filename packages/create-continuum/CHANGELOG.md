@@ -1,5 +1,13 @@
 # create-continuum-js
 
+## 0.1.2
+
+### Patch Changes
+
+- 16f745c: The scaffold now ships AGENTS.md (exact API signatures, React habits to
+  avoid, bug-preventing rules) and a CLAUDE.md pointer, so AI coding
+  assistants working in a fresh project know Continuum idioms out of the box.
+
 ## 0.1.1
 
 ### Patch Changes
