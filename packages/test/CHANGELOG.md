@@ -1,5 +1,13 @@
 # @continuum-js/test
 
+## 0.1.5
+
+### Patch Changes
+
+- Updated dependencies [f2f2395]
+  - @continuum-js/dom@0.7.0
+  - @continuum-js/frp@0.7.0
+
 ## 0.1.4
 
 ### Patch Changes
