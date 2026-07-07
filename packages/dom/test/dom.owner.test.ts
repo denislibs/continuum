@@ -51,7 +51,7 @@ describe("ownership tree", () => {
     expect(log).toEqual(["root"]);
   });
 
-  test("onCleanup outside any owner is a no-op", () => {
-    expect(() => onCleanup(() => {})).not.toThrow();
+  test("onCleanup outside any owner throws (it would never run)", () => {
+    expect(() => onCleanup(() => {})).toThrow(/outside/i);
   });
 });

@@ -8,7 +8,7 @@
 
 > **filterMap**\<`A`, `B`\>(`e`, `f`): `Event`\<`B`\>
 
-Defined in: [index.ts:91](https://github.com/denislibs/continuum/blob/024c0131f28e2b026cf3029c8a40baa1c2fe4fdb/packages/std/src/index.ts#L91)
+Defined in: [index.ts:91](https://github.com/denislibs/continuum/blob/8e7ee39923fe03f7015d85000909971978a707f2/packages/std/src/index.ts#L91)
 
 Map, dropping occurrences whose result is `null`/`undefined`.
 

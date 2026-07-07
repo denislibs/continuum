@@ -118,7 +118,7 @@ describe("onMount", () => {
     expect(mounted).toEqual([0, 1, 2]);
   });
 
-  test("is a no-op outside any owner", () => {
-    expect(() => onMount(() => {})).not.toThrow();
+  test("throws outside any owner (a mount hook nobody flushes)", () => {
+    expect(() => onMount(() => {})).toThrow(/outside/i);
   });
 });
