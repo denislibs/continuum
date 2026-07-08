@@ -1,29 +1,29 @@
-# Events
+# Streams
 
-`Event<A>` — поток **происшествий**: клики, нажатия клавиш, ответы сервера.
+`Stream<A>` — поток **происшествий**: клики, нажатия клавиш, ответы сервера.
 Каждое срабатывание ([вхождение](/ru/glossary#occurrence)) несёт значение;
 между срабатываниями события просто нет — в отличие от Behavior, у него
 нельзя прочитать «текущее значение».
 
-::: tip Возможно, Events вам пока не нужны
+::: tip Возможно, Streams вам пока не нужны
 Для большинства UI-кода хватает `newBehavior` + обычных колбэков
-(`onClick={() => setX(…)}`). За Events идите, когда работаете с
-_потоками_: debounce ввода, слияние источников, захват формы на сабмите,
+(`onClick={() => setX(…)}`). За Streams идите, когда суть задачи — сам
+поток: debounce ввода, слияние источников, захват формы на сабмите,
 подача запросов в `resource`.
 
 Проверка одной фразой: если это можно **нарисовать на экране** — это
 [Behavior](/ru/concepts/behaviors); если на это можно **среагировать** —
-Event. Длинная версия:
-[Чем Event отличается от Behavior](/ru/frp-in-plain-words#event-vs-behavior).
+Stream. Длинная версия:
+[Чем Stream отличается от Behavior](/ru/frp-in-plain-words#event-vs-behavior).
 :::
 
 ## Создание
 
 ```ts
-import { newEvent, never } from "@continuum-js/frp";
+import { newStream, never } from "@continuum-js/frp";
 import { interval } from "@continuum-js/std";
 
-const [clicks, fire] = newEvent<MouseEvent>(); // fire() впрыскивает вхождение
+const [clicks, fire] = newStream<MouseEvent>(); // fire() впрыскивает вхождение
 const ticks = interval(1000); // 1, 2, 3, … каждую секунду
 const nothing = never<string>(); // не происходит никогда
 ```
@@ -46,7 +46,7 @@ const whileOpen = keys.gate(isOpen); // проходит, только пока 
 «левое побеждает случайно»:
 
 ```ts
-const delta = Event.merge(increments, decrements, (a, b) => a + b);
+const delta = Stream.merge(increments, decrements, (a, b) => a + b);
 const either = errors.orElse(fallbacks); // лево-приоритетное сокращение
 ```
 
@@ -63,7 +63,7 @@ const submitted = submits.snapshot(draft, (_e, text) => text);
 ```ts
 const latest = responses.hold(initial); // Behavior: последнее значение
 const count = clicks.accum(0, (_e, n) => n + 1); // Behavior: свёртка
-const totals = amounts.accumE(0, (a, s) => s + a); // Event шагов свёртки
+const totals = amounts.accumE(0, (a, s) => s + a); // Stream шагов свёртки
 ```
 
 `hold`/`accum` обновляются на границе момента — внутри транзакции самого

@@ -28,7 +28,7 @@ const todos = submits.accum<Todo[]>([], (e, acc) => {
 
 ```tsx
 // ✅ грязная работа на границе, в сеть — чистые данные
-const [texts, fireText] = newEvent<string>();
+const [texts, fireText] = newStream<string>();
 const todos = texts.accum<Todo[]>([], (text, acc) => [
   ...acc,
   createTodo(text),
@@ -176,7 +176,7 @@ export const theme = settings.map((s) => s.theme).retain();
 ```
 
 Внутри компонентов об этом думать не нужно: дерево владения само подписывает
-и отписывает. Источники (`newBehavior`, `newEvent`) закреплены автоматически.
+и отписывает. Источники (`newBehavior`, `newStream`) закреплены автоматически.
 
 ## 8. `fetch` внутри `map`
 
@@ -190,13 +190,13 @@ export const theme = settings.map((s) => s.theme).retain();
 
 ```ts
 // ❌ эффект внутри чистого комбинатора
-const results = queries.map((q) => fetch(`/api?q=${q}`)); // Event<Promise> — и что дальше?
+const results = queries.map((q) => fetch(`/api?q=${q}`)); // Stream<Promise> — и что дальше?
 
 // ✅ IO на границе, результаты — данными
 const results = perform(queries, (q) =>
   fetch(`/api?q=${q}`).then((r) => r.json()),
 );
-// results: Event<Result<Data, unknown>> — разбирайте как данные, без try/catch
+// results: Stream<Result<Data, unknown>> — разбирайте как данные, без try/catch
 ```
 
 Полная история, включая отмену и нумерацию запросов:
@@ -207,7 +207,7 @@ const results = perform(queries, (q) =>
 **Мета-правило, покрывающее половину этой страницы:** компонент выполняется
 **один раз**. Всё, что вы вычисляете обычным JavaScript в теле компонента,
 вычисляется однажды и замирает. Всё, что должно _жить_, обязано быть
-Behavior, Event или их производной — а как только вы ловите себя на том, что
+Behavior, Stream или их производной — а как только вы ловите себя на том, что
 тянетесь _из_ чистого комбинатора наружу (в DOM, в сеть, к другому событию),
 переносите этот код на границу: в обработчик, в `perform` или в
 `onMount`/`onCleanup`.

@@ -1,4 +1,4 @@
-# Мышление в Behaviors и Events
+# Мышление в Behaviors и Streams
 
 ::: info Машинное отделение
 Эта страница не нужна, чтобы строить на Continuum — для повседневной работы
@@ -41,7 +41,7 @@ React решает это перезапуском: «поменялось со�
   Денотационно `Time → A`: у него нельзя спросить «пришло ли», у него можно
   только спросить «какое сейчас». Позиция мыши, текст поля ввода, текущий
   счётчик, URL.
-- **`Event<A>`** — [дискретные вхождения](/ru/glossary#occurrence): в какие-то моменты происходит
+- **`Stream<A>`** — [дискретные вхождения](/ru/glossary#occurrence): в какие-то моменты происходит
   что-то со значением `A`, в остальные — не происходит ничего. Клик, нажатие
   клавиши, ответ сервера, тик таймера.
 
@@ -50,7 +50,7 @@ React решает это перезапуском: «поменялось со�
 | Спрашиваете себя                              | Тип        |
 | --------------------------------------------- | ---------- |
 | «Что _сейчас_ введено / выбрано / загружено?» | `Behavior` |
-| «_Произошёл_ ли клик / сабмит / ответ?»       | `Event`    |
+| «_Произошёл_ ли клик / сабмит / ответ?»       | `Stream`   |
 
 Ошибка в выборе всегда мстит: событие, засунутое в Behavior («флажок
 `justClicked`»), требует ручного сброса; значение, размазанное по событиям,
@@ -62,10 +62,10 @@ React решает это перезапуском: «поменялось со�
 строит две вещи: FRP-сеть и привязанный к ней DOM.
 
 ```tsx
-import { newEvent } from "@continuum-js/frp";
+import { newStream } from "@continuum-js/frp";
 
 function Counter() {
-  const [clicks, fire] = newEvent<MouseEvent>();
+  const [clicks, fire] = newStream<MouseEvent>();
   const count = clicks.accum(0, (_e, n) => n + 1);
   const parity = count.map((n) => (n % 2 === 0 ? "чёт" : "нечет"));
   return (
@@ -111,11 +111,11 @@ const sum = Behavior.lift2((d, s) => d + s, doubled, squared);
 Это и называется «отсутствие глитчей»: полуобновлённое состояние не просто
 редко наблюдается — его **не существует в модели**.
 
-Два события в одном моменте — тоже честная одновременность. `Event.merge`
+Два события в одном моменте — тоже честная одновременность. `Stream.merge`
 принимает функцию коалесинга и сворачивает одновременные вхождения в одно:
 
 ```ts
-const either = Event.merge(left, right, (a, b) => a + b);
+const either = Stream.merge(left, right, (a, b) => a + b);
 ```
 
 ## Почему `hold` задержан: прошлое доступно, настоящее — нет
@@ -128,7 +128,7 @@ const either = Event.merge(left, right, (a, b) => a + b);
 смотрите на него из события, которое его же и меняет:
 
 ```ts
-const [submit, fireSubmit] = newEvent<void>();
+const [submit, fireSubmit] = newStream<void>();
 const draft = input.hold(""); // текст поля
 
 // какой текст отправляем? тот, что был НА МОМЕНТ сабмита:
@@ -193,7 +193,7 @@ Granularity правило простое: **значение — привязк
 import { onCleanup, onMount } from "@continuum-js/dom";
 
 function Clock() {
-  const [tick, fire] = newEvent<number>();
+  const [tick, fire] = newStream<number>();
   const id = setInterval(() => fire(Date.now()), 1000);
   onCleanup(() => clearInterval(id));
 
@@ -223,7 +223,7 @@ function Clock() {
 import { perform, type Result } from "@continuum-js/frp";
 
 const results = perform(queries, async (q): Promise<Page> => fetchPage(q));
-// Event<Result<unknown, Page>> — { ok: true, value } | { ok: false, error }
+// Stream<Result<unknown, Page>> — { ok: true, value } | { ok: false, error }
 ```
 
 Для типичного «загрузи и покажи» есть `resource` из `@continuum-js/std`:

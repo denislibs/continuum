@@ -17,7 +17,7 @@ shown once per snippet; everything comes from `@continuum-js/frp`,
 
 **When:** one piece of state, many kinds of changes (add / remove / toggle…).
 
-Collect every change into a single `Event<Action>` and fold it with one pure
+Collect every change into a single `Stream<Action>` and fold it with one pure
 reducer. `accum` _is_ the store; you just don't need the library.
 
 ```tsx
@@ -26,7 +26,7 @@ type Action =
   | { type: "remove"; id: string }
   | { type: "toggle"; id: string };
 
-const [actions, dispatch] = newEvent<Action>();
+const [actions, dispatch] = newStream<Action>();
 
 const todos = actions.accum<Todo[]>([], (a, acc) => {
   switch (a.type) {
@@ -104,7 +104,7 @@ export const cartTotal = cart
   .retain(); // shared derivation outlives any single component
 ```
 
-## Events as algebra
+## Streams as algebra
 
 ### 5. Read state at the moment of an event — `snapshot`
 
@@ -140,7 +140,7 @@ code doesn't need `if (saving) return` sprinkled everywhere.
 import { distinct } from "@continuum-js/frp";
 import { distinctB } from "@continuum-js/std";
 
-const realMoves = distinct(moves); // Event: drop consecutive equals
+const realMoves = distinct(moves); // Stream: drop consecutive equals
 const stableTheme = distinctB(theme); // Behavior: suppress no-op updates
 ```
 
@@ -182,7 +182,7 @@ const [oks, errs] = partition(responses, (r) => r.ok);
 ```ts
 import { filterMap } from "@continuum-js/std";
 
-// Event<string> → Event<number>, invalid input never enters the network
+// Stream<string> → Stream<number>, invalid input never enters the network
 const amounts = filterMap(inputs, (s) => {
   const n = Number(s);
   return Number.isFinite(n) ? n : null;
@@ -221,7 +221,7 @@ const counter = increments
 ```
 
 No action types, no switch — each source carries its own semantics. Use
-`Event.merge(l, r, (f, g) => (n) => g(f(n)))` instead of `orElse` if two
+`Stream.merge(l, r, (f, g) => (n) => g(f(n)))` instead of `orElse` if two
 sources can genuinely fire in the same moment and both must apply.
 
 ## Async
@@ -235,7 +235,7 @@ on it.
 import { perform } from "@continuum-js/frp";
 
 const responses = perform(saveRequests, (todo) => api.save(todo));
-// Event<Result<unknown, Saved>> — errors are data, not throws
+// Stream<Result<unknown, Saved>> — errors are data, not throws
 
 const [saved, failed] = partition(responses, (r) => r.ok);
 ```
@@ -274,17 +274,17 @@ action flows back in through the same reducer:
 ```ts
 type Action = UserAction | { type: "rollback"; id: string };
 
-const [userActions, dispatch] = newEvent<UserAction>();
+const [userActions, dispatch] = newStream<UserAction>();
 
 const saves = perform(
   userActions.filter((a) => a.type === "add"),
   (a) => api.save(a),
 );
-const rollbacks: Event<Action> = filterMap(saves, (r) =>
+const rollbacks: Stream<Action> = filterMap(saves, (r) =>
   r.ok ? null : { type: "rollback", id: r.error.id },
 );
 
-const todos = (userActions as Event<Action>)
+const todos = (userActions as Stream<Action>)
   .orElse(rollbacks)
   .accum<Todo[]>([], reduce);
 ```

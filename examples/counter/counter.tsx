@@ -1,4 +1,4 @@
-import { newEvent } from "@continuum-js/frp";
+import { newStream } from "@continuum-js/frp";
 
 /**
  * The ten-line counter from §1.1. The component runs once; a click flows
@@ -6,7 +6,7 @@ import { newEvent } from "@continuum-js/frp";
  * node is patched — no VDOM, no diffing, no component re-run.
  */
 export function Counter() {
-  const [clicks, fire] = newEvent<MouseEvent>();
+  const [clicks, fire] = newStream<MouseEvent>();
   const count = clicks.accum(0, (_e, n) => n + 1);
   return <button onClick={fire}>count: {count}</button>;
 }

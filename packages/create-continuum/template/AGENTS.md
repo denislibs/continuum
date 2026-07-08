@@ -40,15 +40,15 @@ JSX, missing `.retain()`, `onChange` on text fields). Format with
 ```ts
 // @continuum-js/frp
 const [b, set] = newBehavior<T>(init);      // Behavior<T> + setter
-const [e, fire] = newEvent<T>();            // Event<T> + injector
-b.map(f); b.sample(); b.updates;            // updates: Event<T> of changes
+const [e, fire] = newStream<T>();            // Stream<T> + injector
+b.map(f); b.sample(); b.updates;            // updates: Stream<T> of changes
 Behavior.lift2(f, a, b); Behavior.lift3(f, a, b, c);
 e.map(f); e.filter(p); e.mapTo(v); e.once(); e.gate(boolB);
-e.hold(init);                               // Event -> Behavior (last value)
-e.accum(init, (a, acc) => next);            // Event -> Behavior (fold)
+e.hold(init);                               // Stream -> Behavior (last value)
+e.accum(init, (a, acc) => next);            // Stream -> Behavior (fold)
 e.snapshot(b, (a, bv) => c);                // read a Behavior at the event's moment
-Event.merge(ea, eb, (l, r) => combined);    // TWO events + combiner. NOT an array.
-perform(e, async (a) => b);                 // -> Event<Result<unknown, B>>
+Stream.merge(ea, eb, (l, r) => combined);    // TWO events + combiner. NOT an array.
+perform(e, async (a) => b);                 // -> Stream<Result<unknown, B>>
 // Result = { ok: true, value } | { ok: false, error }
 
 // @continuum-js/dom
@@ -101,7 +101,7 @@ lazy(() => import("./Page.js"), { fallback: () => <p>…</p> });
 
 | Import from            | What lives there                                                                            |
 | ---------------------- | ------------------------------------------------------------------------------------------- |
-| `@continuum-js/frp`    | newBehavior, newEvent, Behavior, Event, perform, constant, integral/warp                    |
+| `@continuum-js/frp`    | newBehavior, newStream, Behavior, Stream, perform, constant, integral/warp                  |
 | `@continuum-js/dom`    | mount, Show, Each, Dynamic, Portal, onMount, onCleanup, bindInput, context, animationFrames |
 | `@continuum-js/std`    | debounce, throttle, interval, distinctB, resource, Async                                    |
 | `@continuum-js/router` | Router, Outlet, Link, useParams, navigate, location, lazy                                   |

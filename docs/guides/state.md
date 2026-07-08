@@ -16,13 +16,13 @@ const [theme, setTheme] = newBehavior<"light" | "dark">("light");
 <button onClick={() => setTheme("dark")}>dark</button>;
 ```
 
-**`newEvent` + `accum`** — the stream form, for when state is naturally a
+**`newStream` + `accum`** — the stream form, for when state is naturally a
 fold over things that happened:
 
 ```ts
-import { newEvent } from "@continuum-js/frp";
+import { newStream } from "@continuum-js/frp";
 
-const [clicks, fire] = newEvent<MouseEvent>();
+const [clicks, fire] = newStream<MouseEvent>();
 const count = clicks.accum(0, (_e, n) => n + 1);
 ```
 

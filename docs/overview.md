@@ -74,7 +74,7 @@ to know _why_ it works: see [the deep dive](/tutorial/thinking-in-frp).
 3. [Concepts](/concepts/components) — one idea per page.
 4. [From React](/from-react) — a construct-by-construct migration map.
 5. When you're curious about the engine:
-   [Thinking in Behaviors and Events](/tutorial/thinking-in-frp).
+   [Thinking in Behaviors and Streams](/tutorial/thinking-in-frp).
 
 ---
 

@@ -17,7 +17,7 @@ Continuum наследует исходную идею Конала Эллиот
 ```ts
 import { animationFrames } from "@continuum-js/dom";
 
-const ticks = animationFrames(); // Event<number> таймстемпов rAF (мс)
+const ticks = animationFrames(); // Stream<number> таймстемпов rAF (мс)
 ```
 
 `animationFrames()` регистрируется у текущего владельца — когда поддерево

@@ -2,7 +2,7 @@ import { describe, test, expect } from "vitest";
 import { mount } from "@continuum-js/dom";
 import { Counter } from "./counter";
 
-describe("Counter (end-to-end DOM -> Event -> Behavior -> DOM)", () => {
+describe("Counter (end-to-end DOM -> Stream -> Behavior -> DOM)", () => {
   test("clicking patches exactly the bound text node", () => {
     const container = document.createElement("div");
     mount(container, () => <Counter />);

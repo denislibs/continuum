@@ -317,9 +317,9 @@ keystroke, use `onInput` (that is what `bindInput` does):
 <input value={text} onInput={(e) => setText(e.currentTarget.value)} />
 ```
 
-Event props are fully typed — the editor autocompletes them and knows the
+Stream props are fully typed — the editor autocompletes them and knows the
 event type — and both casings work: `onKeyDown` and `onKeydown` attach the
-same listener. Events are **native**, not synthetic: inline handlers get
+same listener. Streams are **native**, not synthetic: inline handlers get
 `e.currentTarget` already typed to the tag (no cast, as above). When you
 **extract** a handler, annotate the parameter exactly like in React — the
 aliases ship in the package:
@@ -332,8 +332,8 @@ const onClick = (e: MouseEvent<HTMLButtonElement>) => e.currentTarget.type;
 ```
 
 Prefer not to shadow the DOM globals? The same aliases come as a namespace:
-`import type { Events } from "@continuum-js/dom"` →
-`(e: Events.MouseEvent<HTMLButtonElement>) => …`.
+`import type { Streams } from "@continuum-js/dom"` →
+`(e: Streams.MouseEvent<HTMLButtonElement>) => …`.
 
 For wrapping components there is `ComponentProps<"button">` — see the
 [polymorphic button recipe](/guides/patterns#22-a-shareable-polymorphic-button-componentprops).
@@ -399,7 +399,7 @@ const debouncedQuery = useDebounced(query, 300);
 ```tsx
 import { debounce } from "@continuum-js/std";
 
-const settled = debounce(query.updates, 300); // Event<string>
+const settled = debounce(query.updates, 300); // Stream<string>
 const results = resource(settled, search);
 ```
 

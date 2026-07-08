@@ -25,7 +25,7 @@ function sidebar(
       items: [
         { text: t.components, link: `${prefix}/concepts/components` },
         { text: "Behaviors", link: `${prefix}/concepts/behaviors` },
-        { text: "Events", link: `${prefix}/concepts/events` },
+        { text: "Streams", link: `${prefix}/concepts/events` },
         {
           text: t.conditional,
           link: `${prefix}/concepts/conditional-rendering`,
@@ -88,7 +88,7 @@ const en = {
   glossary: "Glossary",
   examples: "Examples",
   quickStart: "Quick start",
-  tutorial: "Thinking in Behaviors and Events",
+  tutorial: "Thinking in Behaviors and Streams",
   concepts: "Concepts",
   components: "Components",
   transactions: "Transactions and time",
@@ -120,7 +120,7 @@ const ru = {
   glossary: "Глоссарий",
   examples: "Примеры",
   quickStart: "Быстрый старт",
-  tutorial: "Мышление в Behaviors и Events",
+  tutorial: "Мышление в Behaviors и Streams",
   concepts: "Понятия",
   components: "Компоненты",
   transactions: "Транзакции и время",

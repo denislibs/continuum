@@ -8,7 +8,7 @@
 [![docs](https://img.shields.io/badge/docs-denislibs.github.io-blue)](https://denislibs.github.io/continuum/)
 [![license](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
-Реактивный фреймворк на **классическом FRP** (Behaviors + Events) с fine-grained
+Реактивный фреймворк на **классическом FRP** (Behaviors + Streams) с fine-grained
 рендерингом. Дискретная ветвь традиции Эллиотта в стиле Sodium: транзакции,
 ранговая протяжка, задержка `hold` на границе момента.
 
@@ -38,7 +38,7 @@ _и код самого приложения_ — собирается в **3,7 
 ```
 continuum/
 ├─ packages/
-│  ├─ frp/        @continuum-js/frp   — ядро: Event, Behavior, планировщик
+│  ├─ frp/        @continuum-js/frp   — ядро: Stream, Behavior, планировщик
 │  ├─ dom/        @continuum-js/dom   — рендерер: h, dyn, each, владение, контекст
 │  ├─ std/        @continuum-js/std   — комбинаторы: resource, debounce, throttle, …
 │  ├─ router/     @continuum-js/router — URL как Behavior: вложенные маршруты, ленивые страницы
@@ -95,10 +95,10 @@ npm run smoke            # контракт публикации: pack → npm i
 ### Счётчик за 10 строк (`examples/counter`)
 
 ```tsx
-import { newEvent } from "@continuum-js/frp";
+import { newStream } from "@continuum-js/frp";
 
 export function Counter() {
-  const [clicks, fire] = newEvent<MouseEvent>();
+  const [clicks, fire] = newStream<MouseEvent>();
   const count = clicks.accum(0, (_e, n) => n + 1);
   return <button onClick={fire}>count: {count}</button>;
 }
@@ -124,7 +124,7 @@ export function Counter() {
 идентичности транзакции; **устойчивые ранги** (`ensureBiggerThan` + обнаружение
 циклов) для корректного `switch` в плотных графах; **непрерывное время** —
 `integral`/`derivative`/`warp` (численно семплируемые по дискретному клоку);
-**явный `dispose`** у `Event`/`Behavior` с каскадом вверх по неиспользуемым
+**явный `dispose`** у `Stream`/`Behavior` с каскадом вверх по неиспользуемым
 производным узлам (для долгоживущих не-UI графов).
 
 **Рендерер (`@continuum-js/dom`).** JSX-фабрика `h`/`Fragment`, точечные привязки
@@ -138,7 +138,7 @@ SVG-неймспейсы (`<svg>`-поддеревья через `createElement
 ## Непрерывное время
 
 `integral`/`derivative`/`warp` из ядра работают поверх дискретного клока
-(`Event<number>` временных меток) — в браузере его даёт `animationFrames()`.
+(`Stream<number>` временных меток) — в браузере его даёт `animationFrames()`.
 Реализация численная (forward Euler / конечные разности), детерминированная и не
 зависит от числа наблюдателей: аккумуляция происходит один раз на тик. Денотация
 разрешение-независима, семплированный результат её приближает. Демо —
@@ -146,7 +146,7 @@ SVG-неймспейсы (`<svg>`-поддеревья через `createElement
 
 ## Работа с данными (HTTP)
 
-IO живёт на **границе** сети. `perform` принимает `Event` запросов, запускает
+IO живёт на **границе** сети. `perform` принимает `Stream` запросов, запускает
 асинхронный эффект в фазе post (после закрытия момента) и возвращает результат
 новым происшествием — уже как данные, с ошибкой, завёрнутой в `Result`, а не
 выброшенной. Поверх этого [`@continuum-js/std`](packages/std) даёт готовые

@@ -2,7 +2,7 @@
 // Fine-grained rendering over the frp core: bindings, dynamic regions,
 // keyed lists, an ownership tree for lifecycle, and context.
 
-import { Behavior, Event, newBehavior, newEvent } from "@continuum-js/frp";
+import { Behavior, Stream, newBehavior, newStream } from "@continuum-js/frp";
 import type { Unlisten } from "@continuum-js/frp";
 
 // ---------------------------------------------------------------------------
@@ -620,7 +620,7 @@ export function use<T>(ctx: Context<T>): T {
 // The dedup memory is seeded with the current value, so re-emitting the
 // initial value does not trigger a rebuild.
 function distinctB<T>(b: Behavior<T>): Behavior<T> {
-  const out = new Event<T>(b.updates.rank + 1);
+  const out = new Stream<T>(b.updates.rank + 1);
   let prev = b.sampleNoTrans();
   b.updates.listen_(out, (t, a) => {
     if (!Object.is(prev, a)) {
@@ -683,12 +683,12 @@ export function mount(container: Node, view: () => Node): () => void {
 // ---------------------------------------------------------------------------
 
 /**
- * An `Event<number>` of `requestAnimationFrame` timestamps (ms). Drives the
+ * An `Stream<number>` of `requestAnimationFrame` timestamps (ms). Drives the
  * continuous-time combinators (`integral`/`derivative`/`warp` from the core).
  * Registered against the current owner: it stops automatically on unmount.
  */
-export function animationFrames(): Event<number> {
-  const [ticks, fire] = newEvent<number>();
+export function animationFrames(): Stream<number> {
+  const [ticks, fire] = newStream<number>();
   let raf = requestAnimationFrame(function loop(t) {
     fire(t);
     raf = requestAnimationFrame(loop);

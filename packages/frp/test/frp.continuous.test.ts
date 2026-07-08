@@ -1,10 +1,10 @@
 import { describe, test, expect } from "vitest";
-import { newEvent, newBehavior, constant } from "@continuum-js/frp";
+import { newStream, newBehavior, constant } from "@continuum-js/frp";
 import { integral, derivative, warp } from "@continuum-js/frp";
 
 describe("integral", () => {
   test("accumulates value * dt over a tick clock", () => {
-    const [tick, fire] = newEvent<number>(); // timestamps (ms)
+    const [tick, fire] = newStream<number>(); // timestamps (ms)
     const x = integral(constant(2), tick, 0); // constant velocity 2/ms
     expect(x.sample()).toBe(0);
     fire(0); // baseline
@@ -16,7 +16,7 @@ describe("integral", () => {
   });
 
   test("integrates a changing behavior (forward Euler)", () => {
-    const [tick, fire] = newEvent<number>();
+    const [tick, fire] = newStream<number>();
     const [v, setV] = newBehavior(1);
     const x = integral(v, tick, 0);
     fire(0);
@@ -30,7 +30,7 @@ describe("integral", () => {
 
 describe("derivative", () => {
   test("computes (dvalue / dt) over ticks", () => {
-    const [tick, fire] = newEvent<number>();
+    const [tick, fire] = newStream<number>();
     const [pos, setPos] = newBehavior(0);
     const d = derivative(pos, tick);
     fire(0); // baseline
@@ -47,7 +47,7 @@ describe("derivative", () => {
 
 describe("warp (time remapping)", () => {
   test("remaps tick timestamps", () => {
-    const [tick, fire] = newEvent<number>();
+    const [tick, fire] = newStream<number>();
     const seen: number[] = [];
     warp(tick, (t) => t * 2).listen((v) => seen.push(v));
     fire(1);
@@ -56,7 +56,7 @@ describe("warp (time remapping)", () => {
   });
 
   test("integrating over a warped clock runs faster", () => {
-    const [tick, fire] = newEvent<number>();
+    const [tick, fire] = newStream<number>();
     const x = integral(
       constant(1),
       warp(tick, (t) => t * 2),

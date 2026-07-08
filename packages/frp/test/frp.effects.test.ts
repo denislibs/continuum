@@ -1,12 +1,12 @@
 import { describe, test, expect } from "vitest";
-import { newEvent } from "@continuum-js/frp";
+import { newStream } from "@continuum-js/frp";
 import { distinct, perform } from "@continuum-js/frp";
 
 const tick = () => new Promise((r) => setTimeout(r, 0));
 
 describe("distinct", () => {
   test("suppresses consecutive duplicates (Object.is default)", () => {
-    const [e, fire] = newEvent<number>();
+    const [e, fire] = newStream<number>();
     const seen: number[] = [];
     distinct(e).listen((v) => seen.push(v));
     fire(1);
@@ -18,7 +18,7 @@ describe("distinct", () => {
   });
 
   test("uses a custom equality", () => {
-    const [e, fire] = newEvent<{ id: number }>();
+    const [e, fire] = newStream<{ id: number }>();
     const seen: number[] = [];
     distinct(e, (a, b) => a.id === b.id).listen((v) => seen.push(v.id));
     fire({ id: 1 });
@@ -30,7 +30,7 @@ describe("distinct", () => {
 
 describe("perform", () => {
   test("delivers a successful Result on a fresh moment", async () => {
-    const [req, fire] = newEvent<number>();
+    const [req, fire] = newStream<number>();
     const seen: Array<{ ok: boolean; value?: number }> = [];
     perform(req, async (n) => n * 2).listen((r) =>
       seen.push(r as { ok: boolean; value?: number }),
@@ -41,7 +41,7 @@ describe("perform", () => {
   });
 
   test("wraps a rejection into a failed Result", async () => {
-    const [req, fire] = newEvent<number>();
+    const [req, fire] = newStream<number>();
     const seen: Array<{ ok: boolean; error?: unknown }> = [];
     perform(req, async () => {
       throw new Error("boom");

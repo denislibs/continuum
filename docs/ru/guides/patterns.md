@@ -18,7 +18,7 @@
 **Когда:** одно состояние, много видов изменений (добавить / удалить /
 переключить…).
 
-Соберите все изменения в один `Event<Action>` и сверните его одним чистым
+Соберите все изменения в один `Stream<Action>` и сверните его одним чистым
 редьюсером. `accum` — это и есть стор; библиотека не нужна.
 
 ```tsx
@@ -27,7 +27,7 @@ type Action =
   | { type: "remove"; id: string }
   | { type: "toggle"; id: string };
 
-const [actions, dispatch] = newEvent<Action>();
+const [actions, dispatch] = newStream<Action>();
 
 const todos = actions.accum<Todo[]>([], (a, acc) => {
   switch (a.type) {
@@ -142,7 +142,7 @@ const effectiveClicks = saveClicks.gate(saving.map((s) => !s));
 import { distinct } from "@continuum-js/frp";
 import { distinctB } from "@continuum-js/std";
 
-const realMoves = distinct(moves); // Event: отбросить подряд идущие равные
+const realMoves = distinct(moves); // Stream: отбросить подряд идущие равные
 const stableTheme = distinctB(theme); // Behavior: подавить пустые обновления
 ```
 
@@ -184,7 +184,7 @@ const [oks, errs] = partition(responses, (r) => r.ok);
 ```ts
 import { filterMap } from "@continuum-js/std";
 
-// Event<string> → Event<number>, невалидный ввод не попадает в сеть вовсе
+// Stream<string> → Stream<number>, невалидный ввод не попадает в сеть вовсе
 const amounts = filterMap(inputs, (s) => {
   const n = Number(s);
   return Number.isFinite(n) ? n : null;
@@ -225,7 +225,7 @@ const counter = increments
 
 Ни типов действий, ни switch — каждый источник несёт свою семантику с собой.
 Если два источника могут выстрелить в один момент и оба должны примениться,
-вместо `orElse` возьмите `Event.merge(l, r, (f, g) => (n) => g(f(n)))`.
+вместо `orElse` возьмите `Stream.merge(l, r, (f, g) => (n) => g(f(n)))`.
 
 ## Асинхронность
 
@@ -238,7 +238,7 @@ const counter = increments
 import { perform } from "@continuum-js/frp";
 
 const responses = perform(saveRequests, (todo) => api.save(todo));
-// Event<Result<unknown, Saved>> — ошибки приходят данными, а не бросками
+// Stream<Result<unknown, Saved>> — ошибки приходят данными, а не бросками
 
 const [saved, failed] = partition(responses, (r) => r.ok);
 ```
@@ -278,17 +278,17 @@ const results = resource(debounce(queries, 300), (q) =>
 ```ts
 type Action = UserAction | { type: "rollback"; id: string };
 
-const [userActions, dispatch] = newEvent<UserAction>();
+const [userActions, dispatch] = newStream<UserAction>();
 
 const saves = perform(
   userActions.filter((a) => a.type === "add"),
   (a) => api.save(a),
 );
-const rollbacks: Event<Action> = filterMap(saves, (r) =>
+const rollbacks: Stream<Action> = filterMap(saves, (r) =>
   r.ok ? null : { type: "rollback", id: r.error.id },
 );
 
-const todos = (userActions as Event<Action>)
+const todos = (userActions as Stream<Action>)
   .orElse(rollbacks)
   .accum<Todo[]>([], reduce);
 ```

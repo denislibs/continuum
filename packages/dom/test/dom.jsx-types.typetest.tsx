@@ -2,11 +2,11 @@
 // `tsc -b` (the tsconfig includes `test/`), NOT executed by vitest — every
 // assertion here is a type-level one. `@ts-expect-error` lines pin what must
 // NOT compile; the rest pins what must.
-import { newBehavior, newEvent } from "@continuum-js/frp";
+import { newBehavior, newStream } from "@continuum-js/frp";
 import { bindInput } from "@continuum-js/dom";
 
 export function TypedEventHandlers() {
-  const [clicks, fire] = newEvent<MouseEvent>();
+  const [clicks, fire] = newStream<MouseEvent>();
   void clicks;
   return (
     <div>

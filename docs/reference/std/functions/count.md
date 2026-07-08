@@ -8,7 +8,7 @@
 
 > **count**(`e`): `Behavior`\<`number`\>
 
-Defined in: [index.ts:125](https://github.com/denislibs/continuum/blob/9e6d8fee1895bb34167cfe31c364b635d2b71604/packages/std/src/index.ts#L125)
+Defined in: [index.ts:125](https://github.com/denislibs/continuum/blob/d7c5ccacccc04163a481bd76c5d444925252087e/packages/std/src/index.ts#L125)
 
 A behavior of how many times the event has occurred.
 
@@ -16,7 +16,7 @@ A behavior of how many times the event has occurred.
 
 ### e
 
-`Event`\<`unknown`\>
+`Stream`\<`unknown`\>
 
 ## Returns
 

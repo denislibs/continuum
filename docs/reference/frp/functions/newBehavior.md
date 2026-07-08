@@ -8,7 +8,7 @@
 
 > **newBehavior**\<`A`\>(`init`): \[[`Behavior`](../classes/Behavior.md)\<`A`\>, (`a`) => `void`\]
 
-Defined in: [index.ts:667](https://github.com/denislibs/continuum/blob/9e6d8fee1895bb34167cfe31c364b635d2b71604/packages/frp/src/index.ts#L667)
+Defined in: [index.ts:667](https://github.com/denislibs/continuum/blob/d7c5ccacccc04163a481bd76c5d444925252087e/packages/frp/src/index.ts#L667)
 
 A source behavior (a `hold` over a source event) plus its setter.
 

@@ -6,9 +6,9 @@
 
 # Function: filterMap()
 
-> **filterMap**\<`A`, `B`\>(`e`, `f`): `Event`\<`B`\>
+> **filterMap**\<`A`, `B`\>(`e`, `f`): `Stream`\<`B`\>
 
-Defined in: [index.ts:91](https://github.com/denislibs/continuum/blob/9e6d8fee1895bb34167cfe31c364b635d2b71604/packages/std/src/index.ts#L91)
+Defined in: [index.ts:91](https://github.com/denislibs/continuum/blob/d7c5ccacccc04163a481bd76c5d444925252087e/packages/std/src/index.ts#L91)
 
 Map, dropping occurrences whose result is `null`/`undefined`.
 
@@ -26,7 +26,7 @@ Map, dropping occurrences whose result is `null`/`undefined`.
 
 ### e
 
-`Event`\<`A`\>
+`Stream`\<`A`\>
 
 ### f
 
@@ -34,4 +34,4 @@ Map, dropping occurrences whose result is `null`/`undefined`.
 
 ## Returns
 
-`Event`\<`B`\>
+`Stream`\<`B`\>

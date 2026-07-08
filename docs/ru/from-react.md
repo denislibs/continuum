@@ -331,8 +331,8 @@ const onClick = (e: MouseEvent<HTMLButtonElement>) => e.currentTarget.type;
 ```
 
 Не хотите затенять DOM-глобалы — те же алиасы есть неймспейсом:
-`import type { Events } from "@continuum-js/dom"` →
-`(e: Events.MouseEvent<HTMLButtonElement>) => …`.
+`import type { Streams } from "@continuum-js/dom"` →
+`(e: Streams.MouseEvent<HTMLButtonElement>) => …`.
 
 Для обёрточных компонентов есть `ComponentProps<"button">` — см. [рецепт
 полиморфной кнопки](/ru/guides/patterns#_22-шарируемая-полиморфная-кнопка-componentprops).
@@ -398,7 +398,7 @@ const debouncedQuery = useDebounced(query, 300);
 ```tsx
 import { debounce } from "@continuum-js/std";
 
-const settled = debounce(query.updates, 300); // Event<string>
+const settled = debounce(query.updates, 300); // Stream<string>
 const results = resource(settled, search);
 ```
 

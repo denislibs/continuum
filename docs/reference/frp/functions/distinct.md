@@ -6,9 +6,9 @@
 
 # Function: distinct()
 
-> **distinct**\<`A`\>(`e`, `eq?`): [`Event`](../classes/Event.md)\<`A`\>
+> **distinct**\<`A`\>(`e`, `eq?`): [`Stream`](../classes/Stream.md)\<`A`\>
 
-Defined in: [index.ts:701](https://github.com/denislibs/continuum/blob/9e6d8fee1895bb34167cfe31c364b635d2b71604/packages/frp/src/index.ts#L701)
+Defined in: [index.ts:701](https://github.com/denislibs/continuum/blob/d7c5ccacccc04163a481bd76c5d444925252087e/packages/frp/src/index.ts#L701)
 
 De-duplicate consecutive equal values (filter with one-value memory).
 Default comparison is `Object.is`.
@@ -23,7 +23,7 @@ Default comparison is `Object.is`.
 
 ### e
 
-[`Event`](../classes/Event.md)\<`A`\>
+[`Stream`](../classes/Stream.md)\<`A`\>
 
 ### eq?
 
@@ -31,4 +31,4 @@ Default comparison is `Object.is`.
 
 ## Returns
 
-[`Event`](../classes/Event.md)\<`A`\>
+[`Stream`](../classes/Stream.md)\<`A`\>

@@ -36,7 +36,7 @@ export function jsxs(type: unknown, props: RuntimeProps | null): Node {
 // JSX type surface (resolved by the compiler from `<jsxImportSource>/jsx-runtime`).
 //
 // Attribute values may always be a `Behavior<T>` in place of a plain `T` —
-// the renderer live-binds them (`Reactive<T>`). Event props accept both
+// the renderer live-binds them (`Reactive<T>`). Stream props accept both
 // native casing (`onKeydown`) and React-style casing (`onKeyDown`): the
 // runtime lowercases the name before `addEventListener`, so the two are the
 // same listener; the aliases below only teach the type system about it.

@@ -43,18 +43,18 @@ _не может возникнуть по построению_. Раздел 1
 ## 2. Словарь: Sodium ↔ Continuum
 
 Книга использует имена Sodium. Continuum использует имена ветви
-Behaviors/Events (как во Fran и ранних статьях Эллиотта). Таблица соответствия
+Behaviors/Streams (как во Fran и ранних статьях Эллиотта). Таблица соответствия
 — чтобы читать книгу с нашим API под рукой:
 
 | Sodium (книга)              | Continuum                             | Что это                           |
 | --------------------------- | ------------------------------------- | --------------------------------- |
 | `Cell<A>`                   | `Behavior<A>`                         | значение во времени (всегда есть) |
-| `Stream<A>`                 | `Event<A>`                            | дискретные происшествия           |
-| `CellSink` / `StreamSink`   | `newBehavior(init)` / `newEvent()`    | вход в граф извне                 |
+| `Stream<A>`                 | `Stream<A>`                           | дискретные происшествия           |
+| `CellSink` / `StreamSink`   | `newBehavior(init)` / `newStream()`   | вход в граф извне                 |
 | `stream.hold(init)`         | `e.hold(init)`                        | ступенчатая функция из событий    |
 | `stream.snapshot(cell, f)`  | `e.snapshot(b, f)`                    | снять значение в момент события   |
 | `stream.map` / `filter`     | `e.map` / `e.filter`                  | как везде                         |
-| `stream.merge(other, f)`    | `Event.merge(ea, eb, f)`              | слияние с коалесингом             |
+| `stream.merge(other, f)`    | `Stream.merge(ea, eb, f)`             | слияние с коалесингом             |
 | `stream.orElse(other)`      | `e.orElse(other)`                     | лево-приоритетное слияние         |
 | `stream.gate(cell)`         | `e.gate(b)`                           | пропускать, пока behavior истинен |
 | `stream.accum(init, f)`     | `e.accum(init, f)`                    | свёртка в behavior                |
@@ -88,12 +88,12 @@ _внутри транзакции_ (в книге и у нас — «момен
 внутри.
 
 ```ts
-import { newEvent, Event } from "@continuum-js/frp";
+import { newStream, Stream } from "@continuum-js/frp";
 
-const [click, fireClick] = newEvent<void>();
+const [click, fireClick] = newStream<void>();
 const a = click.mapTo("a");
 const b = click.mapTo("b");
-const both = Event.merge(a, b, (l, r) => l + r);
+const both = Stream.merge(a, b, (l, r) => l + r);
 
 both.listen(console.log);
 fireClick(); // печатает "ab" — ОДНО происшествие, не два
@@ -104,7 +104,7 @@ fireClick(); // печатает "ab" — ОДНО происшествие, н�
 одновременны, и коалесцирует их в одно происшествие комбинирующей функцией.
 Это поведение `merge` из гл. 2 книги — там подчёркивается, что вариант «два
 отдельных выстрела» был бы _семантически неверен_, потому что в денотации
-`Event a ≅ [(Time, a)]` не бывает двух происшествий в одно время в одном
+`Stream a ≅ [(Time, a)]` не бывает двух происшествий в одно время в одном
 событии.
 
 ### Три фазы момента
@@ -155,9 +155,9 @@ setN(3); // печатает 15 — ровно один раз, никогда 7
 видят значение _до_ него.
 
 ```ts
-import { newEvent } from "@continuum-js/frp";
+import { newStream } from "@continuum-js/frp";
 
-const [tick, fireTick] = newEvent<void>();
+const [tick, fireTick] = newStream<void>();
 const count = tick.accum(0, (_t, n) => n + 1);
 
 // accum внутри устроен как петля hold + snapshot:
@@ -179,12 +179,12 @@ console.log(count.sample()); // 1
 Тот же паттерн руками, без `accum` — банковский счёт с депозитами:
 
 ```ts
-import { newEvent, Event } from "@continuum-js/frp";
+import { newStream, Stream } from "@continuum-js/frp";
 
-const [deposit, fireDeposit] = newEvent<number>();
-const [withdraw, fireWithdraw] = newEvent<number>();
+const [deposit, fireDeposit] = newStream<number>();
+const [withdraw, fireWithdraw] = newStream<number>();
 
-const delta = Event.merge(
+const delta = Stream.merge(
   deposit,
   withdraw.map((x) => -x),
   (d, w) => d + w, // одновременные депозит и снятие — одно изменение
@@ -208,7 +208,7 @@ const balance = delta.accum(0, (d, acc) => acc + d);
 ```tsx
 // examples/todo, суть: Enter в поле ввода добавляет задачу
 const [text, setText] = newBehavior("");
-const [submit, fireSubmit] = newEvent<void>();
+const [submit, fireSubmit] = newStream<void>();
 
 const newTodo = submit
   .snapshot(text, (_s, current) => current.trim())
@@ -296,11 +296,11 @@ const alarm = balance.updates.filter((b) => b < 0);
 ```ts
 import { perform } from "@continuum-js/frp";
 
-const query: Event<string> = /* ввод пользователя, debounce и т.д. */;
+const query: Stream<string> = /* ввод пользователя, debounce и т.д. */;
 const response = perform(query, (q) =>
   fetch(`/api/search?q=${encodeURIComponent(q)}`).then((r) => r.json()),
 );
-// Event<Result<unknown, SearchResults>> — ошибка не исключение, а данные
+// Stream<Result<unknown, SearchResults>> — ошибка не исключение, а данные
 ```
 
 `perform` запускает эффект в фазе `post` (момент запроса уже закрыт), а
@@ -323,11 +323,11 @@ pending/success/failure) — это FRP-переложение того, что 
 2. выстрелить дважды — ломаем денотацию (два происшествия в одно время);
 3. **потребовать у вызывающего комбинирующую функцию** — единственно верное.
 
-Поэтому сигнатура — `Event.merge(ea, eb, combine)`, а `orElse` — это
+Поэтому сигнатура — `Stream.merge(ea, eb, combine)`, а `orElse` — это
 документированное «левый победил», не умолчание молчком:
 
 ```ts
-const undoRedo = Event.merge(
+const undoRedo = Stream.merge(
   undoClicks.mapTo("undo"),
   redoClicks.mapTo("redo"),
   (l, _r) => l, // одновременный клик по обеим кнопкам: undo приоритетнее
@@ -352,7 +352,7 @@ import { time, constant, integral, warp } from "@continuum-js/frp";
 import { animationFrames } from "@continuum-js/dom";
 
 const now = time(); // Behavior<number>: свежее значение при каждом чтении
-const tick = animationFrames(); // Event<number>: часы кадров
+const tick = animationFrames(); // Stream<number>: часы кадров
 
 // скорость -> позиция: интегрирование по часам (форвард-Эйлер)
 const velocity = constant(120); // px/s
@@ -392,7 +392,7 @@ const fast = integral(
 
 ## 11. Где Continuum сознательно отходит от книги
 
-- **Имена** — `Behavior`/`Event` вместо `Cell`/`Stream`: мы держимся
+- **Имена** — `Behavior`/`Stream` вместо `Cell`/`Stream`: мы держимся
   терминологии денотационной линии (Fran/Elliott), книга — практической
   (Sodium). Семантика та же.
 - **`perform` в ядре.** Книга оставляет IO-стыковку паттернам; мы считаем
@@ -420,7 +420,7 @@ const fast = integral(
   гл. 9 (непрерывное время).
   <https://www.manning.com/books/functional-reactive-programming>
 - **Elliott, Hudak. Functional Reactive Animation** (ICFP 1997) — Fran,
-  исток денотации `Behavior`/`Event`.
+  исток денотации `Behavior`/`Stream`.
 - **Elliott. Push-pull functional reactive programming** (Haskell Symposium 2009) — как совместить push для событий и pull для behaviors; ровно наша
   архитектура.
 - **Sodium** — референсная реализация книги:

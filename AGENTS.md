@@ -7,7 +7,7 @@ that file) or https://denislibs.github.io/continuum/llms.txt
 
 ## Layout
 
-- `packages/frp` — the FRP core: Behavior, Event, transactions. No DOM.
+- `packages/frp` — the FRP core: Behavior, Stream, transactions. No DOM.
 - `packages/dom` — JSX renderer, ownership tree, `Show`/`Each`/`Dynamic`,
   context, `onMount`/`onCleanup`.
 - `packages/std` — event/behavior utilities (`debounce`, `resource`, …).

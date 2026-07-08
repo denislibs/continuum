@@ -1,7 +1,7 @@
 // Continuum — continuous-time combinators (roadmap §14 #7).
 //
 // Continuous time in the discrete branch is *numerically sampled*: integral
-// and derivative are driven by a discrete clock (`tick: Event<number>` of
+// and derivative are driven by a discrete clock (`tick: Stream<number>` of
 // timestamps) and accumulate deterministically, once per tick — independent of
 // how many observers sample the result. This is the honest realization of
 // Conal's `integral`/`derivative`/time-warping for a Sodium-style engine:
@@ -9,7 +9,7 @@
 // (forward Euler / finite differences), and the clock resolution appears only
 // at tick time.
 
-import type { Behavior, Event } from "./index.js";
+import type { Behavior, Stream } from "./index.js";
 
 /**
  * Integrate a behavior with respect to a clock (forward Euler).
@@ -17,7 +17,7 @@ import type { Behavior, Event } from "./index.js";
  */
 export function integral(
   b: Behavior<number>,
-  tick: Event<number>,
+  tick: Stream<number>,
   init = 0,
 ): Behavior<number> {
   return tick
@@ -35,7 +35,7 @@ export function integral(
  */
 export function derivative(
   b: Behavior<number>,
-  tick: Event<number>,
+  tick: Stream<number>,
 ): Behavior<number> {
   return tick
     .accum<{ t: number | null; v: number; d: number }>(
@@ -56,8 +56,8 @@ export function derivative(
  * runs everything downstream twice as fast.
  */
 export function warp(
-  tick: Event<number>,
+  tick: Stream<number>,
   remap: (t: number) => number,
-): Event<number> {
+): Stream<number> {
   return tick.map(remap);
 }

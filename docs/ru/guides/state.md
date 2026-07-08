@@ -16,13 +16,13 @@ const [theme, setTheme] = newBehavior<"light" | "dark">("light");
 <button onClick={() => setTheme("dark")}>тёмная</button>;
 ```
 
-**`newEvent` + `accum`** — потоковая форма, когда состояние по природе —
+**`newStream` + `accum`** — потоковая форма, когда состояние по природе —
 свёртка случившегося:
 
 ```ts
-import { newEvent } from "@continuum-js/frp";
+import { newStream } from "@continuum-js/frp";
 
-const [clicks, fire] = newEvent<MouseEvent>();
+const [clicks, fire] = newStream<MouseEvent>();
 const count = clicks.accum(0, (_e, n) => n + 1);
 ```
 

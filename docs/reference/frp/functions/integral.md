@@ -8,7 +8,7 @@
 
 > **integral**(`b`, `tick`, `init?`): [`Behavior`](../classes/Behavior.md)\<`number`\>
 
-Defined in: [continuous.ts:18](https://github.com/denislibs/continuum/blob/9e6d8fee1895bb34167cfe31c364b635d2b71604/packages/frp/src/continuous.ts#L18)
+Defined in: [continuous.ts:18](https://github.com/denislibs/continuum/blob/d7c5ccacccc04163a481bd76c5d444925252087e/packages/frp/src/continuous.ts#L18)
 
 Integrate a behavior with respect to a clock (forward Euler).
 `tick` carries the current time; the first tick establishes the baseline.
@@ -21,7 +21,7 @@ Integrate a behavior with respect to a clock (forward Euler).
 
 ### tick
 
-[`Event`](../classes/Event.md)\<`number`\>
+[`Stream`](../classes/Stream.md)\<`number`\>
 
 ### init?
 

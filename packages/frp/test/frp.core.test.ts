@@ -1,9 +1,9 @@
 import { describe, test, expect } from "vitest";
-import { newEvent, newBehavior, constant, never } from "@continuum-js/frp";
+import { newStream, newBehavior, constant, never } from "@continuum-js/frp";
 
 describe("sources and basic push", () => {
   test("listen receives the value that was sent", () => {
-    const [e, fire] = newEvent<number>();
+    const [e, fire] = newStream<number>();
     const seen: number[] = [];
     e.listen((v) => seen.push(v));
     fire(1);
@@ -12,7 +12,7 @@ describe("sources and basic push", () => {
   });
 
   test("map transforms occurrence values", () => {
-    const [e, fire] = newEvent<number>();
+    const [e, fire] = newStream<number>();
     const seen: number[] = [];
     e.map((n) => n * 10).listen((v) => seen.push(v));
     fire(1);
@@ -21,7 +21,7 @@ describe("sources and basic push", () => {
   });
 
   test("filter keeps only matching occurrences", () => {
-    const [e, fire] = newEvent<number>();
+    const [e, fire] = newStream<number>();
     const seen: number[] = [];
     e.filter((n) => n % 2 === 0).listen((v) => seen.push(v));
     fire(1);
@@ -32,7 +32,7 @@ describe("sources and basic push", () => {
   });
 
   test("unlisten stops delivery", () => {
-    const [e, fire] = newEvent<number>();
+    const [e, fire] = newStream<number>();
     const seen: number[] = [];
     const un = e.listen((v) => seen.push(v));
     fire(1);
@@ -56,7 +56,7 @@ describe("never / constant", () => {
 
 describe("hold and sample", () => {
   test("hold starts at init and updates across moments", () => {
-    const [e, fire] = newEvent<number>();
+    const [e, fire] = newStream<number>();
     const b = e.hold(0);
     expect(b.sample()).toBe(0);
     fire(5);
@@ -75,7 +75,7 @@ describe("hold and sample", () => {
 
 describe("hold delay semantics (classic FRP)", () => {
   test("snapshot within the moment sees the value at the start of the moment", () => {
-    const [e, fire] = newEvent<number>();
+    const [e, fire] = newStream<number>();
     const b = e.hold(0);
     // snapshot samples b in the same moment e fires; must see PRE-update value.
     const snapped: Array<[number, number]> = [];

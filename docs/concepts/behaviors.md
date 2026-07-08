@@ -6,11 +6,11 @@ other values can be derived from it. (The name comes from FRP, where it
 formally means "a value across time" — but you don't need the theory to use
 it.)
 
-::: tip Behavior or Event?
+::: tip Behavior or Stream?
 If you can **draw it on the screen**, it's a Behavior. If you can **react
-to it**, it's an [Event](/concepts/events). The longer version, with a
+to it**, it's an [Stream](/concepts/events). The longer version, with a
 thermometer and a knock on the door:
-[Event vs Behavior](/frp-in-plain-words#event-vs-behavior).
+[Stream vs Behavior](/frp-in-plain-words#event-vs-behavior).
 :::
 
 ## Creating
@@ -28,7 +28,7 @@ const now = Behavior.fromPoll(() => Date.now()); // read the world on sample
 `newBehavior` is the everyday way to create state — a value plus a setter,
 like `useState` without re-runs. The event-based forms (`accum`, `hold`)
 shine when state is naturally "a history of things that happened"; they live
-in [Events](/concepts/events).
+in [Streams](/concepts/events).
 
 ## Deriving
 
@@ -58,7 +58,7 @@ const submitted = submits.snapshot(draft, (_e, text) => text);
 
 ## Updates
 
-`b.updates` is the `Event<A>` of the Behavior's changes — the bridge back to
+`b.updates` is the `Stream<A>` of the Behavior's changes — the bridge back to
 the event world, used by combinators like `debounce(query.updates, 300)`.
 
 A Behavior updates **at the boundary of a moment**: within the very

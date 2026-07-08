@@ -77,7 +77,7 @@ mount(document.getElementById("app")!, () => <Counter />);
 4. [Из React](/ru/from-react) — карта переноса, конструкция за
    конструкцией.
 5. Когда станет интересно, как устроен движок:
-   [Мышление в Behaviors и Events](/ru/tutorial/thinking-in-frp).
+   [Мышление в Behaviors и Streams](/ru/tutorial/thinking-in-frp).
 
 ---
 

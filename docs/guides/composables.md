@@ -72,12 +72,12 @@ A realistic second example — the persisted store from the
 [patterns](/guides/patterns) page, packaged:
 
 ```ts
-import { newEvent } from "@continuum-js/frp";
+import { newStream } from "@continuum-js/frp";
 import { onCleanup } from "@continuum-js/dom";
 import { persist, loadPersisted } from "@continuum-js/std";
 
 export function createPersistedTodos(key: string) {
-  const [actions, dispatch] = newEvent<Action>();
+  const [actions, dispatch] = newStream<Action>();
   const todos = actions.accum<Todo[]>(loadPersisted(key, []), reduce);
   onCleanup(persist(key, todos));
   return { todos, dispatch };

@@ -67,6 +67,6 @@ by construction.
 
 ## Next
 
-- [Thinking in Behaviors and Events](/tutorial/thinking-in-frp) — the model
+- [Thinking in Behaviors and Streams](/tutorial/thinking-in-frp) — the model
   behind what you just wrote.
 - [Concepts → Components](/concepts/components) — what a component is here.

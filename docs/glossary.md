@@ -13,17 +13,17 @@ current user, the mouse position: they _exist_ at every moment, even when
 nobody is looking. Formally, a function from time to value (`Time → A`).
 More: [Behaviors](/concepts/behaviors).
 
-### Event {#event}
+### Stream {#event}
 
 **A stream of happenings.** Unlike a Behavior, you cannot ask an event "what
 are you now" — between firings it simply _isn't_. A click, a keypress, a
 server response: not values that exist, but things that _happen_. More:
-[Events](/concepts/events).
+[Streams](/concepts/events).
 
 ### Occurrence {#occurrence}
 
 **One firing of an event.** A pair of "moment + value": the third click,
-one specific server response. When we say "an Event is discrete
+one specific server response. When we say "a Stream is discrete
 occurrences", we mean: an event is a set of individual firings, not a
 continuous quantity.
 
@@ -54,7 +54,7 @@ you to say what to do with the pair.
 
 **Folding simultaneous occurrences into one.** When two events happen in the
 same moment but one must come out, the coalescing function (`(a, b) => …` in
-`Event.merge`) combines them. Without it you'd have to pick "who was first" —
+`Stream.merge`) combines them. Without it you'd have to pick "who was first" —
 which is a race.
 
 ### Glitch {#glitch}
@@ -91,7 +91,7 @@ instead of over an array.
 
 ### push / pull {#push-pull}
 
-**Two ways of delivering values.** Events _push_: something happened — it
+**Two ways of delivering values.** Streams _push_: something happened — it
 propagates through the graph. Behaviors _pull_: the value is computed when
 asked. Continuum is a hybrid: changes propagate by pushing, `sample()` reads
 by pulling.
@@ -100,7 +100,7 @@ by pulling.
 
 ### Network / dependency graph {#network}
 
-**Everything you built out of Behaviors and Events.** `map`, `lift`,
+**Everything you built out of Behaviors and Streams.** `map`, `lift`,
 `merge`, `snapshot` wire quantities into a directed graph: nodes are values
 and events, edges are "computed from". A component builds its piece of the
 graph once; updates flow through it afterwards.
@@ -130,7 +130,7 @@ defined.
 ### Hatch {#hatch}
 
 **An explicit door between the pure network and the outside world.** In:
-`newEvent` / `newBehavior` (inject a value). Out: `listen` (run a side
+`newStream` / `newBehavior` (inject a value). Out: `listen` (run a side
 effect), `perform` (do IO and return the result as an event). The word
 emphasizes that the network's boundaries are visible in the code, not
 smeared everywhere.

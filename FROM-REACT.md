@@ -371,7 +371,7 @@ const debouncedQuery = useDebounced(query, 300);
 ```tsx
 import { debounce } from "@continuum-js/std";
 
-const settled = debounce(query.updates, 300); // Event<string>
+const settled = debounce(query.updates, 300); // Stream<string>
 const results = resource(settled, search);
 ```
 

@@ -6,9 +6,9 @@
 
 # Function: warp()
 
-> **warp**(`tick`, `remap`): [`Event`](../classes/Event.md)\<`number`\>
+> **warp**(`tick`, `remap`): [`Stream`](../classes/Stream.md)\<`number`\>
 
-Defined in: [continuous.ts:58](https://github.com/denislibs/continuum/blob/9e6d8fee1895bb34167cfe31c364b635d2b71604/packages/frp/src/continuous.ts#L58)
+Defined in: [continuous.ts:58](https://github.com/denislibs/continuum/blob/d7c5ccacccc04163a481bd76c5d444925252087e/packages/frp/src/continuous.ts#L58)
 
 Time warping: remap the clock's timestamps. Integrating/differentiating over
 a warped clock stretches or compresses time — e.g. `warp(tick, t => 2*t)`
@@ -18,7 +18,7 @@ runs everything downstream twice as fast.
 
 ### tick
 
-[`Event`](../classes/Event.md)\<`number`\>
+[`Stream`](../classes/Stream.md)\<`number`\>
 
 ### remap
 
@@ -26,4 +26,4 @@ runs everything downstream twice as fast.
 
 ## Returns
 
-[`Event`](../classes/Event.md)\<`number`\>
+[`Stream`](../classes/Stream.md)\<`number`\>

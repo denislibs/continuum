@@ -5,7 +5,7 @@
 // handlers, `listen` (post phase), `perform`.
 import { describe, test, expect } from "vitest";
 import {
-  newEvent,
+  newStream,
   newBehavior,
   Behavior,
   Transaction,
@@ -13,7 +13,7 @@ import {
 
 describe("firing a source inside a pure combinator throws", () => {
   test("inside a map callback", () => {
-    const [other, fireOther] = newEvent<number>();
+    const [other, fireOther] = newStream<number>();
     other.listen(() => {});
 
     const [b, set] = newBehavior(0);
@@ -28,10 +28,10 @@ describe("firing a source inside a pure combinator throws", () => {
   });
 
   test("inside an accum reducer", () => {
-    const [echo, fireEcho] = newEvent<number>();
+    const [echo, fireEcho] = newStream<number>();
     echo.listen(() => {});
 
-    const [src, fire] = newEvent<number>();
+    const [src, fire] = newStream<number>();
     const acc = src.accum(0, (a, n) => {
       fireEcho(a);
       return n + a;
@@ -43,10 +43,10 @@ describe("firing a source inside a pure combinator throws", () => {
   });
 
   test("inside a filter predicate", () => {
-    const [other, fireOther] = newEvent<number>();
+    const [other, fireOther] = newStream<number>();
     other.listen(() => {});
 
-    const [src, fire] = newEvent<number>();
+    const [src, fire] = newStream<number>();
     const un = src
       .filter((n) => {
         fireOther(n);
@@ -59,10 +59,10 @@ describe("firing a source inside a pure combinator throws", () => {
   });
 
   test("inside a snapshot combine function", () => {
-    const [other, fireOther] = newEvent<number>();
+    const [other, fireOther] = newStream<number>();
     other.listen(() => {});
 
-    const [src, fire] = newEvent<number>();
+    const [src, fire] = newStream<number>();
     const held = src.hold(0);
     const un = src
       .snapshot(held, (now, prev) => {

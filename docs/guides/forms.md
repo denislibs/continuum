@@ -47,7 +47,7 @@ The button produces an event; it _captures_ the field values at the moment
 of the click:
 
 ```tsx
-const [submits, fireSubmit] = newEvent<void>();
+const [submits, fireSubmit] = newStream<void>();
 
 const payload = submits
   .gate(formValid) // ignore submits of an invalid form
