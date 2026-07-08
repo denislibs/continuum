@@ -1,5 +1,13 @@
 # @continuum-js/example-counter
 
+## 0.2.13
+
+### Patch Changes
+
+- Updated dependencies [7952800]
+  - @continuum-js/frp@0.12.0
+  - @continuum-js/dom@0.12.0
+
 ## 0.2.12
 
 ### Patch Changes

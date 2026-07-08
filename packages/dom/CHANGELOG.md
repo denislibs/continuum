@@ -1,5 +1,12 @@
 # @continuum-js/dom
 
+## 0.12.0
+
+### Patch Changes
+
+- Updated dependencies [7952800]
+  - @continuum-js/frp@0.12.0
+
 ## 0.11.0
 
 ### Minor Changes
