@@ -104,7 +104,10 @@ export function onCleanup(fn: () => void): void {
 
 // Run the subtree's pending onMount callbacks: child scopes first, then this
 // owner's own, newest registration first. With the idiomatic `onMount` at the
-// top of a component body, that yields children-before-parents.
+// top of a component body, that yields children-before-parents. Callbacks run
+// UNDER their owner, so the documented composable anatomy — onCleanup (and
+// provide/use) inside onMount — attaches to the mounting scope. Without this,
+// regions inserted by dyn/each flushed ownerless and the lifecycle guard threw.
 function flushMounts(owner: Owner): void {
   if (owner.disposed) return;
   for (const child of owner.children) flushMounts(child);
@@ -112,7 +115,9 @@ function flushMounts(owner: Owner): void {
   const mounts = owner.mounts;
   if (mounts) {
     owner.mounts = null;
-    for (let i = mounts.length - 1; i >= 0; i--) mounts[i]();
+    runUnder(owner, () => {
+      for (let i = mounts.length - 1; i >= 0; i--) mounts[i]();
+    });
   }
 }
 
