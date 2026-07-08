@@ -17,6 +17,20 @@ There is one central mental-model shift:
 The consequences follow: no re-renders → no deps arrays, no `memo`, no
 `useCallback`, no stale closures, no rules of hooks.
 
+## Why switch, honestly
+
+If all you want is "React but faster", Solid already does that — and
+switching frameworks for a benchmark is rarely worth it. Continuum earns the
+switch with the part the others don't have: **change is data**. Every user
+action is an occurrence in a stream; state is a fold over that stream. That
+one idea turns whole libraries into one-liners — undo/redo is a second fold
+over the same actions, persistence is a mirror of the folded value,
+cross-tab sync is one more dispatcher into the same reducer, and search
+never races because "last request wins" is solved in the library. The
+[patterns cookbook](/guides/patterns) shows each of these in a few lines.
+If your app is a form over an API, stay put. If its state has a _story_ —
+this is the framework that treats the story as a first-class value.
+
 ## Correspondence table
 
 | React                        | Continuum                              | Comment                                                            |

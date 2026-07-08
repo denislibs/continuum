@@ -38,6 +38,38 @@ Three moves, and they are the whole core model:
 
 No hooks, no re-renders, no memoization, no virtual DOM.
 
+## The part that makes it Continuum
+
+Fine-grained rendering you can also get elsewhere. What you can't get
+elsewhere: here **change itself is a value**. A `Stream` is the history of
+something happening — clicks, submitted forms, server responses — and state
+is a _fold_ over that history:
+
+```tsx
+const [actions, dispatch] = newStream<Action>();
+const todos = actions.accum([], reduce); // state = everything that happened, folded
+```
+
+Why bother? Because once every change is routed through one stream, the
+features that usually cost a library each cost **one more fold** each:
+
+- **Undo/redo** — fold the same actions into a history instead
+  ([recipe](/guides/patterns#2-undo-redo));
+- **Persistence** — mirror the folded value into storage
+  ([recipe](/guides/patterns#21-persistence-persist-loadpersisted));
+- **Cross-tab sync** — the `storage` event is just one more dispatcher into
+  the same reducer;
+- **Race-free search** — requests are a stream, so "last request wins" is
+  solved once, in the library
+  ([recipe](/guides/patterns#14-race-free-search-resource)).
+
+The rule of thumb for which tool to reach for: **no history — `newBehavior`;
+a history worth keeping — a stream.** `newBehavior` is itself just sugar over
+`newStream` + `hold`: perfect for form fields, toggles and everything you
+simply overwrite. The moment you catch yourself wanting "how did this value
+get here" — undo, audit, sync — the stream form is the same state with its
+story attached.
+
 ## Why trust it
 
 Under the plain surface sits a rigorous engine — classic FRP (the
@@ -60,10 +92,10 @@ to know _why_ it works: see [the deep dive](/tutorial/thinking-in-frp).
 
 | Package                | What's inside                                     | Size (brotli)     |
 | ---------------------- | ------------------------------------------------- | ----------------- |
-| `@continuum-js/frp`    | reactive values and events, the update engine     | ~1.8 kB           |
-| `@continuum-js/dom`    | JSX renderer, `Show`/`Each`, lifecycle, context   | ~3.7 kB incl. frp |
-| `@continuum-js/std`    | `debounce`, `interval`, `resource`, …             | ~2 kB incl. frp   |
-| `@continuum-js/router` | nested routes, guards, lazy code splitting        | ~3.9 kB incl. all |
+| `@continuum-js/frp`    | reactive values and streams, the update engine    | ~2.3 kB           |
+| `@continuum-js/dom`    | JSX renderer, `Show`/`Each`, lifecycle, context   | ~4.5 kB incl. frp |
+| `@continuum-js/std`    | `debounce`, `resource`, `persist`, …              | ~2.6 kB incl. frp |
+| `@continuum-js/router` | nested routes, guards, lazy code splitting        | ~4.6 kB incl. all |
 | `@continuum-js/test`   | `render`/`fire`/`type`/`flush` helpers for vitest | dev-only          |
 
 ## Where to go next
