@@ -1,5 +1,5 @@
 import { describe, test, expect, vi, afterEach } from "vitest";
-import { newEvent } from "@continuum-js/frp";
+import { newStream } from "@continuum-js/frp";
 import { debounce, throttle, delay, interval } from "@continuum-js/std";
 
 describe("time combinators", () => {
@@ -7,7 +7,7 @@ describe("time combinators", () => {
 
   test("debounce coalesces a burst into the trailing value", () => {
     vi.useFakeTimers();
-    const [e, fire] = newEvent<string>();
+    const [e, fire] = newStream<string>();
     const seen: string[] = [];
     debounce(e, 200).listen((v) => seen.push(v));
 
@@ -22,7 +22,7 @@ describe("time combinators", () => {
 
   test("throttle emits the leading occurrence then ignores for the window", () => {
     vi.useFakeTimers();
-    const [e, fire] = newEvent<number>();
+    const [e, fire] = newStream<number>();
     const seen: number[] = [];
     throttle(e, 100).listen((v) => seen.push(v));
 
@@ -38,7 +38,7 @@ describe("time combinators", () => {
 
   test("delay shifts each occurrence later by ms", () => {
     vi.useFakeTimers();
-    const [e, fire] = newEvent<string>();
+    const [e, fire] = newStream<string>();
     const seen: string[] = [];
     delay(e, 50).listen((v) => seen.push(v));
 

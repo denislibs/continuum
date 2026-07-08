@@ -28,7 +28,7 @@ const todos = submits.accum<Todo[]>([], (e, acc) => {
 
 ```tsx
 // ✅ dirty work at the boundary, clean data into the network
-const [texts, fireText] = newEvent<string>();
+const [texts, fireText] = newStream<string>();
 const todos = texts.accum<Todo[]>([], (text, acc) => [
   ...acc,
   createTodo(text),
@@ -175,7 +175,7 @@ export const theme = settings.map((s) => s.theme).retain();
 ```
 
 Inside components you never think about this: the ownership tree subscribes
-and unsubscribes for you. Sources (`newBehavior`, `newEvent`) are pinned
+and unsubscribes for you. Sources (`newBehavior`, `newStream`) are pinned
 automatically.
 
 ## 8. `fetch` inside `map`
@@ -190,13 +190,13 @@ moment closes and returns the result as data — errors included, wrapped in
 
 ```ts
 // ❌ an effect inside a pure combinator
-const results = queries.map((q) => fetch(`/api?q=${q}`)); // Event<Promise> — now what?
+const results = queries.map((q) => fetch(`/api?q=${q}`)); // Stream<Promise> — now what?
 
 // ✅ IO at the boundary, results as data
 const results = perform(queries, (q) =>
   fetch(`/api?q=${q}`).then((r) => r.json()),
 );
-// results: Event<Result<Data, unknown>> — pattern-match, don't try/catch
+// results: Stream<Result<Data, unknown>> — pattern-match, don't try/catch
 ```
 
 The full story, including cancellation and request numbering:
@@ -206,7 +206,7 @@ The full story, including cancellation and request numbering:
 
 **A meta-rule that covers half of this page:** a component runs **once**.
 Anything you compute with plain JavaScript in the component body is computed
-once and frozen. Anything that should _live_ must be a Behavior, an Event, or
+once and frozen. Anything that should _live_ must be a Behavior, a Stream, or
 a derivation of them — and the moment you find yourself reaching _out_ of a
 pure combinator (to the DOM, to the network, to another event), move that
 code to the boundary: a handler, `perform`, or `onMount`/`onCleanup`.

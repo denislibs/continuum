@@ -8,7 +8,7 @@
 [![docs](https://img.shields.io/badge/docs-denislibs.github.io-blue)](https://denislibs.github.io/continuum/)
 [![license](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
-A reactive UI framework built on **classic FRP** (Behaviors + Events) with
+A reactive UI framework built on **classic FRP** (Behaviors + Streams) with
 fine-grained rendering. The discrete branch of Elliott's tradition, Sodium
 style: transactions, rank-ordered propagation, the `hold` delay at the moment
 boundary.
@@ -39,7 +39,7 @@ before you add a state library.
 ```
 continuum/
 ├─ packages/
-│  ├─ frp/        @continuum-js/frp   — core: Event, Behavior, scheduler
+│  ├─ frp/        @continuum-js/frp   — core: Stream, Behavior, scheduler
 │  ├─ dom/        @continuum-js/dom   — renderer: h, dyn, each, ownership, context
 │  ├─ std/        @continuum-js/std   — combinators: resource, debounce, throttle, …
 │  ├─ router/     @continuum-js/router — the URL as a Behavior: nested routes, lazy pages
@@ -98,10 +98,10 @@ Size (brotli, with dependencies): `@continuum-js/frp` ≈ **2.1 kB**,
 ### A counter in 10 lines (`examples/counter`)
 
 ```tsx
-import { newEvent } from "@continuum-js/frp";
+import { newStream } from "@continuum-js/frp";
 
 export function Counter() {
-  const [clicks, fire] = newEvent<MouseEvent>();
+  const [clicks, fire] = newStream<MouseEvent>();
   const count = clicks.accum(0, (_e, n) => n + 1);
   return <button onClick={fire}>count: {count}</button>;
 }
@@ -128,7 +128,7 @@ with `Result`), error isolation in the post phase and "atomic or dropped
 moment" via transaction-identity staging; **rank maintenance**
 (`ensureBiggerThan` + cycle detection) for correct `switch` in dense graphs;
 **continuous time** — `integral`/`derivative`/`warp` (numerically sampled over
-a discrete clock); **explicit `dispose`** on `Event`/`Behavior` with an upward
+a discrete clock); **explicit `dispose`** on `Stream`/`Behavior` with an upward
 cascade through unused derived nodes (for long-lived non-UI graphs).
 
 **Renderer (`@continuum-js/dom`).** JSX factory `h`/`Fragment`, fine-grained
@@ -143,7 +143,7 @@ frame clock for continuous time), SVG namespaces (`<svg>` subtrees via
 ## Continuous time
 
 `integral`/`derivative`/`warp` from the core work over a discrete clock (an
-`Event<number>` of timestamps) — in the browser that's `animationFrames()`.
+`Stream<number>` of timestamps) — in the browser that's `animationFrames()`.
 The implementation is numerical (forward Euler / finite differences),
 deterministic, and independent of the observer count: accumulation happens
 once per tick. The denotation is resolution-independent; the sampled result
@@ -152,7 +152,7 @@ approximates it. Demo — [`examples/animation`](examples/animation)
 
 ## Working with data (HTTP)
 
-IO lives at the **boundary** of the network. `perform` takes an `Event` of
+IO lives at the **boundary** of the network. `perform` takes an `Stream` of
 requests, runs the async effect in the post phase (after the moment closes)
 and returns the result as a new occurrence — as data, with the error wrapped
 in a `Result` rather than thrown. On top of it,

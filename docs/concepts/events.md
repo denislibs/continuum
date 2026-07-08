@@ -1,29 +1,29 @@
-# Events
+# Streams
 
-`Event<A>` is a stream of **things that happen**: clicks, key presses,
+`Stream<A>` is a stream of **things that happen**: clicks, key presses,
 server responses. Each firing (an [occurrence](/glossary#occurrence))
 carries a value; between firings the event simply isn't there — unlike a
 Behavior, it has no "current value" to read.
 
-::: tip You may not need Events yet
+::: tip You may not need Streams yet
 For most UI code, `newBehavior` + plain callbacks
-(`onClick={() => setX(…)}`) is all you need. Reach for Events when you work
-with _streams_: debouncing input, merging sources, capturing form state at
+(`onClick={() => setX(…)}`) is all you need. Reach for Streams when the flow
+itself is the point: debouncing input, merging sources, capturing form state at
 submit, feeding requests into `resource`.
 
 The one-sentence test: if you can **draw it on the screen**, it is a
 [Behavior](/concepts/behaviors); if you can **react to it**, it is an
-Event. The longer version:
-[Event vs Behavior](/frp-in-plain-words#event-vs-behavior).
+Stream. The longer version:
+[Stream vs Behavior](/frp-in-plain-words#event-vs-behavior).
 :::
 
 ## Creating
 
 ```ts
-import { newEvent, never } from "@continuum-js/frp";
+import { newStream, never } from "@continuum-js/frp";
 import { interval } from "@continuum-js/std";
 
-const [clicks, fire] = newEvent<MouseEvent>(); // fire() injects an occurrence
+const [clicks, fire] = newStream<MouseEvent>(); // fire() injects an occurrence
 const ticks = interval(1000); // 1, 2, 3, … every second
 const nothing = never<string>(); // no occurrences, ever
 ```
@@ -46,7 +46,7 @@ const whileOpen = keys.gate(isOpen); // passes only while the Behavior is true
 "left wins by accident":
 
 ```ts
-const delta = Event.merge(increments, decrements, (a, b) => a + b);
+const delta = Stream.merge(increments, decrements, (a, b) => a + b);
 const either = errors.orElse(fallbacks); // left-biased shorthand
 ```
 
@@ -63,7 +63,7 @@ const submitted = submits.snapshot(draft, (_e, text) => text);
 ```ts
 const latest = responses.hold(initial); // Behavior: last value
 const count = clicks.accum(0, (_e, n) => n + 1); // Behavior: fold
-const totals = amounts.accumE(0, (a, s) => s + a); // Event of fold steps
+const totals = amounts.accumE(0, (a, s) => s + a); // Stream of fold steps
 ```
 
 `hold`/`accum` update at the moment's boundary — within the occurrence's own

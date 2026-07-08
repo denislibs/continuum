@@ -3,7 +3,7 @@
 // real apps: timing, async data, stream shaping, behavior helpers. Nothing here
 // touches internals the core doesn't already expose.
 
-import { Event, Behavior, newEvent, perform } from "@continuum-js/frp";
+import { Stream, Behavior, newStream, perform } from "@continuum-js/frp";
 import type { Unlisten } from "@continuum-js/frp";
 
 // ===========================================================================
@@ -15,8 +15,8 @@ import type { Unlisten } from "@continuum-js/frp";
  * Emit only after `ms` of quiet, coalescing a burst into its last value.
  * (Trailing debounce.)
  */
-export function debounce<A>(e: Event<A>, ms: number): Event<A> {
-  const [out, fire] = newEvent<A>();
+export function debounce<A>(e: Stream<A>, ms: number): Stream<A> {
+  const [out, fire] = newStream<A>();
   let timer: ReturnType<typeof setTimeout> | undefined;
   const un = e.listen((a) => {
     if (timer !== undefined) clearTimeout(timer);
@@ -36,8 +36,8 @@ export function debounce<A>(e: Event<A>, ms: number): Event<A> {
  * Emit the leading occurrence immediately, then ignore further ones for `ms`.
  * (Leading throttle / rate limit.)
  */
-export function throttle<A>(e: Event<A>, ms: number): Event<A> {
-  const [out, fire] = newEvent<A>();
+export function throttle<A>(e: Stream<A>, ms: number): Stream<A> {
+  const [out, fire] = newStream<A>();
   let blocked = false;
   let timer: ReturnType<typeof setTimeout> | undefined;
   const un = e.listen((a) => {
@@ -56,8 +56,8 @@ export function throttle<A>(e: Event<A>, ms: number): Event<A> {
 }
 
 /** Shift every occurrence later by `ms`, preserving order and multiplicity. */
-export function delay<A>(e: Event<A>, ms: number): Event<A> {
-  const [out, fire] = newEvent<A>();
+export function delay<A>(e: Stream<A>, ms: number): Stream<A> {
+  const [out, fire] = newStream<A>();
   const timers = new Set<ReturnType<typeof setTimeout>>();
   const un = e.listen((a) => {
     const id = setTimeout(() => {
@@ -75,8 +75,8 @@ export function delay<A>(e: Event<A>, ms: number): Event<A> {
 }
 
 /** A source event ticking `1, 2, 3, …` every `ms`. Stops on `dispose()`. */
-export function interval(ms: number): Event<number> {
-  const [out, fire] = newEvent<number>();
+export function interval(ms: number): Stream<number> {
+  const [out, fire] = newStream<number>();
   let n = 0;
   const id = setInterval(() => fire(++n), ms);
   out.onDispose(() => clearInterval(id));
@@ -89,10 +89,10 @@ export function interval(ms: number): Event<number> {
 
 /** Map, dropping occurrences whose result is `null`/`undefined`. */
 export function filterMap<A, B>(
-  e: Event<A>,
+  e: Stream<A>,
   f: (a: A) => B | null | undefined,
-): Event<B> {
-  const out = new Event<B>(e.rank + 1);
+): Stream<B> {
+  const out = new Stream<B>(e.rank + 1);
   out.consume(e, (t, a) => {
     const b = f(a);
     if (b != null) out.send_(t, b);
@@ -101,8 +101,8 @@ export function filterMap<A, B>(
 }
 
 /** Pair each occurrence with the previous one; emits from the 2nd occurrence. */
-export function pairwise<A>(e: Event<A>): Event<[A, A]> {
-  const out = new Event<[A, A]>(e.rank + 1);
+export function pairwise<A>(e: Stream<A>): Stream<[A, A]> {
+  const out = new Stream<[A, A]>(e.rank + 1);
   let hasPrev = false;
   let prev: A;
   out.consume(e, (t, a) => {
@@ -115,19 +115,22 @@ export function pairwise<A>(e: Event<A>): Event<[A, A]> {
 
 /** Split a stream by a predicate into `[matching, rest]`. */
 export function partition<A>(
-  e: Event<A>,
+  e: Stream<A>,
   pred: (a: A) => boolean,
-): [Event<A>, Event<A>] {
+): [Stream<A>, Stream<A>] {
   return [e.filter(pred), e.filter((a) => !pred(a))];
 }
 
 /** A behavior of how many times the event has occurred. */
-export function count(e: Event<unknown>): Behavior<number> {
+export function count(e: Stream<unknown>): Behavior<number> {
   return e.accum(0, (_a, n) => n + 1);
 }
 
 /** Sample `b` at each occurrence of `trigger`, discarding the trigger's value. */
-export function sampleWith<A, B>(trigger: Event<A>, b: Behavior<B>): Event<B> {
+export function sampleWith<A, B>(
+  trigger: Stream<A>,
+  b: Behavior<B>,
+): Stream<B> {
   return trigger.snapshot(b, (_a, v) => v);
 }
 
@@ -147,7 +150,7 @@ export function distinctB<A>(
   b: Behavior<A>,
   eq: (x: A, y: A) => boolean = Object.is,
 ): Behavior<A> {
-  const out = new Event<A>(b.updates.rank + 1);
+  const out = new Stream<A>(b.updates.rank + 1);
   let prev = b.sampleNoTrans();
   b.updates.listen_(out, (t, a) => {
     if (!eq(prev, a)) {
@@ -178,7 +181,7 @@ export type Async<T> =
  * the classic out-of-order-response bug, solved declaratively.
  */
 export function resource<A, T>(
-  trigger: Event<A>,
+  trigger: Stream<A>,
   fetcher: (arg: A) => Promise<T>,
 ): Behavior<Async<T>> {
   const requests = trigger.accumE({ seq: 0, arg: null as A }, (arg, prev) => ({
@@ -200,7 +203,7 @@ export function resource<A, T>(
       }
       return { status: "error", error: res.error };
     })
-    .filter((s) => s !== null) as Event<Async<T>>;
+    .filter((s) => s !== null) as Stream<Async<T>>;
 
   const loading = requests.mapTo<Async<T>>({ status: "loading" });
 

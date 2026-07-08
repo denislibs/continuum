@@ -1,9 +1,9 @@
 import { describe, test, expect } from "vitest";
-import { newEvent } from "@continuum-js/frp";
+import { newStream } from "@continuum-js/frp";
 
 describe("error semantics (§5.1 + isolation)", () => {
   test("exception in a combinator propagates but the engine recovers", () => {
-    const [e, fire] = newEvent<number>();
+    const [e, fire] = newStream<number>();
     const seen: number[] = [];
     e.map((n) => {
       if (n === 2) throw new Error("bad");
@@ -17,7 +17,7 @@ describe("error semantics (§5.1 + isolation)", () => {
   });
 
   test("a dropped moment does not commit behavior state", () => {
-    const [e, fire] = newEvent<number>();
+    const [e, fire] = newStream<number>();
     // hold fed by a mapping that throws on 99
     const mapped = e.map((n) => {
       if (n === 99) throw new Error("nope");
@@ -33,7 +33,7 @@ describe("error semantics (§5.1 + isolation)", () => {
   });
 
   test("one throwing observer does not stop the others (isolation)", () => {
-    const [e, fire] = newEvent<number>();
+    const [e, fire] = newStream<number>();
     const seen: number[] = [];
     e.listen(() => {
       throw new Error("obs1");

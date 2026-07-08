@@ -1,5 +1,5 @@
 import { describe, test, expect } from "vitest";
-import { newEvent } from "@continuum-js/frp";
+import { newStream } from "@continuum-js/frp";
 import {
   filterMap,
   pairwise,
@@ -11,7 +11,7 @@ import { newBehavior } from "@continuum-js/frp";
 
 describe("event combinators", () => {
   test("filterMap maps and drops null/undefined results", () => {
-    const [e, fire] = newEvent<string>();
+    const [e, fire] = newStream<string>();
     const seen: number[] = [];
     filterMap(e, (s) => {
       const n = Number(s);
@@ -25,7 +25,7 @@ describe("event combinators", () => {
   });
 
   test("pairwise emits [prev, curr] starting from the second occurrence", () => {
-    const [e, fire] = newEvent<number>();
+    const [e, fire] = newStream<number>();
     const seen: Array<[number, number]> = [];
     pairwise(e).listen((p) => seen.push(p));
 
@@ -39,7 +39,7 @@ describe("event combinators", () => {
   });
 
   test("partition splits into matching and non-matching streams", () => {
-    const [e, fire] = newEvent<number>();
+    const [e, fire] = newStream<number>();
     const [evens, odds] = partition(e, (n) => n % 2 === 0);
     const es: number[] = [];
     const os: number[] = [];
@@ -52,7 +52,7 @@ describe("event combinators", () => {
   });
 
   test("count folds occurrences into a running total", () => {
-    const [e, fire] = newEvent<void>();
+    const [e, fire] = newStream<void>();
     const c = count(e);
     expect(c.sample()).toBe(0);
     fire();
@@ -62,7 +62,7 @@ describe("event combinators", () => {
 
   test("sampleWith reads the behavior's value at each trigger", () => {
     const [b, setB] = newBehavior("a");
-    const [trigger, fire] = newEvent<void>();
+    const [trigger, fire] = newStream<void>();
     const seen: string[] = [];
     sampleWith(trigger, b).listen((v) => seen.push(v));
 

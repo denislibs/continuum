@@ -14,7 +14,7 @@ your muscle memory.
 ## A shared ancestry: half of an idea
 
 In 1997, Conal Elliott and Paul Hudak described FRP: **two** types —
-`Behavior` (a value across time) and `Event` (discrete occurrences) — with
+`Behavior` (a value across time) and `Stream` (discrete occurrences) — with
 a precise mathematical semantics of composition.
 
 In 2009, Erik Meijer's team at Microsoft shipped Reactive Extensions. Rx
@@ -133,7 +133,7 @@ means:
 
 ```ts
 // Continuum: two events in one moment — say how they combine
-const delta = Event.merge(plus, minus, (a, b) => a + b);
+const delta = Stream.merge(plus, minus, (a, b) => a + b);
 ```
 
 ## Difference #3: subscriptions nobody has to babysit
@@ -185,18 +185,18 @@ Your reflexes port almost verbatim:
 | `startWith(x)` + `shareReplay(1)` | `e.hold(x)`                    | one word for the whole ceremony       |
 | `combineLatest`                   | `Behavior.lift2/lift3`         | glitch-free                           |
 | `withLatestFrom(b$)`              | `e.snapshot(b, f)`             | with exact simultaneity               |
-| `merge(a$, b$)`                   | `Event.merge(a, b, f)`         | simultaneous inputs coalesce via `f`  |
+| `merge(a$, b$)`                   | `Stream.merge(a, b, f)`        | simultaneous inputs coalesce via `f`  |
 | `race(a$, b$)`-ish                | `a.orElse(b)`                  | left-biased                           |
 | `debounceTime(ms)`                | `debounce(e, ms)`              | std                                   |
 | `throttleTime(ms)`                | `throttle(e, ms)`              | std                                   |
 | `delay(ms)`                       | `delay(e, ms)`                 | std                                   |
-| `interval(ms)`                    | `interval(ms)`                 | std; an `Event<number>`               |
+| `interval(ms)`                    | `interval(ms)`                 | std; an `Stream<number>`              |
 | `distinctUntilChanged()`          | `distinct(e)` / `distinctB(b)` | std                                   |
 | `pairwise()`                      | `pairwise(e)`                  | std                                   |
 | `take(1)` / `first()`             | `e.once()`                     |                                       |
 | `filter(() => flag)`              | `e.gate(flagB)`                | the flag is a Behavior, not a closure |
 | `BehaviorSubject`                 | `newBehavior(init)`            | a _type_, not a workaround            |
-| `Subject`                         | `newEvent()`                   |                                       |
+| `Subject`                         | `newStream()`                  |                                       |
 | `switchMap(fetch)`                | `resource(e, fetch)`           | see below                             |
 | `subscribe`                       | `listen` + `onCleanup`         | or just a JSX binding                 |
 
@@ -245,7 +245,7 @@ For non-standard cases there's the lower-level `perform`:
 
 ```ts
 const answers = perform(requests, (r) => api.send(r));
-// Event<Result<unknown, T>> — { ok: true, value } | { ok: false, error }
+// Stream<Result<unknown, T>> — { ok: true, value } | { ok: false, error }
 ```
 
 An honest admission: `concatMap` and `exhaustMap` (queue the requests;
@@ -255,7 +255,7 @@ _is_ orchestrating queues of async operations, RxJS is stronger there.
 
 ## What we don't have — and why that's good
 
-- **Hot vs cold.** Our Events are always hot and multicast. There is no
+- **Hot vs cold.** Our Streams are always hot and multicast. There is no
   "each subscriber gets its own fetch"; no `share` needed.
 - **Complete/error as terminal signals.** Our streams don't _die_ —
   neither on their own after an error, nor via `complete`. Errors are
@@ -265,7 +265,7 @@ _is_ orchestrating queues of async operations, RxJS is stronger there.
   framework.
 - **A hundred and fifty operators.** `bufferToggle`, `windowWhen`,
   `sequenceEqual`… Our std fits in 2 kB. The exotic ones are ordinary
-  functions over `Event` — often three lines, and they're yours.
+  functions over `Stream` — often three lines, and they're yours.
 - **Schedulers.** Transactional logical time plus the browser's
   `queueMicrotask` cover our scenarios.
 
@@ -293,7 +293,7 @@ Where to go next:
 
 - [What is FRP — in plain words](/frp-in-plain-words) — the model from
   scratch;
-- [Events](/concepts/events) and [Behaviors](/concepts/behaviors) — both
+- [Streams](/concepts/events) and [Behaviors](/concepts/behaviors) — both
   halves, precisely;
 - [Transactions and time](/concepts/transactions) — how "glitch-free"
   actually works;

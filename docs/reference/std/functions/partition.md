@@ -6,9 +6,9 @@
 
 # Function: partition()
 
-> **partition**\<`A`\>(`e`, `pred`): \[`Event`\<`A`\>, `Event`\<`A`\>\]
+> **partition**\<`A`\>(`e`, `pred`): \[`Stream`\<`A`\>, `Stream`\<`A`\>\]
 
-Defined in: [index.ts:117](https://github.com/denislibs/continuum/blob/9e6d8fee1895bb34167cfe31c364b635d2b71604/packages/std/src/index.ts#L117)
+Defined in: [index.ts:117](https://github.com/denislibs/continuum/blob/d7c5ccacccc04163a481bd76c5d444925252087e/packages/std/src/index.ts#L117)
 
 Split a stream by a predicate into `[matching, rest]`.
 
@@ -22,7 +22,7 @@ Split a stream by a predicate into `[matching, rest]`.
 
 ### e
 
-`Event`\<`A`\>
+`Stream`\<`A`\>
 
 ### pred
 
@@ -30,4 +30,4 @@ Split a stream by a predicate into `[matching, rest]`.
 
 ## Returns
 
-\[`Event`\<`A`\>, `Event`\<`A`\>\]
+\[`Stream`\<`A`\>, `Stream`\<`A`\>\]

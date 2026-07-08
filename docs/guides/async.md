@@ -17,7 +17,7 @@ is not an exception but a `Result` branch:
 import { perform, type Result } from "@continuum-js/frp";
 
 const results = perform(saveClicks, (draft) => api.save(draft));
-// Event<Result<unknown, SaveResponse>>
+// Stream<Result<unknown, SaveResponse>>
 
 const saved = results.filter((r) => r.ok);
 const failed = results.filter((r) => !r.ok);
@@ -59,12 +59,12 @@ that is a manual `cancelled` flag in every `useEffect`.
 
 ## Debounced search: composition instead of a hook
 
-Event combinators and `resource` snap together:
+Stream combinators and `resource` snap together:
 
 ```ts
 import { debounce } from "@continuum-js/std";
 
-const settled = debounce(query.updates, 300); // Event<string>
+const settled = debounce(query.updates, 300); // Stream<string>
 const results = resource(settled, (q) => api.search(q));
 ```
 

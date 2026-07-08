@@ -163,7 +163,7 @@ export class Transaction {
 }
 
 // ---------------------------------------------------------------------------
-// Event<A> — discrete occurrences (push).
+// Stream<A> — discrete occurrences (push).
 // ---------------------------------------------------------------------------
 
 // A rank beyond any realistic static graph depth. Reaching it means the live
@@ -174,7 +174,7 @@ const RANK_LIMIT = 1 << 16;
  * Discrete occurrences over time (push). Denotationally `[(Time, A)]`: at most
  * one occurrence per moment — simultaneous inputs coalesce (see `merge`).
  */
-export class Event<A> {
+export class Stream<A> {
   /** @internal Topological height in the graph (propagation order). */
   rank: number;
   private listeners: Handler<A>[] = [];
@@ -183,7 +183,7 @@ export class Event<A> {
    * an entry is dropped when its last subscription unlistens, so a
    * long-lived source doesn't accumulate dead targets across churn.
    */
-  private targets = new Map<Event<any>, number>();
+  private targets = new Map<Stream<any>, number>();
   /** Teardown handles for this node's own subscriptions to its inputs. */
   private cleanups: Array<() => void> = [];
   /** True once `dispose()` has run. */
@@ -200,7 +200,7 @@ export class Event<A> {
    * downstream, so a node never has a rank ≤ one of its inputs. Detects
    * dependency cycles.
    */
-  ensureBiggerThan(limit: number, visited: Set<Event<any>>): void {
+  ensureBiggerThan(limit: number, visited: Set<Stream<any>>): void {
     if (this.rank > limit) return;
     if (visited.has(this))
       throw new Error("Continuum: dependency cycle detected");
@@ -223,7 +223,7 @@ export class Event<A> {
   }
 
   /** @internal Register an in-graph subscriber. Returns an unsubscribe handle. */
-  listen_(target: Event<any> | null, h: Handler<A>): Unlisten {
+  listen_(target: Stream<any> | null, h: Handler<A>): Unlisten {
     if (this.disposed) {
       // Loud beats silent-dead: a derivation auto-disposes when its last
       // listener leaves (see `listen`), so it cannot be re-used afterwards.
@@ -268,7 +268,7 @@ export class Event<A> {
    * cascades: if `input` is a derived node left with no listeners, it disposes
    * too. Sources (no cleanups of their own) are never auto-disposed.
    */
-  subscribe<X>(input: Event<X>, h: Handler<X>): Unlisten {
+  subscribe<X>(input: Stream<X>, h: Handler<X>): Unlisten {
     const un = input.listen_(this, h);
     return () => {
       un();
@@ -283,7 +283,7 @@ export class Event<A> {
   }
 
   /** @internal Subscribe to `input` and register the teardown for `dispose()`. */
-  consume<X>(input: Event<X>, h: Handler<X>): void {
+  consume<X>(input: Stream<X>, h: Handler<X>): void {
     this.cleanups.push(this.subscribe(input, h));
   }
 
@@ -309,18 +309,18 @@ export class Event<A> {
 
   // --- combinators -------------------------------------------------------
 
-  map<B>(f: (a: A) => B): Event<B> {
-    const out = new Event<B>(this.rank + 1);
+  map<B>(f: (a: A) => B): Stream<B> {
+    const out = new Stream<B>(this.rank + 1);
     out.consume(this, (t, a) => out.send_(t, f(a)));
     return out;
   }
 
-  mapTo<B>(b: B): Event<B> {
+  mapTo<B>(b: B): Stream<B> {
     return this.map(() => b);
   }
 
-  filter(pred: (a: A) => boolean): Event<A> {
-    const out = new Event<A>(this.rank + 1);
+  filter(pred: (a: A) => boolean): Stream<A> {
+    const out = new Stream<A>(this.rank + 1);
     out.consume(this, (t, a) => {
       if (pred(a)) out.send_(t, a);
     });
@@ -328,8 +328,8 @@ export class Event<A> {
   }
 
   /** Sample a behavior at the instant of each occurrence (sees pre-moment value). */
-  snapshot<B, C>(b: Behavior<B>, f: (a: A, b: B) => C): Event<C> {
-    const out = new Event<C>(this.rank + 1);
+  snapshot<B, C>(b: Behavior<B>, f: (a: A, b: B) => C): Stream<C> {
+    const out = new Stream<C>(this.rank + 1);
     out.consume(this, (t, a) => out.send_(t, f(a, b.sampleNoTrans())));
     return out;
   }
@@ -342,7 +342,7 @@ export class Event<A> {
     // moment leaves nothing to commit and never blocks a later moment.
     let stagedTx: Transaction | null = null;
     let stagedVal: A;
-    const updates = new Event<A>(this.rank + 1);
+    const updates = new Stream<A>(this.rank + 1);
     updates.consume(self, (t, a) => {
       if (stagedTx !== t) {
         stagedTx = t;
@@ -360,9 +360,9 @@ export class Event<A> {
   }
 
   /** Fold occurrences into a stream of accumulated states. */
-  accumE<B>(init: B, f: (a: A, acc: B) => B): Event<B> {
+  accumE<B>(init: B, f: (a: A, acc: B) => B): Stream<B> {
     const self = this;
-    const out = new Event<B>(this.rank + 1);
+    const out = new Stream<B>(this.rank + 1);
     const acc = out.hold(init); // delayed: snapshot sees previous state
     out.consume(self, (t, a) => out.send_(t, f(a, acc.sampleNoTrans())));
     return out;
@@ -374,8 +374,8 @@ export class Event<A> {
   }
 
   /** Only the first occurrence passes. */
-  once(): Event<A> {
-    const out = new Event<A>(this.rank + 1);
+  once(): Stream<A> {
+    const out = new Stream<A>(this.rank + 1);
     let fired = false;
     const stop = out.subscribe(this, (t, a) => {
       if (fired) return;
@@ -388,8 +388,8 @@ export class Event<A> {
   }
 
   /** Pass occurrences only while the behavior is true. */
-  gate(b: Behavior<boolean>): Event<A> {
-    const out = new Event<A>(this.rank + 1);
+  gate(b: Behavior<boolean>): Stream<A> {
+    const out = new Stream<A>(this.rank + 1);
     out.consume(this, (t, a) => {
       if (b.sampleNoTrans()) out.send_(t, a);
     });
@@ -397,18 +397,18 @@ export class Event<A> {
   }
 
   /** Left-biased merge: on simultaneous occurrences the left wins. */
-  orElse(other: Event<A>): Event<A> {
-    return Event.merge(this, other, (l) => l);
+  orElse(other: Stream<A>): Stream<A> {
+    return Stream.merge(this, other, (l) => l);
   }
 
   /** Merge two events; simultaneous occurrences coalesce once via `combine`. */
   static merge<A>(
-    ea: Event<A>,
-    eb: Event<A>,
+    ea: Stream<A>,
+    eb: Stream<A>,
     combine: (l: A, r: A) => A,
-  ): Event<A> {
+  ): Stream<A> {
     const rank = Math.max(ea.rank, eb.rank) + 1;
-    const out = new Event<A>(rank);
+    const out = new Stream<A>(rank);
     let hasLeft = false;
     let hasRight = false;
     let left: A;
@@ -489,7 +489,7 @@ export class Behavior<A> {
     /** Pull the current value without opening a transaction. */
     public sampleNoTrans: () => A,
     /** Push notifications of discrete changes (empty for continuous behaviors). */
-    public updates: Event<A>,
+    public updates: Stream<A>,
   ) {}
 
   sample(): A {
@@ -518,12 +518,12 @@ export class Behavior<A> {
     return un;
   }
 
-  /** Detach this behavior's `updates` from the graph (see `Event.dispose`). */
+  /** Detach this behavior's `updates` from the graph (see `Stream.dispose`). */
   dispose(): void {
     this.updates.dispose();
   }
 
-  /** Keep this behavior's update chain alive across listener churn (see `Event.retain`). */
+  /** Keep this behavior's update chain alive across listener churn (see `Stream.retain`). */
   retain(): this {
     this.updates.retain();
     return this;
@@ -543,7 +543,7 @@ export class Behavior<A> {
     bb: Behavior<B>,
   ): Behavior<C> {
     const rank = Math.max(ba.updates.rank, bb.updates.rank) + 1;
-    const out = new Event<C>(rank);
+    const out = new Stream<C>(rank);
     let va = ba.sampleNoTrans();
     let vb = bb.sampleNoTrans();
     let scheduledTx: Transaction | null = null;
@@ -588,13 +588,13 @@ export class Behavior<A> {
 
   /** Continuous behavior: sampled fresh on each read; no discrete updates. */
   static fromPoll<A>(poll: () => A): Behavior<A> {
-    return new Behavior<A>(poll, new Event<A>(0));
+    return new Behavior<A>(poll, new Stream<A>(0));
   }
 
   /** Follow the behavior currently selected by an outer behavior. */
   static switchB<A>(bb: Behavior<Behavior<A>>): Behavior<A> {
     let current = bb.sampleNoTrans();
-    const out = new Event<A>(current.updates.rank + 1);
+    const out = new Stream<A>(current.updates.rank + 1);
     let innerUn = out.subscribe(current.updates, (t, a) => out.send_(t, a));
     out.consume(bb.updates, (t, nb) => {
       // Emit the new inner's current value as this behavior's update.
@@ -617,9 +617,9 @@ export class Behavior<A> {
   }
 
   /** Follow the event currently selected by a behavior. */
-  static switchE<A>(be: Behavior<Event<A>>): Event<A> {
+  static switchE<A>(be: Behavior<Stream<A>>): Stream<A> {
     let current = be.sampleNoTrans();
-    const out = new Event<A>(current.rank + 1);
+    const out = new Stream<A>(current.rank + 1);
     let innerUn = out.subscribe(current, (t, a) => out.send_(t, a));
     out.consume(be.updates, (t, ne) => {
       // Rewire at the moment boundary so the old event stays live this moment.
@@ -642,8 +642,8 @@ export class Behavior<A> {
 // ---------------------------------------------------------------------------
 
 /** A source event plus its `fire`. Each `fire` opens a fresh moment. */
-export function newEvent<A>(): [Event<A>, (a: A) => void] {
-  const e = new Event<A>(0);
+export function newStream<A>(): [Stream<A>, (a: A) => void] {
+  const e = new Stream<A>(0);
   const fire = (a: A) => {
     if (Transaction.current?.pureZone) {
       throw new Error(
@@ -665,7 +665,7 @@ export function newEvent<A>(): [Event<A>, (a: A) => void] {
 
 /** A source behavior (a `hold` over a source event) plus its setter. */
 export function newBehavior<A>(init: A): [Behavior<A>, (a: A) => void] {
-  const [e, fire] = newEvent<A>();
+  const [e, fire] = newStream<A>();
   // A source construct: the internal hold must survive listener churn
   // (bindings come and go with mounts) — exempt it from the cascade.
   const b = e.hold(init).retain();
@@ -674,12 +674,12 @@ export function newBehavior<A>(init: A): [Behavior<A>, (a: A) => void] {
 
 /** The behavior that is `v` at every moment (applicative `pure`). */
 export function constant<A>(v: A): Behavior<A> {
-  return new Behavior<A>(() => v, new Event<A>(0));
+  return new Behavior<A>(() => v, new Stream<A>(0));
 }
 
 /** The event with no occurrences (identity of `merge`). */
-export function never<A>(): Event<A> {
-  return new Event<A>(0);
+export function never<A>(): Stream<A> {
+  return new Stream<A>(0);
 }
 
 /** Continuous wall-clock behavior (milliseconds), sampled on demand. */
@@ -699,10 +699,10 @@ export type Result<E, T> = { ok: true; value: T } | { ok: false; error: E };
  * Default comparison is `Object.is`.
  */
 export function distinct<A>(
-  e: Event<A>,
+  e: Stream<A>,
   eq: (a: A, b: A) => boolean = Object.is,
-): Event<A> {
-  const out = new Event<A>(e.rank + 1);
+): Stream<A> {
+  const out = new Stream<A>(e.rank + 1);
   let hasPrev = false;
   let prev: A;
   out.consume(e, (t, a) => {
@@ -721,10 +721,10 @@ export function distinct<A>(
  * Errors are wrapped in a `Result` and flow as data.
  */
 export function perform<A, B>(
-  e: Event<A>,
+  e: Stream<A>,
   run: (a: A) => Promise<B>,
-): Event<Result<unknown, B>> {
-  const [out, fire] = newEvent<Result<unknown, B>>();
+): Stream<Result<unknown, B>> {
+  const [out, fire] = newStream<Result<unknown, B>>();
   // listen runs in phase post (after the moment closes); the promise
   // settles later, and `fire` opens a brand-new moment.
   out.onDispose(
@@ -743,3 +743,16 @@ export function perform<A, B>(
 // ---------------------------------------------------------------------------
 
 export { integral, derivative, warp } from "./continuous.js";
+
+// ---------------------------------------------------------------------------
+// Deprecated aliases (the Sodium rename: an "event" reads as ONE occurrence,
+// this type is the whole stream of them — and it collided with DOM's Event).
+// Removed in 1.0.
+// ---------------------------------------------------------------------------
+
+/** @deprecated Renamed to `Stream` — same class, new name. Removed in 1.0. */
+export const Event = Stream;
+/** @deprecated Renamed to `Stream`. Removed in 1.0. */
+export type Event<A> = Stream<A>;
+/** @deprecated Renamed to `newStream`. Removed in 1.0. */
+export const newEvent = newStream;

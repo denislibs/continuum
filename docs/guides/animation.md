@@ -17,7 +17,7 @@ an ordinary event of timestamps:
 ```ts
 import { animationFrames } from "@continuum-js/dom";
 
-const ticks = animationFrames(); // Event<number> of rAF timestamps (ms)
+const ticks = animationFrames(); // Stream<number> of rAF timestamps (ms)
 ```
 
 `animationFrames()` registers with the current owner — when the component's

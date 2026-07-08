@@ -6,11 +6,11 @@
 оно формально означает «значение во времени» — но для использования теория
 не нужна.)
 
-::: tip Behavior или Event?
+::: tip Behavior или Stream?
 Если это можно **нарисовать на экране** — Behavior. Если на это можно
-**среагировать** — [Event](/ru/concepts/events). Длинная версия — с
+**среагировать** — [Stream](/ru/concepts/events). Длинная версия — с
 градусником и стуком в дверь:
-[Чем Event отличается от Behavior](/ru/frp-in-plain-words#event-vs-behavior).
+[Чем Stream отличается от Behavior](/ru/frp-in-plain-words#event-vs-behavior).
 :::
 
 ## Создание
@@ -28,7 +28,7 @@ const now = Behavior.fromPoll(() => Date.now()); // читать мир при s
 `newBehavior` — повседневный способ завести состояние: значение плюс
 сеттер, как `useState` без перезапусков. Событийные формы (`accum`, `hold`)
 хороши, когда состояние по природе — «история случившегося»; о них — в
-[Events](/ru/concepts/events).
+[Streams](/ru/concepts/events).
 
 ## Производные
 
@@ -59,7 +59,7 @@ const submitted = submits.snapshot(draft, (_e, text) => text);
 
 ## Updates
 
-`b.updates` — это `Event<A>` изменений Behavior, мост обратно в мир событий;
+`b.updates` — это `Stream<A>` изменений Behavior, мост обратно в мир событий;
 им пользуются комбинаторы вроде `debounce(query.updates, 300)`.
 
 Behavior обновляется **на границе момента**: внутри транзакции, которая его

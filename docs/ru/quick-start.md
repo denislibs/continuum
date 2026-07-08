@@ -67,7 +67,7 @@ const doubled = count.map((n) => n * 2); // [!code ++]
 
 ## Дальше
 
-- [Мышление в Behaviors и Events](/ru/tutorial/thinking-in-frp) — модель,
+- [Мышление в Behaviors и Streams](/ru/tutorial/thinking-in-frp) — модель,
   стоящая за только что написанным.
 - [Понятия → Компоненты](/ru/concepts/components) — что здесь такое
   компонент.

@@ -7,13 +7,19 @@
 ## Classes
 
 - [Behavior](classes/Behavior.md)
-- [Event](classes/Event.md)
+- [Stream](classes/Stream.md)
 - [Transaction](classes/Transaction.md)
 
 ## Type Aliases
 
+- [~~Event~~](type-aliases/Event.md)
 - [Result](type-aliases/Result.md)
 - [Unlisten](type-aliases/Unlisten.md)
+
+## Variables
+
+- [~~Event~~](variables/Event.md)
+- [~~newEvent~~](variables/newEvent.md)
 
 ## Functions
 
@@ -23,7 +29,7 @@
 - [integral](functions/integral.md)
 - [never](functions/never.md)
 - [newBehavior](functions/newBehavior.md)
-- [newEvent](functions/newEvent.md)
+- [newStream](functions/newStream.md)
 - [perform](functions/perform.md)
 - [time](functions/time.md)
 - [warp](functions/warp.md)

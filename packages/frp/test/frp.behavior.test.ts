@@ -1,16 +1,16 @@
 import { describe, test, expect } from "vitest";
 import {
-  newEvent,
+  newStream,
   newBehavior,
   constant,
   Behavior,
-  Event,
+  Stream,
   time,
 } from "@continuum-js/frp";
 
 describe("Behavior.map", () => {
   test("maps sampled value and updates", () => {
-    const [n, fire] = newEvent<number>();
+    const [n, fire] = newStream<number>();
     const b = n.hold(1).map((x) => x * 3);
     expect(b.sample()).toBe(3);
     const seen: number[] = [];
@@ -45,7 +45,7 @@ describe("lift2 / apply", () => {
   });
 
   test("lift2 is glitch-free when both inputs share a source", () => {
-    const [n, fire] = newEvent<number>();
+    const [n, fire] = newStream<number>();
     const b = n.hold(1);
     const b2 = b.map((x) => x * 2);
     const combined = Behavior.lift2((x, y) => x + y, b, b2);
@@ -102,9 +102,9 @@ describe("switchB", () => {
 
 describe("switchE", () => {
   test("follows the currently selected event", () => {
-    const [ea, fireA] = newEvent<string>();
-    const [eb, fireB] = newEvent<string>();
-    const [sel, setSel] = newBehavior<Event<string>>(ea);
+    const [ea, fireA] = newStream<string>();
+    const [eb, fireB] = newStream<string>();
+    const [sel, setSel] = newBehavior<Stream<string>>(ea);
     const out = Behavior.switchE(sel);
     const seen: string[] = [];
     out.listen((v) => seen.push(v));

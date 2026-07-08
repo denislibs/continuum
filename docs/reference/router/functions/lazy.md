@@ -8,7 +8,7 @@
 
 > **lazy**(`loader`, `opts?`): [`Component`](../type-aliases/Component.md)
 
-Defined in: [index.ts:156](https://github.com/denislibs/continuum/blob/9e6d8fee1895bb34167cfe31c364b635d2b71604/packages/router/src/index.ts#L156)
+Defined in: [index.ts:156](https://github.com/denislibs/continuum/blob/d7c5ccacccc04163a481bd76c5d444925252087e/packages/router/src/index.ts#L156)
 
 Code-split page: `loader` MUST be a thunk with a literal dynamic import —
 `lazy(() => import("./Page"))` — so the bundler emits a separate chunk.

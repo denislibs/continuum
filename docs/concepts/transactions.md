@@ -26,7 +26,7 @@ what "transaction" means here.
 Two occurrences in the same moment are _actually simultaneous_, and the API
 forces you to say what that means:
 
-- `Event.merge(ea, eb, combine)` — simultaneous occurrences are coalesced
+- `Stream.merge(ea, eb, combine)` — simultaneous occurrences are coalesced
   with `combine`, not ordered arbitrarily;
 - `snapshot` sees Behaviors _as of the start of the moment_.
 

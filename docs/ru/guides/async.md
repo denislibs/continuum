@@ -17,7 +17,7 @@
 import { perform, type Result } from "@continuum-js/frp";
 
 const results = perform(saveClicks, (draft) => api.save(draft));
-// Event<Result<unknown, SaveResponse>>
+// Stream<Result<unknown, SaveResponse>>
 
 const saved = results.filter((r) => r.ok);
 const failed = results.filter((r) => !r.ok);
@@ -63,7 +63,7 @@ const state = resource(userId.updates, (id) => api.fetchUser(id));
 ```ts
 import { debounce } from "@continuum-js/std";
 
-const settled = debounce(query.updates, 300); // Event<string>
+const settled = debounce(query.updates, 300); // Stream<string>
 const results = resource(settled, (q) => api.search(q));
 ```
 

@@ -1,4 +1,4 @@
-import { newEvent, newBehavior, type Behavior } from "@continuum-js/frp";
+import { newStream, newBehavior, type Behavior } from "@continuum-js/frp";
 import { Show, Each, bindInput } from "@continuum-js/dom";
 
 export interface Todo {
@@ -14,7 +14,7 @@ export interface Todo {
 export function TodoApp() {
   let nextId = 1;
   const [draft, setDraft] = newBehavior("");
-  const [submit, fireSubmit] = newEvent<void>();
+  const [submit, fireSubmit] = newStream<void>();
 
   const todos: Behavior<Todo[]> = submit
     .snapshot(draft, (_void, text) => text.trim())

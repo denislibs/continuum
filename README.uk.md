@@ -8,7 +8,7 @@
 [![docs](https://img.shields.io/badge/docs-denislibs.github.io-blue)](https://denislibs.github.io/continuum/)
 [![license](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
-Реактивний фреймворк на **класичному FRP** (Behaviors + Events) з fine-grained
+Реактивний фреймворк на **класичному FRP** (Behaviors + Streams) з fine-grained
 рендерингом. Дискретна гілка традиції Елліотта в стилі Sodium: транзакції,
 рангове поширення, затримка `hold` на межі моменту.
 
@@ -38,7 +38,7 @@
 ```
 continuum/
 ├─ packages/
-│  ├─ frp/        @continuum-js/frp   — ядро: Event, Behavior, планувальник
+│  ├─ frp/        @continuum-js/frp   — ядро: Stream, Behavior, планувальник
 │  ├─ dom/        @continuum-js/dom   — рендерер: h, dyn, each, володіння, контекст
 │  ├─ std/        @continuum-js/std   — комбінатори: resource, debounce, throttle, …
 │  ├─ router/     @continuum-js/router — URL як Behavior: вкладені маршрути, ліниві сторінки
@@ -97,10 +97,10 @@ frp) ≈ **2.4 kB**. Бюджети — у [`.size-limit.json`](.size-limit.json
 ### Лічильник за 10 рядків (`examples/counter`)
 
 ```tsx
-import { newEvent } from "@continuum-js/frp";
+import { newStream } from "@continuum-js/frp";
 
 export function Counter() {
-  const [clicks, fire] = newEvent<MouseEvent>();
+  const [clicks, fire] = newStream<MouseEvent>();
   const count = clicks.accum(0, (_e, n) => n + 1);
   return <button onClick={fire}>count: {count}</button>;
 }
@@ -126,7 +126,7 @@ min-купа рангів і glitch-free поширення, коалесинг 
 ідентичністю транзакції; **стійкі ранги** (`ensureBiggerThan` + виявлення
 циклів) для коректного `switch` у щільних графах; **неперервний час** —
 `integral`/`derivative`/`warp` (чисельно семпльовані за дискретним клоком);
-**явний `dispose`** в `Event`/`Behavior` з каскадом угору по невикористаних
+**явний `dispose`** в `Stream`/`Behavior` з каскадом угору по невикористаних
 похідних вузлах (для довгоживучих не-UI графів).
 
 **Рендерер (`@continuum-js/dom`).** JSX-фабрика `h`/`Fragment`, точкові
@@ -141,7 +141,7 @@ min-купа рангів і glitch-free поширення, коалесинг 
 ## Неперервний час
 
 `integral`/`derivative`/`warp` з ядра працюють поверх дискретного клока
-(`Event<number>` часових міток) — у браузері його дає `animationFrames()`.
+(`Stream<number>` часових міток) — у браузері його дає `animationFrames()`.
 Реалізація чисельна (forward Euler / скінченні різниці), детермінована і не
 залежить від кількості спостерігачів: акумуляція відбувається один раз на тік.
 Денотація незалежна від роздільності, семпльований результат її наближає.
@@ -150,7 +150,7 @@ min-купа рангів і glitch-free поширення, коалесинг 
 
 ## Робота з даними (HTTP)
 
-IO живе на **межі** мережі. `perform` приймає `Event` запитів, запускає
+IO живе на **межі** мережі. `perform` приймає `Stream` запитів, запускає
 асинхронний ефект у фазі post (після закриття моменту) і повертає результат
 новою подією — вже як дані, з помилкою, загорнутою в `Result`, а не кинутою.
 Поверх цього [`@continuum-js/std`](packages/std) дає готові перевикористовувані

@@ -6,9 +6,9 @@
 
 # Function: pairwise()
 
-> **pairwise**\<`A`\>(`e`): `Event`\<\[`A`, `A`\]\>
+> **pairwise**\<`A`\>(`e`): `Stream`\<\[`A`, `A`\]\>
 
-Defined in: [index.ts:104](https://github.com/denislibs/continuum/blob/9e6d8fee1895bb34167cfe31c364b635d2b71604/packages/std/src/index.ts#L104)
+Defined in: [index.ts:104](https://github.com/denislibs/continuum/blob/d7c5ccacccc04163a481bd76c5d444925252087e/packages/std/src/index.ts#L104)
 
 Pair each occurrence with the previous one; emits from the 2nd occurrence.
 
@@ -22,8 +22,8 @@ Pair each occurrence with the previous one; emits from the 2nd occurrence.
 
 ### e
 
-`Event`\<`A`\>
+`Stream`\<`A`\>
 
 ## Returns
 
-`Event`\<\[`A`, `A`\]\>
+`Stream`\<\[`A`, `A`\]\>

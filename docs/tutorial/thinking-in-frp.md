@@ -1,4 +1,4 @@
-# Thinking in Behaviors and Events
+# Thinking in Behaviors and Streams
 
 ::: info The engine room
 You don't need this page to build with Continuum — the
@@ -42,7 +42,7 @@ The whole model is two types:
   Denotationally `Time → A`: you can't ask it "did it arrive?", only "what is
   it now?". The mouse position, the text of an input, the current count, the
   URL.
-- **`Event<A>`** — [discrete occurrences](/glossary#occurrence): at some moments something happens
+- **`Stream<A>`** — [discrete occurrences](/glossary#occurrence): at some moments something happens
   carrying an `A`; at all other moments, nothing does. A click, a keypress, a
   server response, a timer tick.
 
@@ -52,7 +52,7 @@ event?**
 | You are asking yourself                          | Type       |
 | ------------------------------------------------ | ---------- |
 | "What is _currently_ typed / selected / loaded?" | `Behavior` |
-| "_Did_ a click / submit / response happen?"      | `Event`    |
+| "_Did_ a click / submit / response happen?"      | `Stream`   |
 
 Choosing wrong always takes revenge: an event stuffed into a Behavior (a
 `justClicked` flag) needs manual resetting; a value smeared across events
@@ -64,10 +64,10 @@ A Continuum component is a plain function that runs **once** and builds two
 things: an FRP network and DOM wired to it.
 
 ```tsx
-import { newEvent } from "@continuum-js/frp";
+import { newStream } from "@continuum-js/frp";
 
 function Counter() {
-  const [clicks, fire] = newEvent<MouseEvent>();
+  const [clicks, fire] = newStream<MouseEvent>();
   const count = clicks.accum(0, (_e, n) => n + 1);
   const parity = count.map((n) => (n % 2 === 0 ? "even" : "odd"));
   return (
@@ -112,11 +112,11 @@ const sum = Behavior.lift2((d, s) => d + s, doubled, squared);
 That is what "glitch-free" means: half-updated state isn't merely rarely
 observed — it **does not exist in the model**.
 
-Two events in the same moment are honest simultaneity too. `Event.merge`
+Two events in the same moment are honest simultaneity too. `Stream.merge`
 takes a coalescing function and folds simultaneous occurrences into one:
 
 ```ts
-const either = Event.merge(left, right, (a, b) => a + b);
+const either = Stream.merge(left, right, (a, b) => a + b);
 ```
 
 ## Why `hold` is delayed: the past is available, the present is not
@@ -129,7 +129,7 @@ Why? So that "the current value" is well-defined even when you look at it
 from the event that is changing it:
 
 ```ts
-const [submit, fireSubmit] = newEvent<void>();
+const [submit, fireSubmit] = newStream<void>();
 const draft = input.hold(""); // the field's text
 
 // which text do we submit? the one AT THE MOMENT of submit:
@@ -196,7 +196,7 @@ a cascade:
 import { onCleanup, onMount } from "@continuum-js/dom";
 
 function Clock() {
-  const [tick, fire] = newEvent<number>();
+  const [tick, fire] = newStream<number>();
   const id = setInterval(() => fire(Date.now()), 1000);
   onCleanup(() => clearInterval(id));
 
@@ -227,7 +227,7 @@ value, not an exception:
 import { perform, type Result } from "@continuum-js/frp";
 
 const results = perform(queries, async (q): Promise<Page> => fetchPage(q));
-// Event<Result<unknown, Page>> — { ok: true, value } | { ok: false, error }
+// Stream<Result<unknown, Page>> — { ok: true, value } | { ok: false, error }
 ```
 
 For the typical "load and show" there is `resource` in `@continuum-js/std`:

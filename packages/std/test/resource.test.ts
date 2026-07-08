@@ -1,12 +1,12 @@
 import { describe, test, expect } from "vitest";
-import { newEvent } from "@continuum-js/frp";
+import { newStream } from "@continuum-js/frp";
 import { resource, type Async } from "@continuum-js/std";
 
 const tick = () => new Promise((r) => setTimeout(r, 0));
 
 describe("resource", () => {
   test("walks idle → loading → ok as the promise settles", async () => {
-    const [trigger, fire] = newEvent<string>();
+    const [trigger, fire] = newStream<string>();
     let resolve!: (v: string[]) => void;
     const state = resource<string, string[]>(
       trigger,
@@ -23,7 +23,7 @@ describe("resource", () => {
   });
 
   test("captures rejection as an error state", async () => {
-    const [trigger, fire] = newEvent<string>();
+    const [trigger, fire] = newStream<string>();
     const state = resource<string, string[]>(trigger, () =>
       Promise.reject(new Error("boom")),
     );
@@ -39,7 +39,7 @@ describe("resource", () => {
 
   test("drops a stale response when a newer request was issued", async () => {
     const resolvers: Array<(v: string[]) => void> = [];
-    const [trigger, fire] = newEvent<string>();
+    const [trigger, fire] = newStream<string>();
     const state = resource<string, string[]>(
       trigger,
       () => new Promise<string[]>((res) => resolvers.push(res)),

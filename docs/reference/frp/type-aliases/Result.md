@@ -8,7 +8,7 @@
 
 > **Result**\<`E`, `T`\> = \{ `ok`: `true`; `value`: `T`; \} \| \{ `error`: `E`; `ok`: `false`; \}
 
-Defined in: [index.ts:695](https://github.com/denislibs/continuum/blob/9e6d8fee1895bb34167cfe31c364b635d2b71604/packages/frp/src/index.ts#L695)
+Defined in: [index.ts:695](https://github.com/denislibs/continuum/blob/d7c5ccacccc04163a481bd76c5d444925252087e/packages/frp/src/index.ts#L695)
 
 Outcome of an effect as data: errors flow through the graph, not thrown.
 

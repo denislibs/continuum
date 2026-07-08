@@ -17,6 +17,21 @@
 Отсюда следствия: нет re-render'ов → нет deps-массивов, нет `memo`, нет
 `useCallback`, нет stale closures, нет правил хуков.
 
+## Зачем переходить — честно
+
+Если всё, что вам нужно, это «React, только быстрее» — это уже умеет Solid,
+а менять фреймворк ради бенчмарка редко имеет смысл. Continuum окупает
+переход той частью, которой нет у остальных: **изменение — это данные**.
+Каждое действие пользователя — происшествие в потоке; состояние — свёртка
+этого потока. Одна эта идея превращает целые библиотеки в однострочники:
+undo/redo — вторая свёртка тех же действий, персист — зеркало свёрнутого
+значения, синхронизация вкладок — ещё один диспетчер в тот же редьюсер, а
+поиск не гонится, потому что «последний запрос побеждает» решено в
+библиотеке. [Книга паттернов](/ru/guides/patterns) показывает каждую из
+этих фич в несколько строк. Если ваше приложение — форма поверх API,
+оставайтесь где есть. Если у его состояния есть _история_ — это фреймворк,
+для которого история является полноценным значением.
+
 ## Таблица соответствий
 
 | React                         | Continuum                              | Комментарий                                                        |
@@ -331,8 +346,8 @@ const onClick = (e: MouseEvent<HTMLButtonElement>) => e.currentTarget.type;
 ```
 
 Не хотите затенять DOM-глобалы — те же алиасы есть неймспейсом:
-`import type { Events } from "@continuum-js/dom"` →
-`(e: Events.MouseEvent<HTMLButtonElement>) => …`.
+`import type { Streams } from "@continuum-js/dom"` →
+`(e: Streams.MouseEvent<HTMLButtonElement>) => …`.
 
 Для обёрточных компонентов есть `ComponentProps<"button">` — см. [рецепт
 полиморфной кнопки](/ru/guides/patterns#_22-шарируемая-полиморфная-кнопка-componentprops).
@@ -398,7 +413,7 @@ const debouncedQuery = useDebounced(query, 300);
 ```tsx
 import { debounce } from "@continuum-js/std";
 
-const settled = debounce(query.updates, 300); // Event<string>
+const settled = debounce(query.updates, 300); // Stream<string>
 const results = resource(settled, search);
 ```
 

@@ -16,19 +16,23 @@ const [theme, setTheme] = newBehavior<"light" | "dark">("light");
 <button onClick={() => setTheme("dark")}>dark</button>;
 ```
 
-**`newEvent` + `accum`** — the stream form, for when state is naturally a
+**`newStream` + `accum`** — the stream form, for when state is naturally a
 fold over things that happened:
 
 ```ts
-import { newEvent } from "@continuum-js/frp";
+import { newStream } from "@continuum-js/frp";
 
-const [clicks, fire] = newEvent<MouseEvent>();
+const [clicks, fire] = newStream<MouseEvent>();
 const count = clicks.accum(0, (_e, n) => n + 1);
 ```
 
-Start with `newBehavior` — it covers most UI state. The fold form pays off
-when a value has many independent sources of change or when you want its
-history spelled out ("count _is_ the number of clicks"); it composes
+The rule of thumb: **no history — `newBehavior`; a history worth keeping —
+a stream.** `newBehavior` is literally sugar over `newStream` + `hold`, and
+it is the right tool for values you simply overwrite: form fields, toggles,
+the selected tab. The fold form earns its keep the moment the _story_ of a
+value matters — many independent sources of change, undo, persistence,
+sync — because one stream of actions gives you each of those as [one more
+fold](/guides/patterns#1-actions-redux-without-redux), and it composes
 directly with stream tools like `debounce` and `snapshot`.
 
 ## Derived values — only `map`/`lift`

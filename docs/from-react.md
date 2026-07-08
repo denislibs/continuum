@@ -17,6 +17,20 @@ There is one central mental-model shift:
 The consequences follow: no re-renders → no deps arrays, no `memo`, no
 `useCallback`, no stale closures, no rules of hooks.
 
+## Why switch, honestly
+
+If all you want is "React but faster", Solid already does that — and
+switching frameworks for a benchmark is rarely worth it. Continuum earns the
+switch with the part the others don't have: **change is data**. Every user
+action is an occurrence in a stream; state is a fold over that stream. That
+one idea turns whole libraries into one-liners — undo/redo is a second fold
+over the same actions, persistence is a mirror of the folded value,
+cross-tab sync is one more dispatcher into the same reducer, and search
+never races because "last request wins" is solved in the library. The
+[patterns cookbook](/guides/patterns) shows each of these in a few lines.
+If your app is a form over an API, stay put. If its state has a _story_ —
+this is the framework that treats the story as a first-class value.
+
 ## Correspondence table
 
 | React                        | Continuum                              | Comment                                                            |
@@ -317,9 +331,9 @@ keystroke, use `onInput` (that is what `bindInput` does):
 <input value={text} onInput={(e) => setText(e.currentTarget.value)} />
 ```
 
-Event props are fully typed — the editor autocompletes them and knows the
+Stream props are fully typed — the editor autocompletes them and knows the
 event type — and both casings work: `onKeyDown` and `onKeydown` attach the
-same listener. Events are **native**, not synthetic: inline handlers get
+same listener. Streams are **native**, not synthetic: inline handlers get
 `e.currentTarget` already typed to the tag (no cast, as above). When you
 **extract** a handler, annotate the parameter exactly like in React — the
 aliases ship in the package:
@@ -332,8 +346,8 @@ const onClick = (e: MouseEvent<HTMLButtonElement>) => e.currentTarget.type;
 ```
 
 Prefer not to shadow the DOM globals? The same aliases come as a namespace:
-`import type { Events } from "@continuum-js/dom"` →
-`(e: Events.MouseEvent<HTMLButtonElement>) => …`.
+`import type { Streams } from "@continuum-js/dom"` →
+`(e: Streams.MouseEvent<HTMLButtonElement>) => …`.
 
 For wrapping components there is `ComponentProps<"button">` — see the
 [polymorphic button recipe](/guides/patterns#22-a-shareable-polymorphic-button-componentprops).
@@ -399,7 +413,7 @@ const debouncedQuery = useDebounced(query, 300);
 ```tsx
 import { debounce } from "@continuum-js/std";
 
-const settled = debounce(query.updates, 300); // Event<string>
+const settled = debounce(query.updates, 300); // Stream<string>
 const results = resource(settled, search);
 ```
 

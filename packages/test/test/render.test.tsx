@@ -1,5 +1,5 @@
 import { describe, test, expect, afterEach, vi } from "vitest";
-import { newEvent, newBehavior, perform } from "@continuum-js/frp";
+import { newStream, newBehavior, perform } from "@continuum-js/frp";
 import { bindInput } from "@continuum-js/dom";
 import { debounce } from "@continuum-js/std";
 import {
@@ -18,7 +18,7 @@ afterEach(() => {
 });
 
 function Counter() {
-  const [clicks, fireClick] = newEvent<MouseEvent>();
+  const [clicks, fireClick] = newStream<MouseEvent>();
   const count = clicks.accum(0, (_e, n) => n + 1);
   return <button onClick={fireClick}>count: {count}</button>;
 }
@@ -74,7 +74,7 @@ describe("events", () => {
 
 describe("async helpers", () => {
   test("flush() waits for perform results to land", async () => {
-    const [req, fireReq] = newEvent<number>();
+    const [req, fireReq] = newStream<number>();
     const res = perform(req, async (n) => n * 2);
     const seen: number[] = [];
     res.listen((r) => {
@@ -89,7 +89,7 @@ describe("async helpers", () => {
 
   test("advanceTimers() plays a debounce forward under fake timers", async () => {
     vi.useFakeTimers();
-    const [e, fireE] = newEvent<string>();
+    const [e, fireE] = newStream<string>();
     const settled = debounce(e, 200);
     const seen: string[] = [];
     settled.listen((v) => seen.push(v));

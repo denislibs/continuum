@@ -71,7 +71,7 @@ semantics**: a precise mathematical meaning for every construct.
 - **`Behavior a`** — a value at every moment: a function `Time → a`. And
   Elliott's time is _continuous_, like in physics — an animation is an
   equation, not a frame loop.
-- **`Event a`** — a set of moments with values: `[(Time, a)]`.
+- **`Stream a`** — a set of moments with values: `[(Time, a)]`.
 
 Composition acquires the character of algebra: `map`, `merge`, `switch`,
 `snapshot` are defined by equations, not by describing an implementation.
@@ -156,11 +156,11 @@ By the 2020s, two main traditions of UI reactivity remain:
 | Dependencies | auto-tracked on read           | the expression structure (`map`/`lift`)                 |
 | Graph        | implicit, dynamic              | explicit, static by construction                        |
 | Simultaneity | batching as an optimization    | transactions as _semantics_                             |
-| Events       | no separate notion (effects)   | `Event` is a first-class value                          |
+| Streams      | no separate notion (effects)   | `Stream` is a first-class value                         |
 | Time         | "the current value"            | a value _over time_; past and present distinct (`hold`) |
 | Lineage      | Knockout → MobX → Solid        | Fran → Sodium → here                                    |
 
-Continuum deliberately picks the second: **Behaviors + Events +
+Continuum deliberately picks the second: **Behaviors + Streams +
 transactions** from discrete FRP (Sodium), **run-once components and a
 fine-grained DOM** whose practicality Solid proved, and an **ownership
 tree** for lifecycle. Elliott's continuous time is here too —

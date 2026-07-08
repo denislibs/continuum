@@ -14,7 +14,7 @@
 ## Общая родословная: пол-идеи FRP
 
 В 1997 году Конал Эллиотт и Пол Худак описали FRP: **два** типа —
-`Behavior` (значение во времени) и `Event` (дискретные происшествия) — с
+`Behavior` (значение во времени) и `Stream` (дискретные происшествия) — с
 точной математической семантикой композиции.
 
 В 2009-м Эрик Мейер с командой в Microsoft выпустили Reactive Extensions.
@@ -130,7 +130,7 @@ const sum = Behavior.lift2((d, s) => d + s, doubled, squared);
 
 ```ts
 // Continuum: два события в один момент — скажи, как их сложить
-const delta = Event.merge(plus, minus, (a, b) => a + b);
+const delta = Stream.merge(plus, minus, (a, b) => a + b);
 ```
 
 ## Различие №3: подписки, за которыми не надо следить
@@ -181,18 +181,18 @@ function Ticker() {
 | `startWith(x)` + `shareReplay(1)` | `e.hold(x)`                    | одно слово вместо церемонии      |
 | `combineLatest`                   | `Behavior.lift2/lift3`         | без глитчей                      |
 | `withLatestFrom(b$)`              | `e.snapshot(b, f)`             | с точной одновременностью        |
-| `merge(a$, b$)`                   | `Event.merge(a, b, f)`         | одновременные коалесцируются `f` |
+| `merge(a$, b$)`                   | `Stream.merge(a, b, f)`        | одновременные коалесцируются `f` |
 | `race(a$, b$)`-ish                | `a.orElse(b)`                  | лево-приоритетный                |
 | `debounceTime(ms)`                | `debounce(e, ms)`              | std                              |
 | `throttleTime(ms)`                | `throttle(e, ms)`              | std                              |
 | `delay(ms)`                       | `delay(e, ms)`                 | std                              |
-| `interval(ms)`                    | `interval(ms)`                 | std; `Event<number>`             |
+| `interval(ms)`                    | `interval(ms)`                 | std; `Stream<number>`            |
 | `distinctUntilChanged()`          | `distinct(e)` / `distinctB(b)` | std                              |
 | `pairwise()`                      | `pairwise(e)`                  | std                              |
 | `take(1)` / `first()`             | `e.once()`                     |                                  |
 | `filter(() => flag)`              | `e.gate(flagB)`                | флаг — Behavior, не замыкание    |
 | `BehaviorSubject`                 | `newBehavior(init)`            | _тип_, а не костыль              |
-| `Subject`                         | `newEvent()`                   |                                  |
+| `Subject`                         | `newStream()`                  |                                  |
 | `switchMap(fetch)`                | `resource(e, fetch)`           | см. ниже                         |
 | `subscribe`                       | `listen` + `onCleanup`         | или вообще привязка в JSX        |
 
@@ -239,7 +239,7 @@ loading/error — ветки _значения_, которые рендерят
 
 ```ts
 const answers = perform(requests, (r) => api.send(r));
-// Event<Result<unknown, T>> — { ok: true, value } | { ok: false, error }
+// Stream<Result<unknown, T>> — { ok: true, value } | { ok: false, error }
 ```
 
 Честное признание: у `concatMap` и `exhaustMap` (очередь запросов;
@@ -249,7 +249,7 @@ _очередей_ асинхронных операций, RxJS в этом с�
 
 ## Чего у нас нет — и почему это хорошо
 
-- **Hot vs cold.** Наши Events всегда «горячие» и мультикастные. Не бывает
+- **Hot vs cold.** Наши Streams всегда «горячие» и мультикастные. Не бывает
   «каждый подписчик получает свой fetch», не нужен `share`.
 - **Complete/error как терминальные сигналы.** Поток у нас не «умирает» —
   ни сам по себе после ошибки, ни по `complete`. Ошибки — данные, конец
@@ -259,7 +259,7 @@ _очередей_ асинхронных операций, RxJS в этом с�
   не UI-фреймворк.
 - **Сто пятьдесят операторов.** `bufferToggle`, `windowWhen`,
   `sequenceEqual`… Наш std умещается в 2 kB. Экзотика пишется как обычная
-  функция над `Event` — иногда это три строки, и они ваши.
+  функция над `Stream` — иногда это три строки, и они ваши.
 - **Schedulers.** Логическое время транзакций + `queueMicrotask` браузера
   закрывают наши сценарии.
 
@@ -286,7 +286,7 @@ Continuum — не «RxJS получше». Это UI-фреймворк, в к�
 
 - [Что такое FRP — на пальцах](/ru/frp-in-plain-words) — если хочется
   понять модель с нуля;
-- [Events](/ru/concepts/events) и [Behaviors](/ru/concepts/behaviors) —
+- [Streams](/ru/concepts/events) и [Behaviors](/ru/concepts/behaviors) —
   строгие определения обеих половин;
 - [Транзакции и время](/ru/concepts/transactions) — как именно устроено
   «без глитчей»;

@@ -46,7 +46,7 @@ const formValid = Behavior.lift2(
 Кнопка порождает событие; значения полей оно _захватывает_ в момент клика:
 
 ```tsx
-const [submits, fireSubmit] = newEvent<void>();
+const [submits, fireSubmit] = newStream<void>();
 
 const payload = submits
   .gate(formValid) // игнорировать сабмит невалидной формы

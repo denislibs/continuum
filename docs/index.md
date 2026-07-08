@@ -17,10 +17,10 @@ hero:
       link: https://github.com/denislibs/continuum
 
 features:
-  - title: State that just updates
-    details: Create a value, put it in JSX, change it from a handler. No hooks, no dependency arrays, no memoization — derived values are plain function calls.
   - title: No re-renders
-    details: A component function runs exactly once. Only the text node or attribute that depends on a value updates — no virtual DOM, no diffing.
+    details: A component function runs exactly once. State is a value you drop into JSX; only the text node or attribute that depends on it updates — no hooks, no dependency arrays, no virtual DOM.
+  - title: Change is data — the part nobody else has
+    details: User actions are a stream you fold into state. One stream of actions — and undo, persistence, cross-tab sync and race-free search are one extra fold each, not a library each.
   - title: No update bugs, guaranteed
     details: All updates are atomic — derived values can never observe a half-updated state. Backed by classic FRP semantics rather than discipline.
   - title: Small enough to read
@@ -50,3 +50,22 @@ mount(document.getElementById("app")!, () => <Counter />);
 If you know `useState`, you already know this — except `Counter` never runs
 again. `{count}` binds a text node to the value; clicking patches exactly
 that node.
+
+## Then it stops being another framework
+
+Everything above, Solid also promises. Here is the part it doesn't: **change
+itself is a value.** Route every change through one stream of actions and
+fold it — and features that are normally a library each become one line each:
+
+```tsx
+const [actions, dispatch] = newStream<Action>();
+
+const todos = actions.accum(loadPersisted("todos", []), reduce); // the state
+const history = actions.accum(emptyHistory, undoReduce); //       + undo
+onCleanup(persist("todos", todos)); //                            + persistence
+// the `storage` event dispatching into the same reducer:         + cross-tab sync
+```
+
+The reducer never changes. The [patterns cookbook](/guides/patterns) walks
+through all of these — undo, optimistic updates, race-free search — each as
+a few lines over the same stream.

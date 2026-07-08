@@ -6,9 +6,9 @@
 
 # Function: interval()
 
-> **interval**(`ms`): `Event`\<`number`\>
+> **interval**(`ms`): `Stream`\<`number`\>
 
-Defined in: [index.ts:78](https://github.com/denislibs/continuum/blob/9e6d8fee1895bb34167cfe31c364b635d2b71604/packages/std/src/index.ts#L78)
+Defined in: [index.ts:78](https://github.com/denislibs/continuum/blob/d7c5ccacccc04163a481bd76c5d444925252087e/packages/std/src/index.ts#L78)
 
 A source event ticking `1, 2, 3, …` every `ms`. Stops on `dispose()`.
 
@@ -20,4 +20,4 @@ A source event ticking `1, 2, 3, …` every `ms`. Stops on `dispose()`.
 
 ## Returns
 
-`Event`\<`number`\>
+`Stream`\<`number`\>

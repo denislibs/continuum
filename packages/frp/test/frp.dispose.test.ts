@@ -1,9 +1,9 @@
 import { describe, test, expect } from "vitest";
-import { newEvent, Event } from "@continuum-js/frp";
+import { newStream, Stream } from "@continuum-js/frp";
 
-describe("Event.dispose", () => {
+describe("Stream.dispose", () => {
   test("detaches a derived node from its source", () => {
-    const [src, fire] = newEvent<number>();
+    const [src, fire] = newStream<number>();
     let calls = 0;
     const m = src.map((n) => {
       calls++;
@@ -18,14 +18,14 @@ describe("Event.dispose", () => {
   });
 
   test("is idempotent", () => {
-    const [src] = newEvent<number>();
+    const [src] = newStream<number>();
     const m = src.map((n) => n);
     m.dispose();
     expect(() => m.dispose()).not.toThrow();
   });
 
   test("never disposes the underlying source", () => {
-    const [src, fire] = newEvent<number>();
+    const [src, fire] = newStream<number>();
     const m = src.map((n) => n);
     m.dispose();
     let seen = 0;
@@ -35,7 +35,7 @@ describe("Event.dispose", () => {
   });
 
   test("cascades upstream through derived intermediates that become unused", () => {
-    const [src, fire] = newEvent<number>();
+    const [src, fire] = newStream<number>();
     let midCalls = 0;
     const mid = src.map((n) => {
       midCalls++;
@@ -48,7 +48,7 @@ describe("Event.dispose", () => {
   });
 
   test("keeps a shared intermediate alive while other consumers remain", () => {
-    const [src, fire] = newEvent<number>();
+    const [src, fire] = newStream<number>();
     let midCalls = 0;
     const mid = src.map((n) => {
       midCalls++;
@@ -62,9 +62,9 @@ describe("Event.dispose", () => {
   });
 
   test("disposing a merge detaches from both inputs", () => {
-    const [ea, fireA] = newEvent<number>();
-    const [eb, fireB] = newEvent<number>();
-    const merged = Event.merge(ea, eb, (x, y) => x + y);
+    const [ea, fireA] = newStream<number>();
+    const [eb, fireB] = newStream<number>();
+    const merged = Stream.merge(ea, eb, (x, y) => x + y);
     const seen: number[] = [];
     merged.listen((v) => seen.push(v));
     fireA(1);
@@ -77,7 +77,7 @@ describe("Event.dispose", () => {
 
 describe("Behavior.dispose", () => {
   test("detaches a stepped behavior from its source event", () => {
-    const [e, fire] = newEvent<number>();
+    const [e, fire] = newStream<number>();
     const b = e.hold(0);
     let seen = 0;
     b.updates.listen(() => seen++);

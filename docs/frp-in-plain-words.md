@@ -53,13 +53,13 @@ const [count, setCount] = newBehavior(0); // a cell holding 0
 const double = count.map((n) => n * 2); // =count*2, always current
 ```
 
-**An event** (in code: `Event`) — something that _happens_ rather than
+**An event** (in code: `Stream`) — something that _happens_ rather than
 _is_. A click, a key press, a server response. A click has no "current
 value" — it either happened or it didn't. As a beginner, plain callbacks
 (`onClick={() => …}`) are all you need; events become useful later, for
 streams like debounced search.
 
-## Event vs Behavior — as plainly as it gets {#event-vs-behavior}
+## Stream vs Behavior — as plainly as it gets {#event-vs-behavior}
 
 Compare two things from everyday life:
 
@@ -70,17 +70,17 @@ Compare two things from everyday life:
   "what's the current knock?" is a meaningless question. What makes sense
   is "did someone knock?" and "what do we do when they knock?".
 
-The temperature is a **Behavior**. The knock is an **Event**. The whole
+The temperature is a **Behavior**. The knock is an **Stream**. The whole
 difference is which question you are asking:
 
 | Question                                         | Type       | Examples                                                                 |
 | ------------------------------------------------ | ---------- | ------------------------------------------------------------------------ |
 | "What is it **right now**?"                      | `Behavior` | text in a field, a counter, the selected tab, "logged in?", window width |
-| "**Did** it happen? What do we do when it does?" | `Event`    | a click, Enter pressed, a server response arrived, a timer ticked        |
+| "**Did** it happen? What do we do when it does?" | `Stream`   | a click, Enter pressed, a server response arrived, a timer ticked        |
 
 The one-sentence test: **if you can draw it on the screen, it's a Behavior.
-If you can react to it, it's an Event.** The number on a button gets drawn —
-Behavior. The click itself can't be drawn — it gets reacted to — Event.
+If you can react to it, it's a Stream.** The number on a button gets drawn —
+Behavior. The click itself can't be drawn — it gets reacted to — Stream.
 
 Why not make do with one type? Try stuffing a click into a "cell": what
 value does it hold between clicks? You'd invent a `clicked = true` flag and
@@ -142,7 +142,7 @@ it has no reason to.
 | the formula `=A1*2`             | `count.map(n => n * 2)`   | a derived value                           |
 | a formula over two cells        | `Behavior.lift2(f, a, b)` | derived from several                      |
 | the whole sheet recalcs at once | a transaction             | changes land whole                        |
-| — (Excel has none)              | `Event`                   | a stream of happenings: clicks, responses |
+| — (Excel has none)              | `Stream`                  | a stream of happenings: clicks, responses |
 
 ## What's next
 
@@ -150,7 +150,7 @@ it has no reason to.
 - [Concepts](/concepts/components) — one idea per page, in the same plain
   language.
 - Curious how it works inside —
-  [Thinking in Behaviors and Events](/tutorial/thinking-in-frp).
+  [Thinking in Behaviors and Streams](/tutorial/thinking-in-frp).
 
 ---
 

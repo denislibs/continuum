@@ -3,7 +3,7 @@
 // checked against a pure functional model.
 import { describe, test, expect } from "vitest";
 import fc from "fast-check";
-import { newEvent, newBehavior, Event, Behavior } from "@continuum-js/frp";
+import { newStream, newBehavior, Stream, Behavior } from "@continuum-js/frp";
 
 // A small pool of total unary functions to build random derivation chains.
 const FN_POOL: Array<(x: number) => number> = [
@@ -25,14 +25,14 @@ const arbFires = fc.array(fc.integer({ min: -1000, max: 1000 }), {
 const applyChain = (chain: number[], x: number) =>
   chain.reduce((v, i) => FN_POOL[i](v), x);
 
-const buildChain = (src: Event<number>, chain: number[]) =>
+const buildChain = (src: Stream<number>, chain: number[]) =>
   chain.reduce((e, i) => e.map(FN_POOL[i]), src);
 
 describe("transactional invariants (property-based)", () => {
   test("glitch-freedom: a join over two random branches never sees a mixed state", () => {
     fc.assert(
       fc.property(arbChain, arbChain, arbFires, (ca, cb, fires) => {
-        const [src, fire] = newEvent<number>();
+        const [src, fire] = newStream<number>();
         const a = buildChain(src, ca).hold(0);
         const b = buildChain(src, cb).hold(0);
         const joined = Behavior.lift2((x, y) => [x, y] as const, a, b);
@@ -55,10 +55,10 @@ describe("transactional invariants (property-based)", () => {
   test("coalescing: merging two branches of one source yields one combined occurrence per moment", () => {
     fc.assert(
       fc.property(arbChain, arbChain, arbFires, (ca, cb, fires) => {
-        const [src, fire] = newEvent<number>();
+        const [src, fire] = newStream<number>();
         const left = buildChain(src, ca);
         const right = buildChain(src, cb);
-        const merged = Event.merge(left, right, (l, r) => l * 1000003 + r);
+        const merged = Stream.merge(left, right, (l, r) => l * 1000003 + r);
         const seen: number[] = [];
         const un = merged.listen((v) => seen.push(v));
 
@@ -76,7 +76,7 @@ describe("transactional invariants (property-based)", () => {
   test("hold delay: snapshot from the same moment always reads the PREVIOUS value", () => {
     fc.assert(
       fc.property(fc.integer(), arbFires, (init, fires) => {
-        const [src, fire] = newEvent<number>();
+        const [src, fire] = newStream<number>();
         const held = src.hold(init);
         const pairs = src.snapshot(held, (now, prev) => [now, prev] as const);
         const seen: Array<readonly [number, number]> = [];
@@ -120,7 +120,7 @@ describe("transactional invariants (property-based)", () => {
   test("accum agrees with a functional fold after every moment", () => {
     fc.assert(
       fc.property(fc.integer(), arbFires, (init, fires) => {
-        const [src, fire] = newEvent<number>();
+        const [src, fire] = newStream<number>();
         const acc = src.accum(init, (a, s) => s * 31 + a);
         const un = acc.updates.listen(() => {});
 
