@@ -39,8 +39,9 @@ JSX, missing `.retain()`, `onChange` on text fields). Format with
 
 ```ts
 // @continuum-js/frp
-const [b, set] = newBehavior<T>(init);      // Behavior<T> + setter
+const [b, set] = newBehavior<T>(init);      // Behavior<T> + setter (set of an equal value is a no-op; custom eq as 2nd arg)
 const [e, fire] = newStream<T>();            // Stream<T> + injector
+batch(() => { setA(1); setB(2); });          // several sets/fires as ONE moment
 b.map(f); b.sample(); b.updates;            // updates: Stream<T> of changes
 Behavior.lift2(f, a, b); Behavior.lift3(f, a, b, c);
 e.map(f); e.filter(p); e.mapTo(v); e.once(); e.gate(boolB);
@@ -101,7 +102,7 @@ lazy(() => import("./Page.js"), { fallback: () => <p>…</p> });
 
 | Import from            | What lives there                                                                            |
 | ---------------------- | ------------------------------------------------------------------------------------------- |
-| `@continuum-js/frp`    | newBehavior, newStream, Behavior, Stream, perform, constant, integral/warp                  |
+| `@continuum-js/frp`    | newBehavior, newStream, batch, Behavior, Stream, perform, constant, integral/warp           |
 | `@continuum-js/dom`    | mount, Show, Each, Dynamic, Portal, onMount, onCleanup, bindInput, context, animationFrames |
 | `@continuum-js/std`    | debounce, throttle, interval, distinctB, resource, Async                                    |
 | `@continuum-js/router` | Router, Outlet, Link, useParams, navigate, location, lazy                                   |

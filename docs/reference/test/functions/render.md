@@ -8,7 +8,7 @@
 
 > **render**(`view`): [`RenderResult`](../interfaces/RenderResult.md)
 
-Defined in: [index.ts:22](https://github.com/denislibs/continuum/blob/d7c5ccacccc04163a481bd76c5d444925252087e/packages/test/src/index.ts#L22)
+Defined in: [index.ts:22](https://github.com/denislibs/continuum/blob/27a9bec15130806dedfb8c21e1f5925fe5c38264/packages/test/src/index.ts#L22)
 
 Mount `view` into a fresh container appended to `document.body` (so focus
 and event bubbling behave like in a real page). Dispose manually, or let

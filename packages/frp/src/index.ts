@@ -199,27 +199,54 @@ export class Stream<A> {
    * @internal Raise this node's rank above `limit` and propagate the bump
    * downstream, so a node never has a rank ≤ one of its inputs. Detects
    * dependency cycles.
+   *
+   * Iterative on an explicit stack: a bump cascades through the entire
+   * downstream chain, and a deep chain must not overflow the call stack.
+   * `onPath` mirrors the recursion's path-tracking: a node met twice on ONE
+   * dfs path is a cycle; met again on a sibling path (a diamond) it is
+   * either already high enough (fast path) or bumped once more — same as
+   * the recursive formulation.
    */
-  ensureBiggerThan(limit: number, visited: Set<Stream<any>>): void {
-    if (this.rank > limit) return;
-    if (visited.has(this))
-      throw new Error("Continuum: dependency cycle detected");
-    if (limit + 1 > RANK_LIMIT) {
-      // Only a topology that is cyclic THROUGH TIME (a switch re-pointed at
-      // chains derived from its own output) can push ranks this far — no
-      // rank assignment stays bounded there, so fail loudly instead of
-      // silently degrading forever.
-      throw new Error(
-        "Continuum: rank overflow — a switch appears to be re-pointed at " +
-          "chains derived from its own output (a temporal dependency " +
-          "cycle). Break the loop with hold/snapshot (a pull edge) instead " +
-          "of a push edge.",
-      );
+  ensureBiggerThan(limit: number): void {
+    if (this.rank > limit) return; // fast path: nothing to bump, no allocs
+    // A frame is revisited (its node already on the path) exactly when all
+    // its children have been processed — LIFO order guarantees no other
+    // frame for the same node can be alive in between. Cycles are caught at
+    // push time: a *child* already on the path closes a loop.
+    const stack: Array<{ n: Stream<any>; l: number }> = [{ n: this, l: limit }];
+    const onPath = new Set<Stream<any>>();
+    while (stack.length > 0) {
+      const { n, l } = stack[stack.length - 1];
+      if (onPath.has(n)) {
+        // second visit: children done — leave the path
+        onPath.delete(n);
+        stack.pop();
+        continue;
+      }
+      if (n.rank > l) {
+        stack.pop();
+        continue;
+      }
+      if (l + 1 > RANK_LIMIT) {
+        // Only a topology that is cyclic THROUGH TIME (a switch re-pointed at
+        // chains derived from its own output) can push ranks this far — no
+        // rank assignment stays bounded there, so fail loudly instead of
+        // silently degrading forever.
+        throw new Error(
+          "Continuum: rank overflow — a switch appears to be re-pointed at " +
+            "chains derived from its own output (a temporal dependency " +
+            "cycle). Break the loop with hold/snapshot (a pull edge) instead " +
+            "of a push edge.",
+        );
+      }
+      onPath.add(n);
+      n.rank = l + 1;
+      for (const t of n.targets.keys()) {
+        if (onPath.has(t))
+          throw new Error("Continuum: dependency cycle detected");
+        stack.push({ n: t, l: n.rank });
+      }
     }
-    visited.add(this);
-    this.rank = limit + 1;
-    for (const t of this.targets.keys()) t.ensureBiggerThan(this.rank, visited);
-    visited.delete(this);
   }
 
   /** @internal Register an in-graph subscriber. Returns an unsubscribe handle. */
@@ -239,7 +266,7 @@ export class Stream<A> {
       this.targets.set(target, (this.targets.get(target) ?? 0) + 1);
       // keep the target strictly above this source (handles dynamic
       // subscriptions from switchB/switchE onto deeper events).
-      target.ensureBiggerThan(this.rank, new Set());
+      target.ensureBiggerThan(this.rank);
     }
     let done = false;
     return () => {
@@ -663,13 +690,45 @@ export function newStream<A>(): [Stream<A>, (a: A) => void] {
   return [e, fire];
 }
 
-/** A source behavior (a `hold` over a source event) plus its setter. */
-export function newBehavior<A>(init: A): [Behavior<A>, (a: A) => void] {
+/**
+ * A source behavior (a `hold` over a source event) plus its setter.
+ *
+ * Setting a value equal to the current one (by `eq`, default `Object.is`)
+ * is a no-op: no moment opens, no subscriber wakes. A behavior is a value
+ * across time — "changing" it to the same value is not a change. Pass a
+ * custom `eq` for structural comparison, or `() => false` to deliver every
+ * set (then de-duplicate downstream with `distinctB` where needed).
+ */
+export function newBehavior<A>(
+  init: A,
+  eq: (prev: A, next: A) => boolean = Object.is,
+): [Behavior<A>, (a: A) => void] {
   const [e, fire] = newStream<A>();
   // A source construct: the internal hold must survive listener churn
   // (bindings come and go with mounts) — exempt it from the cascade.
   const b = e.hold(init).retain();
-  return [b, fire];
+  // Skip against the last SENT value, not the hold's committed one: inside
+  // a batch the hold still shows the pre-moment value, and comparing with
+  // it would wrongly swallow a set back to that value (4 → 5 → 4 in one
+  // moment must commit 4).
+  let current = init;
+  const set = (a: A) => {
+    if (eq(current, a)) return;
+    fire(a);
+    current = a; // after the fire: an aborted moment must not poison the skip
+  };
+  return [b, set];
+}
+
+/**
+ * Run several fires as ONE moment. Every `fire`/`set` inside the callback
+ * joins the same transaction: downstream combinators recompute once,
+ * coalescing applies, and observers run once after the moment closes.
+ * Nested `batch` calls join the enclosing moment. Returns the callback's
+ * value.
+ */
+export function batch<A>(f: () => A): A {
+  return Transaction.run(() => f());
 }
 
 /** The behavior that is `v` at every moment (applicative `pure`). */

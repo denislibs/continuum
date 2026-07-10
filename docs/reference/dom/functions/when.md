@@ -8,7 +8,7 @@
 
 > **when**(`cond`, `thenRender`, `elseRender?`): `Node`
 
-Defined in: [index.tsx:635](https://github.com/denislibs/continuum/blob/d7c5ccacccc04163a481bd76c5d444925252087e/packages/dom/src/index.tsx#L635)
+Defined in: [index.tsx:640](https://github.com/denislibs/continuum/blob/27a9bec15130806dedfb8c21e1f5925fe5c38264/packages/dom/src/index.tsx#L640)
 
 Conditional region driven by a boolean behavior (no rebuild on same value).
 

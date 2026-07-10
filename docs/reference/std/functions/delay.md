@@ -8,7 +8,7 @@
 
 > **delay**\<`A`\>(`e`, `ms`): `Stream`\<`A`\>
 
-Defined in: [index.ts:59](https://github.com/denislibs/continuum/blob/d7c5ccacccc04163a481bd76c5d444925252087e/packages/std/src/index.ts#L59)
+Defined in: [index.ts:59](https://github.com/denislibs/continuum/blob/27a9bec15130806dedfb8c21e1f5925fe5c38264/packages/std/src/index.ts#L59)
 
 Shift every occurrence later by `ms`, preserving order and multiplicity.
 

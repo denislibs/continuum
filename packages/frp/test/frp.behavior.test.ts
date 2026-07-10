@@ -3,6 +3,7 @@ import {
   newStream,
   newBehavior,
   constant,
+  batch,
   Behavior,
   Stream,
   time,
@@ -157,5 +158,60 @@ describe("listen registration order", () => {
     b.listen(() => delivered++);
     set(1);
     expect(delivered).toBe(2); // initial + update; the broken listener is gone
+  });
+});
+
+describe("newBehavior equality skip", () => {
+  test("setting an equal value does not wake subscribers", () => {
+    const [b, set] = newBehavior(5);
+    const seen: number[] = [];
+    b.listen((v) => seen.push(v));
+    set(5); // no-op: same value
+    set(6);
+    set(6); // no-op again
+    expect(seen).toEqual([5, 6]);
+  });
+
+  test("equality is Object.is: NaN → NaN is a no-op, 0 → -0 is a change", () => {
+    const [b, set] = newBehavior(NaN);
+    const seen: number[] = [];
+    b.listen((v) => seen.push(v));
+    set(NaN); // Object.is(NaN, NaN) — skipped
+    expect(seen.length).toBe(1);
+    const [z, setZ] = newBehavior(0);
+    const zs: number[] = [];
+    z.listen((v) => zs.push(v));
+    setZ(-0); // Object.is(0, -0) is false — delivered
+    expect(zs.length).toBe(2);
+  });
+
+  test("custom equality", () => {
+    const [b, set] = newBehavior({ id: 1 }, (p, n) => p.id === n.id);
+    const seen: Array<{ id: number }> = [];
+    b.listen((v) => seen.push(v));
+    set({ id: 1 }); // equal by id — skipped
+    set({ id: 2 });
+    expect(seen.map((v) => v.id)).toEqual([1, 2]);
+  });
+
+  test("equality can be disabled: every set is delivered", () => {
+    const [b, set] = newBehavior(1, () => false);
+    const seen: number[] = [];
+    b.listen((v) => seen.push(v));
+    set(1);
+    set(1);
+    expect(seen).toEqual([1, 1, 1]);
+  });
+
+  test("inside a batch the skip compares against the LAST set, not the pre-moment value", () => {
+    const [b, set] = newBehavior(4);
+    const seen: number[] = [];
+    b.listen((v) => seen.push(v));
+    batch(() => {
+      set(5);
+      set(4); // must NOT be skipped: the last set was 5
+    });
+    expect(b.sample()).toBe(4);
+    expect(seen[seen.length - 1]).toBe(4);
   });
 });

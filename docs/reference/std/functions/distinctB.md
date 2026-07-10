@@ -8,7 +8,7 @@
 
 > **distinctB**\<`A`\>(`b`, `eq?`): `Behavior`\<`A`\>
 
-Defined in: [index.ts:146](https://github.com/denislibs/continuum/blob/d7c5ccacccc04163a481bd76c5d444925252087e/packages/std/src/index.ts#L146)
+Defined in: [index.ts:149](https://github.com/denislibs/continuum/blob/27a9bec15130806dedfb8c21e1f5925fe5c38264/packages/std/src/index.ts#L149)
 
 A behavior that suppresses updates equal to the current value (default `Object.is`).
 
