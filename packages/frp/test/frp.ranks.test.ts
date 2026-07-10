@@ -128,3 +128,20 @@ describe("long-run rank stability (§14 #6)", () => {
     expect(targets.size).toBeLessThanOrEqual(1);
   });
 });
+
+describe("rank cascade scale", () => {
+  test("bumping the head of a very deep chain does not overflow the call stack", () => {
+    const src = new Stream<number>(); // rank 0
+    let node: Stream<number> = src;
+    // deep, but under RANK_LIMIT (2^16) — the point is call-stack depth
+    for (let i = 0; i < 50_000; i++) node = node.map((x) => x);
+
+    // Force src under a high-rank producer: the bump must cascade through
+    // the whole 100k-node chain without recursing once per node.
+    const high = new Stream<number>(5);
+    high.listen_(src, () => {});
+
+    expect(src.rank).toBeGreaterThan(high.rank);
+    expect(node.rank).toBeGreaterThan(src.rank);
+  });
+});

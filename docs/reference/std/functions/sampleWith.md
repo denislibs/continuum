@@ -8,7 +8,7 @@
 
 > **sampleWith**\<`A`, `B`\>(`trigger`, `b`): `Stream`\<`B`\>
 
-Defined in: [index.ts:130](https://github.com/denislibs/continuum/blob/d7c5ccacccc04163a481bd76c5d444925252087e/packages/std/src/index.ts#L130)
+Defined in: [index.ts:130](https://github.com/denislibs/continuum/blob/944371c394c0c26acf1400ff3d9564ada9a945a4/packages/std/src/index.ts#L130)
 
 Sample `b` at each occurrence of `trigger`, discarding the trigger's value.
 

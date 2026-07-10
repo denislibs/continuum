@@ -8,7 +8,7 @@
 
 > **constant**\<`A`\>(`v`): [`Behavior`](../classes/Behavior.md)\<`A`\>
 
-Defined in: [index.ts:676](https://github.com/denislibs/continuum/blob/d7c5ccacccc04163a481bd76c5d444925252087e/packages/frp/src/index.ts#L676)
+Defined in: [index.ts:763](https://github.com/denislibs/continuum/blob/944371c394c0c26acf1400ff3d9564ada9a945a4/packages/frp/src/index.ts#L763)
 
 The behavior that is `v` at every moment (applicative `pure`).
 

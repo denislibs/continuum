@@ -8,7 +8,7 @@
 
 > **persist**\<`T`\>(`key`, `b`, `storage?`): `Unlisten`
 
-Defined in: [index.ts:242](https://github.com/denislibs/continuum/blob/d7c5ccacccc04163a481bd76c5d444925252087e/packages/std/src/index.ts#L242)
+Defined in: [index.ts:245](https://github.com/denislibs/continuum/blob/944371c394c0c26acf1400ff3d9564ada9a945a4/packages/std/src/index.ts#L245)
 
 Mirror every value of `b` (including the current one) into storage as JSON.
 Best-effort: a throwing `setItem` (quota, private mode) is swallowed — the

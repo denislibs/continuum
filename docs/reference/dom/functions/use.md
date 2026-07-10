@@ -8,7 +8,7 @@
 
 > **use**\<`T`\>(`ctx`): `T`
 
-Defined in: [index.tsx:604](https://github.com/denislibs/continuum/blob/d7c5ccacccc04163a481bd76c5d444925252087e/packages/dom/src/index.tsx#L604)
+Defined in: [index.tsx:609](https://github.com/denislibs/continuum/blob/944371c394c0c26acf1400ff3d9564ada9a945a4/packages/dom/src/index.tsx#L609)
 
 Read the nearest provided value up the owner tree, else the default.
 

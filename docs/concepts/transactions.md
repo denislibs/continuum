@@ -46,6 +46,33 @@ This is what makes recursive definitions well-defined: "the new value
 depends on the old one" needs an "old one" that is stable within the moment.
 The past is available; the present is still forming.
 
+## Batching several fires
+
+Each `fire`/`set` normally opens its own moment. When one user action
+updates several sources, wrap them in `batch` — everything inside joins
+**one** moment: joins recompute once, merges coalesce, observers run once
+at the end:
+
+```ts
+import { batch } from "@continuum-js/frp";
+
+batch(() => {
+  setQuery("");
+  setPage(1);
+  setSelection(null);
+}); // one moment: one recompute per join, one DOM patch per binding
+```
+
+Nested `batch` calls join the enclosing moment. You rarely need this —
+deriving state usually removes the need to set several sources at once —
+but when you do set several, `batch` keeps the in-between states from ever
+existing.
+
+One rule: a stream carries **at most one occurrence per moment**, so firing
+the _same_ stream twice inside one batch throws (silently folding the second
+occurrence over pre-moment state would corrupt `accum`). Setting the same
+_behavior_ repeatedly is fine — the last write wins.
+
 ## Effects run after
 
 `listen` handlers run in the _post_ phase, after the moment closes. If a

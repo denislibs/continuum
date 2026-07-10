@@ -23,6 +23,7 @@
 
 ## Functions
 
+- [batch](functions/batch.md)
 - [constant](functions/constant.md)
 - [derivative](functions/derivative.md)
 - [distinct](functions/distinct.md)

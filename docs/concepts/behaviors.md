@@ -30,6 +30,14 @@ like `useState` without re-runs. The event-based forms (`accum`, `hold`)
 shine when state is naturally "a history of things that happened"; they live
 in [Streams](/concepts/events).
 
+Setting a value equal to the current one (by `Object.is`) is a **no-op**:
+no subscriber wakes, no DOM is touched. A Behavior is a value across time —
+"changing" it to the same value is not a change. Pass your own comparison
+as the second argument (`newBehavior(user, (a, b) => a.id === b.id)`), or
+`() => false` to deliver every set. Note the flip side: mutating an object
+in place and setting the same reference is skipped — set a fresh object
+instead.
+
 ## Deriving
 
 Derived values are built with `map` and `lift`, and the expression structure

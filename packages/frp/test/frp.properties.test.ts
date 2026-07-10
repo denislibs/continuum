@@ -109,9 +109,19 @@ describe("transactional invariants (property-based)", () => {
         for (const [delivered, sampled] of seen) {
           expect(sampled).toBe(delivered);
         }
-        // And the deliveries themselves follow the functional model.
+        // And the deliveries themselves follow the functional model. The
+        // source skips sets equal to the current value (Object.is), so the
+        // model drops consecutive duplicates before mapping.
+        const distinctFires: number[] = [];
+        let prev = init;
+        for (const v of fires) {
+          if (!Object.is(prev, v)) {
+            distinctFires.push(v);
+            prev = v;
+          }
+        }
         expect(seen.map(([d]) => d)).toEqual(
-          [init, ...fires].map((v) => applyChain(chain, v)),
+          [init, ...distinctFires].map((v) => applyChain(chain, v)),
         );
       }),
     );
