@@ -177,7 +177,11 @@ const RANK_LIMIT = 1 << 16;
 export class Stream<A> {
   /** @internal Topological height in the graph (propagation order). */
   rank: number;
-  private listeners: Handler<A>[] = [];
+  // A Set keeps unlisten O(1) — mass teardown of thousands of bindings on
+  // one source used to be O(n²) with indexOf+splice. Insertion order is
+  // preserved (observers stay FIFO). Every subscription passes a fresh
+  // closure, so Set's dedup never bites.
+  private listeners = new Set<Handler<A>>();
   /**
    * Downstream nodes, used to keep ranks topologically sorted. Refcounted:
    * an entry is dropped when its last subscription unlistens, so a
@@ -261,7 +265,7 @@ export class Stream<A> {
           "mounts.",
       );
     }
-    this.listeners.push(h);
+    this.listeners.add(h);
     if (target) {
       this.targets.set(target, (this.targets.get(target) ?? 0) + 1);
       // keep the target strictly above this source (handles dynamic
@@ -272,8 +276,7 @@ export class Stream<A> {
     return () => {
       if (done) return;
       done = true;
-      const i = this.listeners.indexOf(h);
-      if (i >= 0) this.listeners.splice(i, 1);
+      this.listeners.delete(h);
       if (target) {
         const n = this.targets.get(target);
         if (n !== undefined) {
@@ -286,7 +289,10 @@ export class Stream<A> {
 
   /** @internal Push an occurrence to every current subscriber. */
   send_(t: Transaction, a: A): void {
-    const ls = this.listeners.slice();
+    // Snapshot: a listener added during delivery must NOT see this
+    // occurrence, one removed during delivery still does (see the
+    // bookkeeping tests).
+    const ls = [...this.listeners];
     for (const h of ls) h(t, a);
   }
 
@@ -301,7 +307,7 @@ export class Stream<A> {
       un();
       if (
         !input.pinned &&
-        input.listeners.length === 0 &&
+        input.listeners.size === 0 &&
         input.cleanups.length > 0
       ) {
         input.dispose();
@@ -330,7 +336,7 @@ export class Stream<A> {
     const cs = this.cleanups;
     this.cleanups = [];
     for (const c of cs) c();
-    this.listeners.length = 0;
+    this.listeners.clear();
     this.targets.clear();
   }
 
@@ -483,7 +489,7 @@ export class Stream<A> {
       // (no cleanups of their own) are never auto-disposed.
       if (
         !this.pinned &&
-        this.listeners.length === 0 &&
+        this.listeners.size === 0 &&
         this.cleanups.length > 0
       ) {
         this.dispose();
@@ -668,10 +674,15 @@ export class Behavior<A> {
 // Source constructors
 // ---------------------------------------------------------------------------
 
-/** A source event plus its `fire`. Each `fire` opens a fresh moment. */
-export function newStream<A>(): [Stream<A>, (a: A) => void] {
-  const e = new Stream<A>(0);
-  const fire = (a: A) => {
+// Build a `fire` for a source. `once` enforces the model at the boundary: a
+// Stream carries at most ONE occurrence per moment, and a second fire of the
+// same source inside one moment (reachable via `batch`) would silently
+// corrupt folds — `accum` would fold the second occurrence over the
+// PRE-moment state, dropping the first. Behaviors opt out: `hold` stages
+// last-write-wins by design, so repeated `set` in a moment is legal.
+function makeFire<A>(e: Stream<A>, once: boolean): (a: A) => void {
+  let lastTx: Transaction | null = null;
+  return (a: A) => {
     if (Transaction.current?.pureZone) {
       throw new Error(
         "Source fired inside a pure combinator (map/filter/snapshot/accum). " +
@@ -679,6 +690,15 @@ export function newStream<A>(): [Stream<A>, (a: A) => void] {
       );
     }
     Transaction.run((t) => {
+      if (once) {
+        if (lastTx === t)
+          throw new Error(
+            "Continuum: a source may fire once per moment — merge distinct " +
+              "streams with an explicit combine, or use a behavior's setter " +
+              "for last-write-wins.",
+          );
+        lastTx = t;
+      }
       t.sending++;
       try {
         e.send_(t, a);
@@ -687,7 +707,12 @@ export function newStream<A>(): [Stream<A>, (a: A) => void] {
       }
     });
   };
-  return [e, fire];
+}
+
+/** A source event plus its `fire`. Each `fire` opens a fresh moment. */
+export function newStream<A>(): [Stream<A>, (a: A) => void] {
+  const e = new Stream<A>(0);
+  return [e, makeFire(e, true)];
 }
 
 /**
@@ -703,7 +728,10 @@ export function newBehavior<A>(
   init: A,
   eq: (prev: A, next: A) => boolean = Object.is,
 ): [Behavior<A>, (a: A) => void] {
-  const [e, fire] = newStream<A>();
+  const e = new Stream<A>(0);
+  // once=false: repeated `set` within one moment is last-write-wins (hold
+  // stages exactly that), unlike a stream's fire.
+  const fire = makeFire(e, false);
   // A source construct: the internal hold must survive listener churn
   // (bindings come and go with mounts) — exempt it from the cascade.
   const b = e.hold(init).retain();

@@ -92,3 +92,59 @@ describe("hold delay semantics (classic FRP)", () => {
     ]);
   });
 });
+
+describe("listener bookkeeping under mutation (guards the Set refactor)", () => {
+  test("a listener unsubscribed DURING delivery still receives the current occurrence", () => {
+    const [e, fire] = newStream<number>();
+    const seen: string[] = [];
+    const unB: Array<() => void> = [];
+    e.listen((v) => {
+      seen.push(`a${v}`);
+      unB.forEach((u) => u()); // kill B while the moment is being delivered
+    });
+    unB.push(e.listen((v) => seen.push(`b${v}`)));
+    fire(1);
+    expect(seen).toEqual(["a1", "b1"]); // b still saw the in-flight occurrence
+    fire(2);
+    expect(seen).toEqual(["a1", "b1", "a2"]); // and is gone afterwards
+  });
+
+  test("a listener subscribed DURING delivery does not receive the current occurrence", () => {
+    const [e, fire] = newStream<number>();
+    const seen: string[] = [];
+    let subscribed = false;
+    e.listen((v) => {
+      seen.push(`a${v}`);
+      if (!subscribed) {
+        subscribed = true;
+        e.listen((w) => seen.push(`late${w}`));
+      }
+    });
+    fire(1);
+    expect(seen).toEqual(["a1"]); // late joiner missed the in-flight moment
+    fire(2);
+    expect(seen).toEqual(["a1", "a2", "late2"]);
+  });
+
+  test("observers keep FIFO order across an unsubscribe in the middle", () => {
+    const [e, fire] = newStream<number>();
+    const seen: string[] = [];
+    e.listen(() => seen.push("first"));
+    const un = e.listen(() => seen.push("second"));
+    e.listen(() => seen.push("third"));
+    un();
+    fire(0);
+    expect(seen).toEqual(["first", "third"]);
+  });
+
+  test("double unlisten is idempotent and does not evict a neighbour", () => {
+    const [e, fire] = newStream<number>();
+    const seen: string[] = [];
+    const un = e.listen(() => seen.push("a"));
+    e.listen(() => seen.push("b"));
+    un();
+    un(); // second call must be a no-op
+    fire(0);
+    expect(seen).toEqual(["b"]);
+  });
+});

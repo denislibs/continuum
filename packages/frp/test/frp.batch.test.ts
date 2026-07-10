@@ -95,3 +95,69 @@ describe("batch — several fires as one moment", () => {
     expect(() => batch(() => fire(1))).toThrow(/pure/i);
   });
 });
+
+describe("batch — one occurrence per source per moment", () => {
+  test("firing the SAME stream twice in one batch throws (no silent fold loss)", () => {
+    const [src, fire] = newStream<number>();
+    const acc = src.accum(0, (a, s) => s + a);
+    acc.updates.listen(() => {});
+    expect(() =>
+      batch(() => {
+        fire(1);
+        fire(2);
+      }),
+    ).toThrow(/moment/i);
+  });
+
+  test("a throwing double-fire aborts the whole moment atomically", () => {
+    const [src, fire] = newStream<number>();
+    const acc = src.accum(0, (a, s) => s + a);
+    acc.updates.listen(() => {});
+    try {
+      batch(() => {
+        fire(1);
+        fire(2);
+      });
+    } catch {
+      /* expected */
+    }
+    // the first fire of the aborted moment must NOT be committed
+    expect(acc.sample()).toBe(0);
+    // and the source is not poisoned: a fresh moment works
+    fire(5);
+    expect(acc.sample()).toBe(5);
+  });
+
+  test("setting the SAME behavior twice in one batch is fine: last write wins", () => {
+    const [b, set] = newBehavior(0);
+    const seen: number[] = [];
+    b.listen((v) => seen.push(v));
+    batch(() => {
+      set(1);
+      set(2);
+    });
+    expect(b.sample()).toBe(2);
+  });
+
+  test("two DIFFERENT streams in one batch stay legal", () => {
+    const [ea, fireA] = newStream<number>();
+    const [eb, fireB] = newStream<number>();
+    const m = Stream.merge(ea, eb, (l, r) => l + r);
+    const seen: number[] = [];
+    m.listen((v) => seen.push(v));
+    batch(() => {
+      fireA(1);
+      fireB(2);
+    });
+    expect(seen).toEqual([3]);
+  });
+
+  test("sequential fires outside a batch are separate moments as before", () => {
+    const [src, fire] = newStream<number>();
+    const acc = src.accum(0, (a, s) => s + a);
+    acc.updates.listen(() => {});
+    fire(1);
+    fire(2);
+    expect(acc.sample()).toBe(3);
+  });
+});

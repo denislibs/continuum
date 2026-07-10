@@ -8,7 +8,7 @@
 
 > **onCleanup**(`fn`): `void`
 
-Defined in: [index.tsx:101](https://github.com/denislibs/continuum/blob/27a9bec15130806dedfb8c21e1f5925fe5c38264/packages/dom/src/index.tsx#L101)
+Defined in: [index.tsx:101](https://github.com/denislibs/continuum/blob/944371c394c0c26acf1400ff3d9564ada9a945a4/packages/dom/src/index.tsx#L101)
 
 Register a cleanup in the current owner. Throws outside any owner.
 

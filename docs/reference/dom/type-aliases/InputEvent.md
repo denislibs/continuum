@@ -8,7 +8,7 @@
 
 > **InputEvent**\<`E`\> = [`Targeted`](Targeted.md)\<`globalThis.InputEvent`, `E`\>
 
-Defined in: [events.ts:40](https://github.com/denislibs/continuum/blob/27a9bec15130806dedfb8c21e1f5925fe5c38264/packages/dom/src/events.ts#L40)
+Defined in: [events.ts:40](https://github.com/denislibs/continuum/blob/944371c394c0c26acf1400ff3d9564ada9a945a4/packages/dom/src/events.ts#L40)
 
 ## Type Parameters
 

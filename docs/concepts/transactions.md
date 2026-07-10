@@ -68,6 +68,11 @@ deriving state usually removes the need to set several sources at once —
 but when you do set several, `batch` keeps the in-between states from ever
 existing.
 
+One rule: a stream carries **at most one occurrence per moment**, so firing
+the _same_ stream twice inside one batch throws (silently folding the second
+occurrence over pre-moment state would corrupt `accum`). Setting the same
+_behavior_ repeatedly is fine — the last write wins.
+
 ## Effects run after
 
 `listen` handlers run in the _post_ phase, after the moment closes. If a

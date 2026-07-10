@@ -8,7 +8,7 @@
 
 > **Portal**(`props`): `Node`
 
-Defined in: [index.tsx:790](https://github.com/denislibs/continuum/blob/27a9bec15130806dedfb8c21e1f5925fe5c38264/packages/dom/src/index.tsx#L790)
+Defined in: [index.tsx:790](https://github.com/denislibs/continuum/blob/944371c394c0c26acf1400ff3d9564ada9a945a4/packages/dom/src/index.tsx#L790)
 
 Render children into another node (e.g. `document.body`), cleaning up on
 unmount. Children are eager here — a portal renders immediately.

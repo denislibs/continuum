@@ -8,7 +8,7 @@
 
 > **batch**\<`A`\>(`f`): `A`
 
-Defined in: [index.ts:730](https://github.com/denislibs/continuum/blob/27a9bec15130806dedfb8c21e1f5925fe5c38264/packages/frp/src/index.ts#L730)
+Defined in: [index.ts:758](https://github.com/denislibs/continuum/blob/944371c394c0c26acf1400ff3d9564ada9a945a4/packages/frp/src/index.ts#L758)
 
 Run several fires as ONE moment. Every `fire`/`set` inside the callback
 joins the same transaction: downstream combinators recompute once,
