@@ -50,7 +50,8 @@ type NodeSpec =
   | { k: "accum"; src: number; f: number }
   | { k: "wmap"; src: number; f: number } // wire.map
   | { k: "combine"; a: number; b: number; f: number } // lift2
-  | { k: "boom"; src: number }; // a map that throws while the bomb is armed
+  | { k: "boom"; src: number } // a map that throws while the bomb is armed
+  | { k: "swb"; sel: number; a: number; b: number }; // flatten over wires
 
 interface GraphSpec {
   nStreams: number; // source streams
@@ -170,6 +171,17 @@ function build(spec: GraphSpec): Built {
         });
         break;
       }
+      case "swb": {
+        // a numeric wire chooses between two existing wires; flatten follows.
+        // Simultaneous switch + inner update in one batch exercises the
+        // phase-6 semantics (post-commit emission).
+        const wa = pickW(n.a);
+        const wb = pickW(n.b);
+        const chooser = pickW(n.sel);
+        const sel = chooser.w.map((v) => (v % 2 === 0 ? wa.w : wb.w));
+        g.wires.push({ w: Behavior.switchB(sel), pure: true });
+        break;
+      }
     }
   }
   return g;
@@ -209,6 +221,12 @@ const arbNode: fc.Arbitrary<NodeSpec> = fc.oneof(
     f: fc.nat(9),
   }),
   fc.record({ k: fc.constant("boom" as const), src: fc.nat(20) }),
+  fc.record({
+    k: fc.constant("swb" as const),
+    sel: fc.nat(20),
+    a: fc.nat(20),
+    b: fc.nat(20),
+  }),
 );
 
 const arbSpec: fc.Arbitrary<GraphSpec> = fc.record({
@@ -470,34 +488,28 @@ describe("fuzz seeds — known law violations (flip to test() in their phase)", 
     expect(seen[seen.length - 1]).toBe(sum.sample()); // today: push 31, pull 32
   });
 
-  test.fails(
-    "[фаза 6] flatten converges on simultaneous switch + inner update (law 1)",
-    () => {
-      const [x] = newBehavior(1);
-      const [y, setY] = newBehavior(10);
-      const [sel, setSel] = newBehavior<Behavior<number>>(x);
-      const sw = Behavior.switchB(sel);
-      const seen: number[] = [];
-      sw.listen((v) => seen.push(v));
-      batch(() => {
-        setSel(y);
-        setY(99);
-      });
-      expect(seen[seen.length - 1]).toBe(sw.sample()); // today: push 10, pull 99
-    },
-  );
+  test("[фаза 6 ✓] flatten converges on simultaneous switch + inner update (law 1)", () => {
+    const [x] = newBehavior(1);
+    const [y, setY] = newBehavior(10);
+    const [sel, setSel] = newBehavior<Behavior<number>>(x);
+    const sw = Behavior.switchB(sel);
+    const seen: number[] = [];
+    sw.listen((v) => seen.push(v));
+    batch(() => {
+      setSel(y);
+      setY(99);
+    });
+    expect(seen[seen.length - 1]).toBe(sw.sample()); // today: push 10, pull 99
+  });
 
-  test.fails(
-    "[фаза 6] a cell delivers ONE coalesced updates occurrence per moment",
-    () => {
-      const [b, setB] = newBehavior(0);
-      const seen: number[] = [];
-      b.updates.listen((v) => seen.push(v));
-      batch(() => {
-        setB(1);
-        setB(2);
-      });
-      expect(seen).toEqual([2]); // today: [1, 2] — the intermediate leaks
-    },
-  );
+  test("[фаза 6 ✓] a cell delivers ONE coalesced updates occurrence per moment", () => {
+    const [b, setB] = newBehavior(0);
+    const seen: number[] = [];
+    b.updates.listen((v) => seen.push(v));
+    batch(() => {
+      setB(1);
+      setB(2);
+    });
+    expect(seen).toEqual([2]); // today: [1, 2] — the intermediate leaks
+  });
 });

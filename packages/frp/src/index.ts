@@ -919,8 +919,6 @@ export class Wire<A> {
       innerUn = out.subscribe(b.updates, (t, a) => out.send_(t, a));
     };
     out.source(bb.updates, (t, nb) => {
-      // Emit the new inner's current value as this wire's update.
-      out.send_(t, nb.sampleNoTrans());
       // Rewire at the moment boundary (classic switch delay).
       t.last(() => {
         if (!innerUn) return; // fell asleep before the boundary
@@ -932,6 +930,10 @@ export class Wire<A> {
         const floor = Math.max(bb.updates.rank, nb.updates.rank) + 1;
         if (floor < out.rank) out.rank = floor;
         attach(nb);
+        // Emit the new selection's value AFTER this moment's commits (a
+        // fresh last batch): on a simultaneous switch + inner update the
+        // push side then agrees with the pull side (law 1).
+        t.last(() => out.send_(t, nb.sampleNoTrans()));
       });
     });
     out.onWake = () => attach(bb.sampleNoTrans());
@@ -1053,9 +1055,14 @@ function makeCell<A>(init: A, eq: (prev: A, next: A) => boolean): Cell<A> {
           stagedTx = null;
         }
       });
+      // ONE updates occurrence per moment — the final staged value.
+      // Several sets in one batch coalesce; the intermediate values never
+      // reach the graph (they are not values the cell ever held).
+      t.prioritized(updates.rank, (t2) => {
+        if (stagedTx === t2) updates.send_(t2, staged);
+      });
     }
     staged = a; // last write wins within a moment
-    updates.send_(t, a);
   };
   // Skip against the PENDING value: the staged one if this very moment
   // already wrote (4 → 5 → 4 in one batch must commit 4), else the
@@ -1070,14 +1077,7 @@ function makeCell<A>(init: A, eq: (prev: A, next: A) => boolean): Cell<A> {
           "Keep those callbacks pure — fire from a handler, `listen`, or `perform`.",
       );
     }
-    Transaction.run((t) => {
-      t.sending++;
-      try {
-        stage(t, a);
-      } finally {
-        t.sending--;
-      }
-    });
+    Transaction.run((t) => stage(t, a));
   };
   return { w: new Wire<A>(() => value, updates), updates, set, stage, pending };
 }
