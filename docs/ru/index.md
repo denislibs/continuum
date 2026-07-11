@@ -34,13 +34,15 @@ npm create continuum-js@latest my-app
 ```
 
 ```tsx
-import { newBehavior } from "@continuum-js/frp";
+import { wire } from "@continuum-js/frp";
 import { mount } from "@continuum-js/dom";
 
 function Counter() {
-  const [count, setCount] = newBehavior(0);
+  const count = wire(0);
   return (
-    <button onClick={() => setCount(count.sample() + 1)}>count: {count}</button>
+    <button onClick={() => count.set(count.sample() + 1)}>
+      count: {count}
+    </button>
   );
 }
 
@@ -59,7 +61,7 @@ mount(document.getElementById("app")!, () => <Counter />);
 становятся одной строкой каждая:
 
 ```tsx
-const [actions, dispatch] = newStream<Action>();
+const actions = stream<Action>();
 
 const todos = actions.accum(loadPersisted("todos", []), reduce); // состояние
 const history = actions.accum(emptyHistory, undoReduce); //       + undo

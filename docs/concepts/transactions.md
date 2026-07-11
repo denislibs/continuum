@@ -1,7 +1,7 @@
 # Transactions and time
 
 Every update in Continuum happens inside a **transaction** — one atomic
-moment of logical time. `fire(x)` opens a moment; everything that follows
+moment of logical time. `e.fire(x)` opens a moment; everything that follows
 from `x` settles inside it; the moment closes; only then do effects
 (`listen`, DOM patches) observe the result.
 
@@ -13,7 +13,7 @@ join recomputes **once per moment**, seeing both branches updated:
 ```ts
 const doubled = count.map((n) => n * 2);
 const squared = count.map((n) => n * n);
-const sum = Behavior.lift2((d, s) => d + s, doubled, squared);
+const sum = combine(doubled, squared, (d, s) => d + s);
 // count: 2 → 3 makes sum go 8 → 15 in one step. "6 + 4" never exists.
 ```
 
@@ -28,17 +28,17 @@ forces you to say what that means:
 
 - `Stream.merge(ea, eb, combine)` — simultaneous occurrences are coalesced
   with `combine`, not ordered arbitrarily;
-- `snapshot` sees Behaviors _as of the start of the moment_.
+- `at` sees Wires _as of the start of the moment_.
 
 ## The `hold` delay
 
-`hold`/`accum` update Behaviors **at the moment's boundary**. Inside the
-transaction that delivers the occurrence, the Behavior still shows its
+`hold`/`accum` update Wires **at the moment's boundary**. Inside the
+transaction that delivers the occurrence, the Wire still shows its
 previous value:
 
 ```ts
 const count = clicks.accum(0, (_e, n) => n + 1);
-const before = clicks.snapshot(count, (_e, n) => n);
+const before = count.at(clicks);
 // on the 3rd click, `before` is 2 — the value BEFORE this moment
 ```
 
@@ -57,9 +57,9 @@ at the end:
 import { batch } from "@continuum-js/frp";
 
 batch(() => {
-  setQuery("");
-  setPage(1);
-  setSelection(null);
+  query.set("");
+  page.set(1);
+  selection.set(null);
 }); // one moment: one recompute per join, one DOM patch per binding
 ```
 
@@ -71,7 +71,8 @@ existing.
 One rule: a stream carries **at most one occurrence per moment**, so firing
 the _same_ stream twice inside one batch throws (silently folding the second
 occurrence over pre-moment state would corrupt `accum`). Setting the same
-_behavior_ repeatedly is fine — the last write wins.
+_wire_ repeatedly is fine — the last write wins, and its `updates` delivers
+a single coalesced occurrence carrying the final value.
 
 ## Effects run after
 
@@ -79,7 +80,7 @@ _behavior_ repeatedly is fine — the last write wins.
 handler fires a new event (a router redirect, a `perform` response), that
 opens a **new** moment — transactions never nest or interleave.
 
-For the full operational story — the three phases, ranks, `switch`, and how
+For the full operational story — the three phases, ranks, `flatten`, and how
 this maps to the Sodium book — see
 [FRP-MODEL](https://github.com/denislibs/continuum/blob/main/FRP-MODEL.md).
 

@@ -14,8 +14,9 @@
 ## Общая родословная: пол-идеи FRP
 
 В 1997 году Конал Эллиотт и Пол Худак описали FRP: **два** типа —
-`Behavior` (значение во времени) и `Stream` (дискретные происшествия) — с
-точной математической семантикой композиции.
+`Behavior` (значение во времени; в Continuum он называется Wire, «провод»)
+и `Stream` (дискретные происшествия) — с точной математической семантикой
+композиции.
 
 В 2009-м Эрик Мейер с командой в Microsoft выпустили Reactive Extensions.
 Rx взял у FRP слово «reactive» и алгебру операторов над потоками — и
@@ -61,7 +62,8 @@ const count$ = clicks$.pipe(
 утечку от `shareReplay`, а баг «состояние сбросилось, потому что все
 отписались на мгновение» не чинит уже ничто — его просто ловят в проде.
 
-В Continuum «текущее значение» — это отдельный тип, `Behavior`:
+В Continuum «текущее значение» — это отдельный тип, `Wire` (тот самый
+Behavior из FRP-литературы):
 
 ```ts
 // Continuum
@@ -69,16 +71,17 @@ const count = clicks.accum(0, (_e, n) => n + 1);
 ```
 
 Всё. У `count` **всегда** есть значение. Нельзя подписаться «слишком
-поздно» — `listen` немедленно доставляет текущее. Нельзя «сбросить
-состояние отпиской» — значение живёт в самом Behavior, а не в цепочке
-подписок. `startWith`, `shareReplay`, `refCount`, `BehaviorSubject`,
+поздно» — `listen` немедленно доставляет текущее, а `sample()` отвечает
+всегда, даже когда слушателей нет. Нельзя «сбросить состояние отпиской» —
+состояние принадлежит скоупу-владельцу, а не цепочке подписок.
+`startWith`, `shareReplay`, `refCount`, `BehaviorSubject`,
 дилемма hot/cold — этих слов в нашем словаре нет, потому что нет проблем,
 которые они решают.
 
 Правило перевода простое:
 
 > Если ваш поток заканчивается на `scan`/`startWith`/`shareReplay` или
-> начинается с `BehaviorSubject` — это был не поток. Это был Behavior,
+> начинается с `BehaviorSubject` — это был не поток. Это был Wire,
 > который заставили притворяться потоком.
 
 ## Различие №2: глитчи — не баг вашего кода, а свойство модели Rx
@@ -113,7 +116,7 @@ Rx-ветераны знают заклинания: `debounceTime(0)`, `auditTi
 // Continuum
 const doubled = src.map((x) => x * 2);
 const squared = src.map((x) => x * x);
-const sum = Behavior.lift2((d, s) => d + s, doubled, squared);
+const sum = combine(doubled, squared, (d, s) => d + s);
 
 // src: 2 → 3.  sum: 8 → 15. Одним шагом. Промежуточного "10" не существует.
 ```
@@ -177,12 +180,12 @@ function Ticker() {
 | RxJS                              | Continuum                      | Комментарий                      |
 | --------------------------------- | ------------------------------ | -------------------------------- |
 | `map`, `filter`                   | `e.map`, `e.filter`            | так же                           |
-| `scan(f, init)`                   | `e.accum(init, f)`             | результат — сразу Behavior       |
+| `scan(f, init)`                   | `e.accum(init, f)`             | результат — сразу Wire           |
 | `startWith(x)` + `shareReplay(1)` | `e.hold(x)`                    | одно слово вместо церемонии      |
-| `combineLatest`                   | `Behavior.lift2/lift3`         | без глитчей                      |
-| `withLatestFrom(b$)`              | `e.snapshot(b, f)`             | с точной одновременностью        |
+| `combineLatest`                   | `combine(a, b, f)`             | без глитчей                      |
+| `withLatestFrom(b$)`              | `w.at(e, f)`                   | с точной одновременностью        |
 | `merge(a$, b$)`                   | `Stream.merge(a, b, f)`        | одновременные коалесцируются `f` |
-| `race(a$, b$)`-ish                | `a.orElse(b)`                  | лево-приоритетный                |
+| `race(a$, b$)`-ish                | `a.or(b)`                      | лево-приоритетный                |
 | `debounceTime(ms)`                | `debounce(e, ms)`              | std                              |
 | `throttleTime(ms)`                | `throttle(e, ms)`              | std                              |
 | `delay(ms)`                       | `delay(e, ms)`                 | std                              |
@@ -190,9 +193,9 @@ function Ticker() {
 | `distinctUntilChanged()`          | `distinct(e)` / `distinctB(b)` | std                              |
 | `pairwise()`                      | `pairwise(e)`                  | std                              |
 | `take(1)` / `first()`             | `e.once()`                     |                                  |
-| `filter(() => flag)`              | `e.gate(flagB)`                | флаг — Behavior, не замыкание    |
-| `BehaviorSubject`                 | `newBehavior(init)`            | _тип_, а не костыль              |
-| `Subject`                         | `newStream()`                  |                                  |
+| `filter(() => flag)`              | `e.when(flag)`                 | флаг — Wire, не замыкание        |
+| `BehaviorSubject`                 | `wire(init)`                   | _тип_, а не костыль              |
+| `Subject`                         | `stream()`                     |                                  |
 | `switchMap(fetch)`                | `resource(e, fetch)`           | см. ниже                         |
 | `subscribe`                       | `listen` + `onCleanup`         | или вообще привязка в JSX        |
 
@@ -226,7 +229,7 @@ Continuum сворачивает весь этот узор в одну функ
 // Continuum
 const settled = debounce(query.updates, 300);
 const results = resource(settled, (q) => api.search(q));
-// Behavior<Async<T>>: { status: "idle" | "loading" | "ok" | "error" }
+// Wire<Async<T>>: { status: "idle" | "loading" | "ok" | "error" }
 ```
 
 `resource` — это и есть «switchMap для UI»: последний запрос побеждает
@@ -244,7 +247,7 @@ const answers = perform(requests, (r) => api.send(r));
 
 Честное признание: у `concatMap` и `exhaustMap` (очередь запросов;
 игнорировать, пока летит текущий) готовых аналогов нет — это выражается
-через `gate`/`accum`, но требует подумать. Если ваша задача — оркестровка
+через `when`/`accum`, но требует подумать. Если ваша задача — оркестровка
 _очередей_ асинхронных операций, RxJS в этом сильнее.
 
 ## Чего у нас нет — и почему это хорошо
@@ -286,7 +289,7 @@ Continuum — не «RxJS получше». Это UI-фреймворк, в к�
 
 - [Что такое FRP — на пальцах](/ru/frp-in-plain-words) — если хочется
   понять модель с нуля;
-- [Streams](/ru/concepts/events) и [Behaviors](/ru/concepts/behaviors) —
+- [Streams](/ru/concepts/events) и [Wires](/ru/concepts/behaviors) —
   строгие определения обеих половин;
 - [Транзакции и время](/ru/concepts/transactions) — как именно устроено
   «без глитчей»;

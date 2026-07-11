@@ -1,4 +1,4 @@
-# Thinking in Behaviors and Streams
+# Thinking in Wires and Streams
 
 ::: info The engine room
 You don't need this page to build with Continuum — the
@@ -10,7 +10,7 @@ underneath is classic FRP, and it is genuinely elegant.
 Continuum is a classic-FRP framework. Not "reactivity" in the signals or
 proxy-wrapper sense: two precisely defined abstractions of time and hard
 guarantees about how they compose. This tutorial teaches you to **think** in
-the model; the operational details (ranks, transaction phases, how `switch`
+the model; the operational details (ranks, transaction phases, how `flatten`
 works) are covered in
 [FRP-MODEL](https://github.com/denislibs/continuum/blob/main/FRP-MODEL.md).
 
@@ -38,7 +38,7 @@ the network maintains it from then on.
 
 The whole model is two types:
 
-- **`Behavior<A>`** — a value that _exists at every moment in time_.
+- **`Wire<A>`** — a value that _exists at every moment in time_.
   Denotationally `Time → A`: you can't ask it "did it arrive?", only "what is
   it now?". The mouse position, the text of an input, the current count, the
   URL.
@@ -49,12 +49,12 @@ The whole model is two types:
 The first question when designing any feature: **is this a value or an
 event?**
 
-| You are asking yourself                          | Type       |
-| ------------------------------------------------ | ---------- |
-| "What is _currently_ typed / selected / loaded?" | `Behavior` |
-| "_Did_ a click / submit / response happen?"      | `Stream`   |
+| You are asking yourself                          | Type     |
+| ------------------------------------------------ | -------- |
+| "What is _currently_ typed / selected / loaded?" | `Wire`   |
+| "_Did_ a click / submit / response happen?"      | `Stream` |
 
-Choosing wrong always takes revenge: an event stuffed into a Behavior (a
+Choosing wrong always takes revenge: an event stuffed into a wire (a
 `justClicked` flag) needs manual resetting; a value smeared across events
 needs manual synchronization — right back where we started.
 
@@ -64,14 +64,14 @@ A Continuum component is a plain function that runs **once** and builds two
 things: an FRP network and DOM wired to it.
 
 ```tsx
-import { newStream } from "@continuum-js/frp";
+import { stream } from "@continuum-js/frp";
 
 function Counter() {
-  const [clicks, fire] = newStream<MouseEvent>();
+  const clicks = stream<MouseEvent>();
   const count = clicks.accum(0, (_e, n) => n + 1);
   const parity = count.map((n) => (n % 2 === 0 ? "even" : "odd"));
   return (
-    <button onClick={fire}>
+    <button onClick={clicks.fire}>
       count: {count} ({parity})
     </button>
   );
@@ -90,9 +90,9 @@ Forgetting a dependency is syntactically impossible.
 Multiple sources combine explicitly:
 
 ```ts
-import { Behavior } from "@continuum-js/frp";
+import { combine } from "@continuum-js/frp";
 
-const total = Behavior.lift2((price, qty) => price * qty, priceB, qtyB);
+const total = combine(price, qty, (p, q) => p * q);
 ```
 
 ## A moment in time: honest simultaneity
@@ -104,7 +104,7 @@ the descendant recomputes **once**, seeing both branches already updated:
 ```ts
 const doubled = count.map((n) => n * 2);
 const squared = count.map((n) => n * n);
-const sum = Behavior.lift2((d, s) => d + s, doubled, squared);
+const sum = combine(doubled, squared, (d, s) => d + s);
 // on count: 2 → 3, sum goes 8 → 15 in one step;
 // an intermediate "6 + 4" does not exist at any moment
 ```
@@ -119,50 +119,53 @@ takes a coalescing function and folds simultaneous occurrences into one:
 const either = Stream.merge(left, right, (a, b) => a + b);
 ```
 
+A wire's `updates` obeys the same discipline: however many writes land in a
+moment, a wire delivers exactly **one** coalesced occurrence per moment.
+
 ## Why `hold` is delayed: the past is available, the present is not
 
-`e.hold(init)` turns an event into a Behavior: "the latest value of `e`". The
-key rule: **a Behavior updates at the moment's boundary**. Within the very
+`e.hold(init)` turns an event into a wire: "the latest value of `e`". The
+key rule: **a wire updates at the moment's boundary**. Within the very
 moment an occurrence arrives, `hold` still shows the _old_ value.
 
 Why? So that "the current value" is well-defined even when you look at it
 from the event that is changing it:
 
 ```ts
-const [submit, fireSubmit] = newStream<void>();
+const submit = stream<void>();
 const draft = input.hold(""); // the field's text
 
 // which text do we submit? the one AT THE MOMENT of submit:
-const submitted = submit.snapshot(draft, (_click, text) => text);
+const submitted = draft.at(submit);
 ```
 
-If `hold` updated instantly, "what does `snapshot` see when `input` and
+If `hold` updated instantly, "what does `at` see when `input` and
 `submit` arrive simultaneously?" would depend on subscription order — a
 classic race. With delayed `hold` the answer is defined mathematically:
-snapshot sees the value _before_ this moment. The past is stable; the present
+`at` sees the value _before_ this moment. The past is stable; the present
 is still forming.
 
-## `snapshot` instead of "read it in the handler"
+## `at` instead of "read it in the handler"
 
 The handler-centric habit is "I'll read whatever I need from variables inside
-the callback". The FRP equivalent is `snapshot`: an event _captures_ a
-Behavior's value at its own moment:
+the callback". The FRP equivalent is `at`: an event _captures_ a
+wire's value at its own moment:
 
 ```ts
 // "on submit, take the text and clear the field"
-const submitted = submitClicks.snapshot(draft, (_e, text) => text);
+const submitted = draft.at(submitClicks);
 ```
 
-The difference from reading in a callback is the same as above: `snapshot`
+The difference from reading in a callback is the same as above: `at`
 has an exact simultaneity semantics; "read it in the handler" has execution
 order.
 
 ## Rendering: the DOM is wired to the network
 
-A Behavior in JSX is a binding, not a value:
+A wire in JSX is a binding, not a value:
 
 - `{count}` as a child — a text node patched on change;
-- `class={cls}` with a Behavior — an attribute that updates itself;
+- `class={cls}` with a wire — an attribute that updates itself;
 - `bindInput(b, set)` — a two-way input binding.
 
 As long as only _values_ change, the DOM structure stands still. When the
@@ -196,8 +199,8 @@ a cascade:
 import { onCleanup, onMount } from "@continuum-js/dom";
 
 function Clock() {
-  const [tick, fire] = newStream<number>();
-  const id = setInterval(() => fire(Date.now()), 1000);
+  const tick = stream<number>();
+  const id = setInterval(() => tick.fire(Date.now()), 1000);
   onCleanup(() => clearInterval(id));
 
   const input = (<input />) as HTMLInputElement;
@@ -211,6 +214,11 @@ function Clock() {
   );
 }
 ```
+
+State belongs to this tree too: the `hold` here is owned by the component's
+scope, and when the subtree is disposed it detaches — the wire freezes at
+its final value. Pure derivations (`map`, `combine`) need no owner at all:
+they are formulas, attaching when listened to and sleeping when not.
 
 `onMount` mirrors `onCleanup`: it runs once, when the scope's nodes are
 inserted into the DOM (focus, measurements, third-party libraries). Child
@@ -231,13 +239,13 @@ const results = perform(queries, async (q): Promise<Page> => fetchPage(q));
 ```
 
 For the typical "load and show" there is `resource` in `@continuum-js/std`:
-a Behavior with `idle | loading | ok | error` states rendered by a plain
+a wire with `idle | loading | ok | error` states rendered by a plain
 `dyn` — no Suspense machinery, it's just data.
 
 ## Where to go next
 
 - [FRP-MODEL](https://github.com/denislibs/continuum/blob/main/FRP-MODEL.md) —
-  the operational deep dive: transaction phases, ranks, `switch`, continuous
+  the operational deep dive: transaction phases, ranks, `flatten`, continuous
   time, with references to _Functional Reactive Programming_
   (Blackheath & Jones).
 - [From React](/from-react) — the correspondence table and paired examples.

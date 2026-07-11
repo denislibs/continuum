@@ -1,24 +1,29 @@
 # @continuum-js/frp
 
-Ядро классического FRP: `Event`, `Behavior` и транзакционный планировщик с
+Ядро классического FRP: `Stream`, `Wire` и транзакционный планировщик с
 ранговой протяжкой без глитчей. Не зависит от DOM — пригодно для игр, потоков,
 анимации, серверной логики.
 
 ```ts
-import { newEvent } from "@continuum-js/frp";
+import { root, stream, wire } from "@continuum-js/frp";
 
-const [clicks, fire] = newEvent<void>();
-const count = clicks.accum(0, (_, n) => n + 1);
+const clicks = stream<void>();
+// Состояние живёт в скоупе: внутри компонента он есть автоматически,
+// на уровне модуля объявляем его явно через root().
+const count = root(() => wire(0).on(clicks, (n) => n + 1));
 count.listen((n) => console.log(n)); // 0, 1, 2, ...
-fire();
-fire();
+clicks.fire();
+clicks.fire();
 ```
 
-- **Event** — дискретные происшествия (push): `map`, `filter`, `gate`,
-  `snapshot`, `merge`, `orElse`, `accum`/`accumE`, `hold`, `once`, `listen`.
-- **Behavior** — значение во времени (pull) + `updates`: `map`, `apply`,
-  `lift2`/`lift3`, `switchB`/`switchE`, `fromPoll`.
-- Источники: `newEvent`, `newBehavior`, `constant`, `never`, `time`.
+- **Stream** — дискретные происшествия (push): `map`, `filter`, `when`,
+  `merge`, `or`, `accum`/`accumE`, `hold`, `once`, `listen`.
+- **Wire** — значение во времени (pull) + `updates`: `map`, `at`
+  (значение провода в моменты потока), `combine` (поточечное соединение),
+  `flatten` (переключение wire-of-wires / wire-of-streams), `fromPoll`.
+  За момент ячейка доставляет одно коалесцированное вхождение `updates`.
+- Источники: `stream()` c `.fire`, `wire(init)` c `.set` и декларативными
+  переходами `.on(e, (state, event) => next)`; `constant`, `never`, `time`.
 - Эффекты и дедуп: `perform` (граница IO, `Result`), `distinct`.
 
 Гарантии: консистентность момента (glitch-free), детерминизм совпадений,

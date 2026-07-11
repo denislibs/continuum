@@ -1,6 +1,7 @@
 // Flat ESLint config: JS + TypeScript recommended, the Continuum rules
-// (impure combinator callbacks, sample() in JSX, missing retain, onChange
-// on text fields), and prettier last to disable formatting conflicts.
+// (impure combinator callbacks, sample() in JSX, module-level state outside
+// root(), onChange on text fields), and prettier last to disable formatting
+// conflicts.
 import js from "@eslint/js";
 import tseslint from "typescript-eslint";
 import continuum from "@continuum-js/eslint-plugin";

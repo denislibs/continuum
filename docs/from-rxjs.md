@@ -64,7 +64,8 @@ emission", `shareReplay(1)` fixes "subscribed after the last one",
 because everyone unsubscribed for a millisecond" isn't fixed by anything —
 you just catch it in production.
 
-In Continuum, "a current value" is its own type, `Behavior`:
+In Continuum, "a current value" is its own type, `Wire` (the FRP literature
+calls it a _Behavior_):
 
 ```ts
 // Continuum
@@ -72,16 +73,17 @@ const count = clicks.accum(0, (_e, n) => n + 1);
 ```
 
 That's all. `count` **always** has a value. You can't subscribe "too
-late" — `listen` delivers the current value immediately. You can't "reset
-the state by unsubscribing" — the value lives in the Behavior, not in a
-chain of subscriptions. `startWith`, `shareReplay`, `refCount`,
-`BehaviorSubject`, the hot/cold dilemma — those words aren't in our
-vocabulary because the problems they solve don't exist.
+late" — `listen` delivers the current value immediately, and `sample()`
+always answers, listeners or not. You can't "reset the state by
+unsubscribing" — the value lives in the Wire, not in a chain of
+subscriptions. `startWith`, `shareReplay`, `refCount`, `BehaviorSubject`,
+the hot/cold dilemma — those words aren't in our vocabulary because the
+problems they solve don't exist.
 
 The translation rule is simple:
 
 > If your pipe ends in `scan`/`startWith`/`shareReplay`, or starts with a
-> `BehaviorSubject` — it was never a stream. It was a Behavior forced to
+> `BehaviorSubject` — it was never a stream. It was a Wire forced to
 > impersonate one.
 
 ## Difference #2: glitches aren't your bug — they're Rx's model
@@ -116,7 +118,7 @@ In Continuum, the diamond is a legal, encouraged topology:
 // Continuum
 const doubled = src.map((x) => x * 2);
 const squared = src.map((x) => x * x);
-const sum = Behavior.lift2((d, s) => d + s, doubled, squared);
+const sum = combine(doubled, squared, (d, s) => d + s);
 
 // src: 2 → 3.  sum: 8 → 15. One step. The intermediate "10" does not exist.
 ```
@@ -178,27 +180,27 @@ The only place an unsubscribe is visible at all is the explicit low-level
 
 Your reflexes port almost verbatim:
 
-| RxJS                              | Continuum                      | Note                                  |
-| --------------------------------- | ------------------------------ | ------------------------------------- |
-| `map`, `filter`                   | `e.map`, `e.filter`            | same                                  |
-| `scan(f, init)`                   | `e.accum(init, f)`             | result is a Behavior already          |
-| `startWith(x)` + `shareReplay(1)` | `e.hold(x)`                    | one word for the whole ceremony       |
-| `combineLatest`                   | `Behavior.lift2/lift3`         | glitch-free                           |
-| `withLatestFrom(b$)`              | `e.snapshot(b, f)`             | with exact simultaneity               |
-| `merge(a$, b$)`                   | `Stream.merge(a, b, f)`        | simultaneous inputs coalesce via `f`  |
-| `race(a$, b$)`-ish                | `a.orElse(b)`                  | left-biased                           |
-| `debounceTime(ms)`                | `debounce(e, ms)`              | std                                   |
-| `throttleTime(ms)`                | `throttle(e, ms)`              | std                                   |
-| `delay(ms)`                       | `delay(e, ms)`                 | std                                   |
-| `interval(ms)`                    | `interval(ms)`                 | std; an `Stream<number>`              |
-| `distinctUntilChanged()`          | `distinct(e)` / `distinctB(b)` | std                                   |
-| `pairwise()`                      | `pairwise(e)`                  | std                                   |
-| `take(1)` / `first()`             | `e.once()`                     |                                       |
-| `filter(() => flag)`              | `e.gate(flagB)`                | the flag is a Behavior, not a closure |
-| `BehaviorSubject`                 | `newBehavior(init)`            | a _type_, not a workaround            |
-| `Subject`                         | `newStream()`                  |                                       |
-| `switchMap(fetch)`                | `resource(e, fetch)`           | see below                             |
-| `subscribe`                       | `listen` + `onCleanup`         | or just a JSX binding                 |
+| RxJS                              | Continuum                      | Note                                 |
+| --------------------------------- | ------------------------------ | ------------------------------------ |
+| `map`, `filter`                   | `e.map`, `e.filter`            | same                                 |
+| `scan(f, init)`                   | `e.accum(init, f)`             | result is a Wire already             |
+| `startWith(x)` + `shareReplay(1)` | `e.hold(x)`                    | one word for the whole ceremony      |
+| `combineLatest`                   | `combine(a, b, f)`             | glitch-free                          |
+| `withLatestFrom(b$)`              | `b.at(e, f)`                   | with exact simultaneity              |
+| `merge(a$, b$)`                   | `Stream.merge(a, b, f)`        | simultaneous inputs coalesce via `f` |
+| `race(a$, b$)`-ish                | `a.or(b)`                      | left-biased                          |
+| `debounceTime(ms)`                | `debounce(e, ms)`              | std                                  |
+| `throttleTime(ms)`                | `throttle(e, ms)`              | std                                  |
+| `delay(ms)`                       | `delay(e, ms)`                 | std                                  |
+| `interval(ms)`                    | `interval(ms)`                 | std; an `Stream<number>`             |
+| `distinctUntilChanged()`          | `distinct(e)` / `distinctB(b)` | std                                  |
+| `pairwise()`                      | `pairwise(e)`                  | std                                  |
+| `take(1)` / `first()`             | `e.once()`                     |                                      |
+| `filter(() => flag)`              | `e.when(flag)`                 | the flag is a Wire, not a closure    |
+| `BehaviorSubject`                 | `wire(init)`                   | a _type_, not a workaround           |
+| `Subject`                         | `stream()`                     |                                      |
+| `switchMap(fetch)`                | `resource(e, fetch)`           | see below                            |
+| `subscribe`                       | `listen` + `onCleanup`         | or just a JSX binding                |
 
 ## `switchMap` and async: our answer is data
 
@@ -231,7 +233,7 @@ Continuum folds the whole pattern into one function with an honest type:
 // Continuum
 const settled = debounce(query.updates, 300);
 const results = resource(settled, (q) => api.search(q));
-// Behavior<Async<T>>: { status: "idle" | "loading" | "ok" | "error" }
+// Wire<Async<T>>: { status: "idle" | "loading" | "ok" | "error" }
 ```
 
 `resource` _is_ "switchMap for UIs": last request wins (stale responses
@@ -250,7 +252,7 @@ const answers = perform(requests, (r) => api.send(r));
 
 An honest admission: `concatMap` and `exhaustMap` (queue the requests;
 ignore while one is in flight) have no ready-made counterparts — both are
-expressible with `gate`/`accum`, but you'll have to think. If your problem
+expressible with `when`/`accum`, but you'll have to think. If your problem
 _is_ orchestrating queues of async operations, RxJS is stronger there.
 
 ## What we don't have — and why that's good
@@ -293,7 +295,7 @@ Where to go next:
 
 - [What is FRP — in plain words](/frp-in-plain-words) — the model from
   scratch;
-- [Streams](/concepts/events) and [Behaviors](/concepts/behaviors) — both
+- [Streams](/concepts/events) and [Wires](/concepts/behaviors) — both
   halves, precisely;
 - [Transactions and time](/concepts/transactions) — how "glitch-free"
   actually works;

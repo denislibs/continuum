@@ -11,7 +11,7 @@ import {
   getScope,
   runInScope,
 } from "@continuum-js/frp";
-import type { Unlisten } from "@continuum-js/frp";
+import type { Unlisten, WireSource } from "@continuum-js/frp";
 
 // ---------------------------------------------------------------------------
 // Ownership tree (§9) — lifecycle, not dependency tracking.
@@ -693,13 +693,24 @@ export function when(
 }
 
 /** Two-way binding props for a text input. Spread onto an `<input>`. */
+export function bindInput(value: WireSource<string>): {
+  value: Wire<string>;
+  onInput: (e: globalThis.Event) => void;
+};
 export function bindInput(
   value: Wire<string>,
   set: (v: string) => void,
+): { value: Wire<string>; onInput: (e: globalThis.Event) => void };
+export function bindInput(
+  value: Wire<string> | WireSource<string>,
+  set?: (v: string) => void,
 ): { value: Wire<string>; onInput: (e: globalThis.Event) => void } {
+  // a source wire carries its own setter — one argument is enough
+  const write = set ?? (value as WireSource<string>).set.bind(value);
   return {
     value,
-    onInput: (e: globalThis.Event) => set((e.target as HTMLInputElement).value),
+    onInput: (e: globalThis.Event) =>
+      write((e.target as HTMLInputElement).value),
   };
 }
 

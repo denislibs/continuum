@@ -1,15 +1,15 @@
-import { newBehavior } from "@continuum-js/frp";
+import { wire } from "@continuum-js/frp";
 
 // A Continuum component runs ONCE — there are no re-renders. `count` is a
 // reactive value: putting it in JSX binds a text node to it, and clicking
 // patches exactly that node.
 export function App() {
-  const [count, setCount] = newBehavior(0);
+  const count = wire(0);
 
   return (
     <main>
       <h1>Continuum</h1>
-      <button onClick={() => setCount(count.sample() + 1)}>
+      <button onClick={() => count.set(count.sample() + 1)}>
         count: {count}
       </button>
       <p>

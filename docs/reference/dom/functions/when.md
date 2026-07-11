@@ -8,7 +8,7 @@
 
 > **when**(`cond`, `thenRender`, `elseRender?`): `Node`
 
-Defined in: [index.tsx:640](https://github.com/denislibs/continuum/blob/1009133524ef880e679ba1f379dfc0cffc91979b/packages/dom/src/index.tsx#L640)
+Defined in: [index.tsx:685](https://github.com/denislibs/continuum/blob/cc4617269797dda656aa4d28267b6b87666cd809/packages/dom/src/index.tsx#L685)
 
 Conditional region driven by a boolean behavior (no rebuild on same value).
 
@@ -16,7 +16,7 @@ Conditional region driven by a boolean behavior (no rebuild on same value).
 
 ### cond
 
-`Behavior`\<`boolean`\>
+`Wire`\<`boolean`\>
 
 ### thenRender
 

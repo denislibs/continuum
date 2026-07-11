@@ -8,7 +8,7 @@
 
 > **each**\<`T`, `K`\>(`items`, `key`, `render`): `Node`
 
-Defined in: [index.tsx:516](https://github.com/denislibs/continuum/blob/1009133524ef880e679ba1f379dfc0cffc91979b/packages/dom/src/index.tsx#L516)
+Defined in: [index.tsx:533](https://github.com/denislibs/continuum/blob/cc4617269797dda656aa4d28267b6b87666cd809/packages/dom/src/index.tsx#L533)
 
 Keyed list: reuses rows by key, reorders with minimal moves (LIS).
 
@@ -26,7 +26,7 @@ Keyed list: reuses rows by key, reorders with minimal moves (LIS).
 
 ### items
 
-`Behavior`\<`T`[]\>
+`Wire`\<`T`[]\>
 
 ### key
 

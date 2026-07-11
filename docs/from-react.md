@@ -11,7 +11,7 @@ There is one central mental-model shift:
 > and hooks smuggle state between the re-runs.
 >
 > **Continuum**: a component runs **once**. Reactive quantities are objects
-> (`Behavior`) placed directly into JSX; from then on only the affected text
+> (`Wire`) placed directly into JSX; from then on only the affected text
 > nodes and attributes change.
 
 The consequences follow: no re-renders → no deps arrays, no `memo`, no
@@ -33,23 +33,23 @@ this is the framework that treats the story as a first-class value.
 
 ## Correspondence table
 
-| React                        | Continuum                              | Comment                                                            |
-| ---------------------------- | -------------------------------------- | ------------------------------------------------------------------ |
-| `useState(init)`             | `newBehavior(init)`                    | returns `[Behavior, set]`; can be declared outside a component too |
-| `useMemo(f, [a, b])`         | `a.map(f)` / `Behavior.lift2(f, a, b)` | dependencies are the expression's structure; no array needed       |
-| `useEffect(f, [x])`          | `x.listen(f)` + `onCleanup`            | subscribe to a value; cleanup is explicit and one-time             |
-| `useEffect(f, [])` (mount)   | `onMount(f)`                           | runs once, when the nodes are already inserted into the DOM        |
-| `useEffect(fetch…)`          | `perform` / `resource`                 | IO is a network boundary; errors are data (`Result`), not throws   |
-| `useContext` / `<Provider>`  | `use(ctx)` / `provide(ctx, v)`         | the same, but over the ownership tree                              |
-| `useRef(dom)`                | a plain variable, or `ref={…}`         | the component runs once — `const el = <div/>` is already stable    |
-| `useCallback` / `memo`       | —                                      | not needed: nothing re-runs, identity is stable                    |
-| `key` in lists               | `by` in `<Each>`                       | same meaning (keyed reconciliation; we diff with LIS)              |
-| `{cond && <A/>}`             | `<Show when={b}>`                      | rebuilds only when truthiness flips                                |
-| `<Suspense>` + `React.lazy`  | `lazy(() => import(…), { fallback })`  | pending/error are ordinary values, not an exception mechanism      |
-| Error Boundary (class / lib) | `<Catch fallback={(e, reset) => …}>`   | a component, not a class; catches build and region-rebuild throws  |
-| `useSyncExternalStore`       | `Behavior.fromPoll` / `newBehavior`    | the outside world enters as a behavior                             |
-| `onClick={handler}`          | `onClick={fire}`                       | the event flows into the FRP network, not into setState            |
-| StrictMode double-render     | —                                      | nothing re-runs — nothing to double-check                          |
+| React                        | Continuum                             | Comment                                                           |
+| ---------------------------- | ------------------------------------- | ----------------------------------------------------------------- |
+| `useState(init)`             | `wire(init)`                          | returns a `Wire` with `.set`; at module level wrap it in `root()` |
+| `useMemo(f, [a, b])`         | `a.map(f)` / `combine(a, b, f)`       | dependencies are the expression's structure; no array needed      |
+| `useEffect(f, [x])`          | `x.listen(f)` + `onCleanup`           | subscribe to a value; cleanup is explicit and one-time            |
+| `useEffect(f, [])` (mount)   | `onMount(f)`                          | runs once, when the nodes are already inserted into the DOM       |
+| `useEffect(fetch…)`          | `perform` / `resource`                | IO is a network boundary; errors are data (`Result`), not throws  |
+| `useContext` / `<Provider>`  | `use(ctx)` / `provide(ctx, v)`        | the same, but over the ownership tree                             |
+| `useRef(dom)`                | a plain variable, or `ref={…}`        | the component runs once — `const el = <div/>` is already stable   |
+| `useCallback` / `memo`       | —                                     | not needed: nothing re-runs, identity is stable                   |
+| `key` in lists               | `by` in `<Each>`                      | same meaning (keyed reconciliation; we diff with LIS)             |
+| `{cond && <A/>}`             | `<Show when={b}>`                     | rebuilds only when truthiness flips                               |
+| `<Suspense>` + `React.lazy`  | `lazy(() => import(…), { fallback })` | pending/error are ordinary values, not an exception mechanism     |
+| Error Boundary (class / lib) | `<Catch fallback={(e, reset) => …}>`  | a component, not a class; catches build and region-rebuild throws |
+| `useSyncExternalStore`       | `Wire.fromPoll` / `wire`              | the outside world enters as a wire                                |
+| `onClick={handler}`          | `onClick={clicks.fire}`               | the event flows into the FRP network, not into setState           |
+| StrictMode double-render     | —                                     | nothing re-runs — nothing to double-check                         |
 
 ---
 
@@ -67,12 +67,14 @@ function Counter() {
 **Continuum**
 
 ```tsx
-import { newBehavior } from "@continuum-js/frp";
+import { wire } from "@continuum-js/frp";
 
 function Counter() {
-  const [count, setCount] = newBehavior(0);
+  const count = wire(0);
   return (
-    <button onClick={() => setCount(count.sample() + 1)}>count: {count}</button>
+    <button onClick={() => count.set(count.sample() + 1)}>
+      count: {count}
+    </button>
   );
 }
 ```
@@ -101,7 +103,7 @@ function Cart({ items }: { items: Item[] }) {
 **Continuum** — the dependency _is_ the expression:
 
 ```tsx
-function Cart(props: { items: Behavior<Item[]> }) {
+function Cart(props: { items: Wire<Item[]> }) {
   const total = props.items.map((xs) =>
     xs.reduce((s, i) => s + i.price * i.qty, 0),
   );
@@ -112,7 +114,7 @@ function Cart(props: { items: Behavior<Item[]> }) {
 
 Dependency arrays don't exist as a category: `label` depends on `total`
 because it is _built from it_. Forgetting a dependency is syntactically
-impossible. Multiple sources — `Behavior.lift2((a, b) => …, ba, bb)`.
+impossible. Multiple sources — `combine(wa, wb, (a, b) => …)`.
 
 ## 3. An effect and its cleanup
 
@@ -138,13 +140,13 @@ function Online() {
 **Continuum**
 
 ```tsx
-import { newBehavior } from "@continuum-js/frp";
+import { wire } from "@continuum-js/frp";
 import { onCleanup } from "@continuum-js/dom";
 
 function Online() {
-  const [online, setOnline] = newBehavior(navigator.onLine);
-  const on = () => setOnline(true);
-  const off = () => setOnline(false);
+  const online = wire(navigator.onLine);
+  const on = () => online.set(true);
+  const off = () => online.set(false);
   window.addEventListener("online", on);
   window.addEventListener("offline", off);
   onCleanup(() => {
@@ -227,11 +229,11 @@ function User({ id }: { id: string }) {
 (last-request-wins):
 
 ```tsx
-import { type Behavior } from "@continuum-js/frp";
+import { type Wire } from "@continuum-js/frp";
 import { Dynamic } from "@continuum-js/dom";
 import { resource } from "@continuum-js/std";
 
-function User(props: { id: Behavior<string> }) {
+function User(props: { id: Wire<string> }) {
   const state = resource(props.id.updates, (id) =>
     fetch(`/api/users/${id}`).then((r) => r.json() as Promise<User>),
   );
@@ -316,8 +318,8 @@ const [text, setText] = useState("");
 **Continuum**
 
 ```tsx
-const [text, setText] = newBehavior("");
-<input {...bindInput(text, setText)} />;
+const text = wire("");
+<input {...bindInput(text)} />;
 ```
 
 The same, minus a component re-run per keystroke.
@@ -328,7 +330,7 @@ a text input fires only when the field loses focus. To react to every
 keystroke, use `onInput` (that is what `bindInput` does):
 
 ```tsx
-<input value={text} onInput={(e) => setText(e.currentTarget.value)} />
+<input value={text} onInput={(e) => text.set(e.currentTarget.value)} />
 ```
 
 Stream props are fully typed — the editor autocompletes them and knows the
@@ -389,7 +391,7 @@ function Toolbar() {
 ```
 
 The provider is not a wrapper component but a write into the ownership tree.
-Want a reactive theme? Put a `Behavior<string>` into the context and use it
+Want a reactive theme? Put a `Wire<string>` into the context and use it
 in an attribute as usual.
 
 ## 9. Debounced search
@@ -458,7 +460,7 @@ The chunk splitting is identical (the literal `import()` is what the bundler
 cuts on), but the pending state is not "a suspended render caught by
 Suspense" — it is an ordinary value. A Continuum-router bonus:
 `/users/1 → /users/2` does not rebuild the page — only the `useParams()`
-behavior updates.
+wire updates.
 
 ---
 
@@ -468,14 +470,16 @@ behavior updates.
   function. An update is a value propagating through the graph to a specific
   text node.
 - **Deps arrays.** An expression's dependencies are the expression itself
-  (`map`/`lift`). The "forgot a dependency" / "extra dependency" bug class
+  (`map`/`combine`). The "forgot a dependency" / "extra dependency" bug class
   does not exist.
 - **`memo` / `useCallback` / identity stabilization.** Nothing re-runs;
   value and function identity is stable by construction.
-- **Stale closures.** A closure captures the `Behavior` — the quantity
-  itself, not its snapshot; `b.sample()` always reads the current value.
-- **Rules of hooks.** `newBehavior`/`listen` are ordinary functions: in a
-  condition, in a loop, outside a component, at module level.
+- **Stale closures.** A closure captures the `Wire` — the quantity
+  itself, not a snapshot of it; `w.sample()` always reads the current value.
+- **Rules of hooks.** `wire`/`listen` are ordinary functions: call them in a
+  condition, in a loop, in a helper. Values are formulas and live anywhere;
+  state belongs to a scope — inside a component that scope is automatic, and
+  at module level you make the lifetime explicit with `root(() => …)`.
 - **Suspense as a mechanism.** Async is data (`Async<T>`, `Result<E, T>`),
   rendered with a plain `<Show>`/`<Dynamic>`.
 - **Batching as an optimization.** The core's transactions are not "gluing

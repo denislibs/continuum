@@ -8,7 +8,7 @@
 
 > **Catch**(`props`): `Node`
 
-Defined in: [index.tsx:814](https://github.com/denislibs/continuum/blob/1009133524ef880e679ba1f379dfc0cffc91979b/packages/dom/src/index.tsx#L814)
+Defined in: [index.tsx:861](https://github.com/denislibs/continuum/blob/cc4617269797dda656aa4d28267b6b87666cd809/packages/dom/src/index.tsx#L861)
 
 Error boundary. Catches a throw while building its children and a throw
 during any nested dynamic-region rebuild (`Show`/`Dynamic`/`dyn`), disposes

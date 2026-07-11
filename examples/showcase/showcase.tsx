@@ -1,4 +1,4 @@
-import { newBehavior } from "@continuum-js/frp";
+import { wire } from "@continuum-js/frp";
 import { Dynamic, Show, Portal } from "@continuum-js/dom";
 
 type Tab = "home" | "about";
@@ -9,16 +9,16 @@ type Tab = "home" | "about";
  * - `<Show>` + `<Portal>` render a modal into `document.body` and tear it down.
  */
 export function Showcase() {
-  const [tab, setTab] = newBehavior<Tab>("home");
-  const [modalOpen, setModalOpen] = newBehavior(false);
+  const tab = wire<Tab>("home");
+  const modalOpen = wire(false);
 
   return (
     <div class="showcase">
       <nav>
-        <button class="tab-home" onClick={() => setTab("home")}>
+        <button class="tab-home" onClick={() => tab.set("home")}>
           Home
         </button>
-        <button class="tab-about" onClick={() => setTab("about")}>
+        <button class="tab-about" onClick={() => tab.set("about")}>
           About
         </button>
       </nav>
@@ -33,7 +33,7 @@ export function Showcase() {
         }
       </Dynamic>
 
-      <button class="open" onClick={() => setModalOpen(true)}>
+      <button class="open" onClick={() => modalOpen.set(true)}>
         Open modal
       </button>
 
@@ -42,7 +42,7 @@ export function Showcase() {
           <Portal mount={document.body}>
             <div class="modal">
               <p>Rendered through a Portal into &lt;body&gt;.</p>
-              <button class="close" onClick={() => setModalOpen(false)}>
+              <button class="close" onClick={() => modalOpen.set(false)}>
                 Close
               </button>
             </div>

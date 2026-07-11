@@ -39,12 +39,12 @@ FRP solves it the Excel way: **don't redraw — connect**.
 
 ## The three words you need
 
-**A reactive value** (in code: `Behavior`). This is the Excel cell: it
+**A reactive value** (in code: `Wire`). This is the Excel cell: it
 always has a current value, and everything that depends on it updates by
 itself. The text of an input, a counter, the current user.
 
 ```ts
-const [count, setCount] = newBehavior(0); // a cell holding 0
+const count = wire(0); // a cell holding 0
 ```
 
 **A derived value** — the formula. Not stored, computed from others:
@@ -59,7 +59,7 @@ value" — it either happened or it didn't. As a beginner, plain callbacks
 (`onClick={() => …}`) are all you need; events become useful later, for
 streams like debounced search.
 
-## Stream vs Behavior — as plainly as it gets {#event-vs-behavior}
+## Stream vs Wire — as plainly as it gets {#event-vs-behavior}
 
 Compare two things from everyday life:
 
@@ -70,17 +70,17 @@ Compare two things from everyday life:
   "what's the current knock?" is a meaningless question. What makes sense
   is "did someone knock?" and "what do we do when they knock?".
 
-The temperature is a **Behavior**. The knock is an **Stream**. The whole
+The temperature is a **Wire**. The knock is a **Stream**. The whole
 difference is which question you are asking:
 
-| Question                                         | Type       | Examples                                                                 |
-| ------------------------------------------------ | ---------- | ------------------------------------------------------------------------ |
-| "What is it **right now**?"                      | `Behavior` | text in a field, a counter, the selected tab, "logged in?", window width |
-| "**Did** it happen? What do we do when it does?" | `Stream`   | a click, Enter pressed, a server response arrived, a timer ticked        |
+| Question                                         | Type     | Examples                                                                 |
+| ------------------------------------------------ | -------- | ------------------------------------------------------------------------ |
+| "What is it **right now**?"                      | `Wire`   | text in a field, a counter, the selected tab, "logged in?", window width |
+| "**Did** it happen? What do we do when it does?" | `Stream` | a click, Enter pressed, a server response arrived, a timer ticked        |
 
-The one-sentence test: **if you can draw it on the screen, it's a Behavior.
+The one-sentence test: **if you can draw it on the screen, it's a Wire.
 If you can react to it, it's a Stream.** The number on a button gets drawn —
-Behavior. The click itself can't be drawn — it gets reacted to — Stream.
+Wire. The click itself can't be drawn — it gets reacted to — Stream.
 
 Why not make do with one type? Try stuffing a click into a "cell": what
 value does it hold between clicks? You'd invent a `clicked = true` flag and
@@ -91,9 +91,9 @@ the first one arrives you have no answer at all. Each thing is awkward in
 the other one's skin — which is why there are two types.
 
 They cooperate and convert into each other: "the latest server response" is
-already a _value_ (`responses.hold(null)`: event → Behavior), and "the
+already a _value_ (`responses.hold(null)`: event → Wire), and "the
 moments when the counter changed" is already an _event_ (`count.updates`:
-Behavior → event).
+Wire → event, one occurrence per moment).
 
 ## Where the "functional" comes in
 
@@ -102,8 +102,11 @@ with a neighboring cell. That is exactly why the spreadsheet can be trusted.
 
 The "functional" in FRP is the same promise: derived values are described by
 pure functions (`map`, like a formula), and the only way to affect a value
-is through the declared connections. No "tweaking from the side". Hence the
-main guarantee: **the page cannot display a state that never existed**.
+is through the declared connections. No "tweaking from the side". A formula
+is just a recipe — it computes on demand and needs no owner; the _cells_
+(state) belong to the component that created them, like a formula belongs to
+its sheet. Hence the main guarantee: **the page cannot display a state that
+never existed**.
 
 You can see it in Excel too: changing `A1`, you will never catch the sheet
 "half-recalculated" — `C1` already new while `D4`, which depends on it, is
@@ -121,9 +124,9 @@ bound to it updates (we call this pinpoint DOM updates).
 
 ```tsx
 function Counter() {
-  const [count, setCount] = newBehavior(0); // a cell
+  const count = wire(0); // a cell
   return (
-    <button onClick={() => setCount(count.sample() + 1)}>
+    <button onClick={() => count.set(count.sample() + 1)}>
       count: {count} {/* this text is bound to the cell, forever */}
     </button>
   );
@@ -136,13 +139,13 @@ it has no reason to.
 
 ## The correspondence cheat sheet
 
-| Excel                           | Continuum                 | In plain words                            |
-| ------------------------------- | ------------------------- | ----------------------------------------- |
-| a cell with a value             | `newBehavior(0)`          | a reactive value                          |
-| the formula `=A1*2`             | `count.map(n => n * 2)`   | a derived value                           |
-| a formula over two cells        | `Behavior.lift2(f, a, b)` | derived from several                      |
-| the whole sheet recalcs at once | a transaction             | changes land whole                        |
-| — (Excel has none)              | `Stream`                  | a stream of happenings: clicks, responses |
+| Excel                           | Continuum               | In plain words                            |
+| ------------------------------- | ----------------------- | ----------------------------------------- |
+| a cell with a value             | `wire(0)`               | a reactive value                          |
+| the formula `=A1*2`             | `count.map(n => n * 2)` | a derived value                           |
+| a formula over two cells        | `combine(a, b, f)`      | derived from several                      |
+| the whole sheet recalcs at once | a transaction           | changes land whole                        |
+| — (Excel has none)              | `Stream`                | a stream of happenings: clicks, responses |
 
 ## What's next
 
@@ -150,7 +153,7 @@ it has no reason to.
 - [Concepts](/concepts/components) — one idea per page, in the same plain
   language.
 - Curious how it works inside —
-  [Thinking in Behaviors and Streams](/tutorial/thinking-in-frp).
+  [Thinking in Wires and Streams](/tutorial/thinking-in-frp).
 
 ---
 

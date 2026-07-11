@@ -12,7 +12,7 @@
 цикла, ни scope — зовите откуда угодно, называйте как любую функцию:
 
 ```ts
-const total = (items: Behavior<Item[]>) =>
+const total = (items: Wire<Item[]>) =>
   items.map((xs) => xs.reduce((s, i) => s + i.price, 0));
 ```
 
@@ -40,15 +40,15 @@ const size = createWindowSize(); // «create» = вызови раз, получ
 Каждый композабл — одни и те же три хода:
 
 ```ts
-import { newBehavior, type Behavior } from "@continuum-js/frp";
+import { wire, type Wire } from "@continuum-js/frp";
 import { onCleanup } from "@continuum-js/dom";
 
-export function createWindowSize(): Behavior<{ w: number; h: number }> {
+export function createWindowSize(): Wire<{ w: number; h: number }> {
   // 1. создать живое значение
-  const [size, setSize] = newBehavior({ w: innerWidth, h: innerHeight });
+  const size = wire({ w: innerWidth, h: innerHeight });
 
   // 2. связать внешний мир с сетью (на границе!)
-  const onResize = () => setSize({ w: innerWidth, h: innerHeight });
+  const onResize = () => size.set({ w: innerWidth, h: innerHeight });
   window.addEventListener("resize", onResize);
 
   // 3. зарегистрировать уборку — дерево владения вызовет её при размонтировании
@@ -71,15 +71,15 @@ function StatusBar() {
 [паттернов](/ru/guides/patterns), упакованный в функцию:
 
 ```ts
-import { newStream } from "@continuum-js/frp";
+import { stream } from "@continuum-js/frp";
 import { onCleanup } from "@continuum-js/dom";
 import { persist, loadPersisted } from "@continuum-js/std";
 
 export function createPersistedTodos(key: string) {
-  const [actions, dispatch] = newStream<Action>();
+  const actions = stream<Action>();
   const todos = actions.accum<Todo[]>(loadPersisted(key, []), reduce);
   onCleanup(persist(key, todos));
-  return { todos, dispatch };
+  return { todos, dispatch: actions.fire };
 }
 ```
 

@@ -6,9 +6,9 @@
 
 # Function: distinctB()
 
-> **distinctB**\<`A`\>(`b`, `eq?`): `Behavior`\<`A`\>
+> **distinctB**\<`A`\>(`b`, `eq?`): `Wire`\<`A`\>
 
-Defined in: [index.ts:149](https://github.com/denislibs/continuum/blob/1009133524ef880e679ba1f379dfc0cffc91979b/packages/std/src/index.ts#L149)
+Defined in: [index.ts:146](https://github.com/denislibs/continuum/blob/cc4617269797dda656aa4d28267b6b87666cd809/packages/std/src/index.ts#L146)
 
 A behavior that suppresses updates equal to the current value (default `Object.is`).
 
@@ -22,7 +22,7 @@ A behavior that suppresses updates equal to the current value (default `Object.i
 
 ### b
 
-`Behavior`\<`A`\>
+`Wire`\<`A`\>
 
 ### eq?
 
@@ -30,4 +30,4 @@ A behavior that suppresses updates equal to the current value (default `Object.i
 
 ## Returns
 
-`Behavior`\<`A`\>
+`Wire`\<`A`\>

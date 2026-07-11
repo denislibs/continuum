@@ -6,9 +6,9 @@
 
 # Function: integral()
 
-> **integral**(`b`, `tick`, `init?`): [`Behavior`](../classes/Behavior.md)\<`number`\>
+> **integral**(`b`, `tick`, `init?`): [`Wire`](../classes/Wire.md)\<`number`\>
 
-Defined in: [continuous.ts:18](https://github.com/denislibs/continuum/blob/1009133524ef880e679ba1f379dfc0cffc91979b/packages/frp/src/continuous.ts#L18)
+Defined in: [continuous.ts:18](https://github.com/denislibs/continuum/blob/cc4617269797dda656aa4d28267b6b87666cd809/packages/frp/src/continuous.ts#L18)
 
 Integrate a behavior with respect to a clock (forward Euler).
 `tick` carries the current time; the first tick establishes the baseline.
@@ -17,7 +17,7 @@ Integrate a behavior with respect to a clock (forward Euler).
 
 ### b
 
-[`Behavior`](../classes/Behavior.md)\<`number`\>
+[`Wire`](../classes/Wire.md)\<`number`\>
 
 ### tick
 
@@ -29,4 +29,4 @@ Integrate a behavior with respect to a clock (forward Euler).
 
 ## Returns
 
-[`Behavior`](../classes/Behavior.md)\<`number`\>
+[`Wire`](../classes/Wire.md)\<`number`\>

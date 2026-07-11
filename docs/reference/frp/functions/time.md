@@ -6,12 +6,12 @@
 
 # Function: time()
 
-> **time**(): [`Behavior`](../classes/Behavior.md)\<`number`\>
+> **time**(): [`Wire`](../classes/Wire.md)\<`number`\>
 
-Defined in: [index.ts:875](https://github.com/denislibs/continuum/blob/1009133524ef880e679ba1f379dfc0cffc91979b/packages/frp/src/index.ts#L875)
+Defined in: [index.ts:1245](https://github.com/denislibs/continuum/blob/cc4617269797dda656aa4d28267b6b87666cd809/packages/frp/src/index.ts#L1245)
 
 Continuous wall-clock behavior (milliseconds), sampled on demand.
 
 ## Returns
 
-[`Behavior`](../classes/Behavior.md)\<`number`\>
+[`Wire`](../classes/Wire.md)\<`number`\>

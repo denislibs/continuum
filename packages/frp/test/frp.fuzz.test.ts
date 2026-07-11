@@ -1,3 +1,4 @@
+/// <reference types="node" />
 // Structural fuzzer for the engine's two laws (FRP-MODEL §12):
 //   law 1  push ≡ pull   — after every moment, what listeners received equals
 //                          what sample() answers; a cold twin answers the same
@@ -47,7 +48,7 @@ type NodeSpec =
   | { k: "merge"; a: number; b: number }
   | { k: "snapshot"; e: number; w: number }
   | { k: "hold"; src: number; init: number }
-  | { k: "accum"; src: number; f: number }
+  | { k: "accum"; src: number; f: number; init: number }
   | { k: "wmap"; src: number; f: number } // wire.map
   | { k: "combine"; a: number; b: number; f: number } // lift2
   | { k: "boom"; src: number } // a map that throws while the bomb is armed

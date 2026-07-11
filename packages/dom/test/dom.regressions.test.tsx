@@ -3,7 +3,7 @@
 // track).
 import { describe, test, expect } from "vitest";
 import { wire } from "@continuum-js/frp";
-import { mount, when, h } from "@continuum-js/dom";
+import { mount, when, h, bindInput } from "@continuum-js/dom";
 
 describe("when/Show release the condition chain on unmount", () => {
   test("after unmounts, the condition's map chain sleeps", () => {
@@ -59,6 +59,20 @@ describe("style={wire} clears keys that disappear", () => {
     expect(target.style.fontWeight).toBe("bold");
     style.set({});
     expect(target.style.fontWeight).toBe("");
+    unmount();
+  });
+});
+
+describe("bindInput accepts a source wire alone", () => {
+  test("one-argument form writes through the wire's own setter", () => {
+    const text = wire("a");
+    const el = document.createElement("div");
+    const unmount = mount(el, () => h("input", { ...bindInput(text) }));
+    const input = el.firstChild as HTMLInputElement;
+    expect(input.value).toBe("a");
+    input.value = "ab";
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+    expect(text.sample()).toBe("ab");
     unmount();
   });
 });

@@ -128,7 +128,7 @@ export function count(e: Stream<unknown>): Wire<number> {
 
 /** Sample `b` at each occurrence of `trigger`, discarding the trigger's value. */
 export function sampleWith<A, B>(trigger: Stream<A>, b: Wire<B>): Stream<B> {
-  return trigger.snapshot(b, (_a, v) => v);
+  return b.at(trigger);
 }
 
 // ===========================================================================
@@ -139,7 +139,7 @@ export function sampleWith<A, B>(trigger: Stream<A>, b: Wire<B>): Stream<B> {
 export function previous<A>(b: Wire<A>, init: A): Wire<A> {
   // At the instant of an update, `b` still samples its pre-commit (prior) value,
   // since `hold` commits at the moment boundary.
-  return b.updates.snapshot(b, (_new, old) => old).hold(init);
+  return b.at(b.updates, (old) => old).hold(init);
 }
 
 /** A behavior that suppresses updates equal to the current value (default `Object.is`). */
@@ -192,8 +192,8 @@ export function resource<A, T>(
     fetcher(r.arg).then((value) => ({ seq: r.seq, value })),
   );
 
-  const settled = responses
-    .snapshot(latest, (res, latestSeq): Async<T> | null => {
+  const settled = latest
+    .at(responses, (latestSeq, res): Async<T> | null => {
       if (res.ok) {
         if (res.value.seq !== latestSeq) return null; // superseded — ignore
         return { status: "ok", value: res.value.value };
@@ -205,7 +205,7 @@ export function resource<A, T>(
   const loading = requests.mapTo<Async<T>>({ status: "loading" });
 
   // loading (request moment) and settled (later moment) never coincide.
-  return loading.orElse(settled).hold({ status: "idle" });
+  return loading.or(settled).hold({ status: "idle" });
 }
 
 // ===========================================================================

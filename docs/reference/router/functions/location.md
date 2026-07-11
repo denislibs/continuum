@@ -6,12 +6,12 @@
 
 # Function: location()
 
-> **location**(): `Behavior`\<`URL`\>
+> **location**(): `Wire`\<`URL`\>
 
-Defined in: [location.ts:22](https://github.com/denislibs/continuum/blob/1009133524ef880e679ba1f379dfc0cffc91979b/packages/router/src/location.ts#L22)
+Defined in: [location.ts:22](https://github.com/denislibs/continuum/blob/cc4617269797dda656aa4d28267b6b87666cd809/packages/router/src/location.ts#L22)
 
 The current URL across time. Updates on `navigate` and popstate.
 
 ## Returns
 
-`Behavior`\<`URL`\>
+`Wire`\<`URL`\>

@@ -8,7 +8,7 @@
 
 > **loadPersisted**\<`T`\>(`key`, `fallback`, `storage?`): `T`
 
-Defined in: [index.ts:226](https://github.com/denislibs/continuum/blob/1009133524ef880e679ba1f379dfc0cffc91979b/packages/std/src/index.ts#L226)
+Defined in: [index.ts:223](https://github.com/denislibs/continuum/blob/cc4617269797dda656aa4d28267b6b87666cd809/packages/std/src/index.ts#L223)
 
 Read a persisted value back, or `fallback` when the key is missing, the
 JSON is corrupted, or storage is unavailable (SSR) — loading state must

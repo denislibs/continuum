@@ -5,7 +5,7 @@ Pages, nested sections, URL parameters, and lazy-loading code.
 :::
 
 `@continuum-js/router` treats the URL as what it is in this model: a
-**Behavior**. A route change is a change of a dynamic region; leaving a page
+**Wire**. A route change is a change of a dynamic region; leaving a page
 disposes its subtree through the ownership tree.
 
 ## Routes
@@ -66,13 +66,13 @@ function Layout() {
 carries an `active` class (exact match for `/`, prefix otherwise; `end`
 forces exact; `activeClass` overrides the name).
 
-## Params are a Behavior
+## Params are a Wire
 
 ```tsx
 import { useParams } from "@continuum-js/router";
 
 function UserPage() {
-  const params = useParams(); // Behavior<Params>, own + ancestors'
+  const params = useParams(); // Wire<Params>, own + ancestors'
   const user = resource(
     params.map((p) => p.id).updates,
     (id) => api.fetchUser(id),
@@ -83,7 +83,7 @@ function UserPage() {
 
 The region is keyed by **route identity**, not URL: navigating
 `/users/1 → /users/2` does not rebuild `UserPage` — only the `params`
-behavior updates. The fine-grained promise, applied to routing.
+wire updates. The fine-grained promise, applied to routing.
 
 ## Guards
 
@@ -114,7 +114,7 @@ import { location, navigate } from "@continuum-js/router";
 
 navigate("/users/2"); // pushState
 navigate("/login", { replace: true }); // replaceState
-const url = location(); // Behavior<URL> — the singleton
+const url = location(); // Wire<URL> — the singleton
 ```
 
 `location()` also follows back/forward buttons (popstate). Deriving from it

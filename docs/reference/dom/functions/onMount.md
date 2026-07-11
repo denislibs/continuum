@@ -8,7 +8,7 @@
 
 > **onMount**(`fn`): `void`
 
-Defined in: [index.tsx:130](https://github.com/denislibs/continuum/blob/1009133524ef880e679ba1f379dfc0cffc91979b/packages/dom/src/index.tsx#L130)
+Defined in: [index.tsx:107](https://github.com/denislibs/continuum/blob/cc4617269797dda656aa4d28267b6b87666cd809/packages/dom/src/index.tsx#L107)
 
 Register a callback to run once the current scope's nodes are inserted into
 the DOM — after `mount`, or right after a dynamic region (`dyn`/`each`)

@@ -26,7 +26,7 @@ import { Each } from "@continuum-js/dom";
 
 - строка строится один раз → `render` получает элемент _на момент появления
   ключа_. Если содержимое строки должно меняться, внутрь нужно передавать
-  Behavior (см. ниже);
+  [Wire](/ru/concepts/behaviors) (см. ниже);
 - дубликаты ключей игнорируются (остаётся первый) — ключ обязан быть
   уникальным;
 - удаление ключа из списка уничтожает поддерево строки каскадно: подписки,
@@ -35,10 +35,10 @@ import { Each } from "@continuum-js/dom";
 ## Меняющееся содержимое строки
 
 Если элементы списка обновляются «на месте» (тот же id, другие поля),
-прокидывайте в строку behavior её данных, а не снапшот:
+прокидывайте в строку wire её данных, а не снапшот:
 
 ```tsx
-function TodoRow(props: { todo: Behavior<Todo> }) {
+function TodoRow(props: { todo: Wire<Todo> }) {
   const done = props.todo.map((t) => t.done);
   const text = props.todo.map((t) => t.text);
   return <li class={done.map((d) => (d ? "done" : ""))}>{text}</li>;
@@ -59,10 +59,8 @@ function TodoRow(props: { todo: Behavior<Todo> }) {
 Отфильтрованный список — это `map` над исходным, а не отдельное состояние:
 
 ```tsx
-const visible = Behavior.lift2(
-  (xs, f) => (f === "all" ? xs : xs.filter((t) => t.done === (f === "done"))),
-  todos,
-  filter,
+const visible = combine(todos, filter, (xs, f) =>
+  f === "all" ? xs : xs.filter((t) => t.done === (f === "done")),
 );
 
 <Each each={visible} by={(t) => t.id}>{(t) => <TodoRow …/>}</Each>;
@@ -84,7 +82,7 @@ const visible = Behavior.lift2(
 </ul>
 ```
 
-`<Each>` нужен только когда список — Behavior.
+`<Each>` нужен только когда список — Wire.
 
 ---
 

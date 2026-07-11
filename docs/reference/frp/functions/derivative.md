@@ -6,9 +6,9 @@
 
 # Function: derivative()
 
-> **derivative**(`b`, `tick`): [`Behavior`](../classes/Behavior.md)\<`number`\>
+> **derivative**(`b`, `tick`): [`Wire`](../classes/Wire.md)\<`number`\>
 
-Defined in: [continuous.ts:36](https://github.com/denislibs/continuum/blob/1009133524ef880e679ba1f379dfc0cffc91979b/packages/frp/src/continuous.ts#L36)
+Defined in: [continuous.ts:36](https://github.com/denislibs/continuum/blob/cc4617269797dda656aa4d28267b6b87666cd809/packages/frp/src/continuous.ts#L36)
 
 Differentiate a behavior with respect to a clock (finite differences).
 The first tick establishes the baseline (derivative 0).
@@ -17,7 +17,7 @@ The first tick establishes the baseline (derivative 0).
 
 ### b
 
-[`Behavior`](../classes/Behavior.md)\<`number`\>
+[`Wire`](../classes/Wire.md)\<`number`\>
 
 ### tick
 
@@ -25,4 +25,4 @@ The first tick establishes the baseline (derivative 0).
 
 ## Returns
 
-[`Behavior`](../classes/Behavior.md)\<`number`\>
+[`Wire`](../classes/Wire.md)\<`number`\>

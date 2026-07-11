@@ -46,28 +46,30 @@ _не может возникнуть по построению_. Раздел 1
 Behaviors/Streams (как во Fran и ранних статьях Эллиотта). Таблица соответствия
 — чтобы читать книгу с нашим API под рукой:
 
-| Sodium (книга)              | Continuum                             | Что это                           |
-| --------------------------- | ------------------------------------- | --------------------------------- |
-| `Cell<A>`                   | `Behavior<A>`                         | значение во времени (всегда есть) |
-| `Stream<A>`                 | `Stream<A>`                           | дискретные происшествия           |
-| `CellSink` / `StreamSink`   | `newBehavior(init)` / `newStream()`   | вход в граф извне                 |
-| `stream.hold(init)`         | `e.hold(init)`                        | ступенчатая функция из событий    |
-| `stream.snapshot(cell, f)`  | `e.snapshot(b, f)`                    | снять значение в момент события   |
-| `stream.map` / `filter`     | `e.map` / `e.filter`                  | как везде                         |
-| `stream.merge(other, f)`    | `Stream.merge(ea, eb, f)`             | слияние с коалесингом             |
-| `stream.orElse(other)`      | `e.orElse(other)`                     | лево-приоритетное слияние         |
-| `stream.gate(cell)`         | `e.gate(b)`                           | пропускать, пока behavior истинен |
-| `stream.accum(init, f)`     | `e.accum(init, f)`                    | свёртка в behavior                |
-| `stream.once()`             | `e.once()`                            | только первое происшествие        |
-| `cell.map`, `lift`          | `b.map`, `Behavior.lift2/lift3/apply` | поточечные операции               |
-| `cell.sample()`             | `b.sample()`                          | операционное чтение               |
-| `Operational.updates(cell)` | `b.updates`                           | дискретные изменения behavior     |
-| `Operational.value(cell)`   | `b.listen(h)`                         | текущее значение + изменения      |
-| `Cell.switchC(cc)`          | `Behavior.switchB(bb)`                | следовать за выбранным behavior   |
-| `Cell.switchS(cs)`          | `Behavior.switchE(be)`                | следовать за выбранным event      |
-| `calm` (паттерн, гл. 12)    | `distinct(e)` / `distinctB(b)`        | гасить повторы значений           |
-| `listen`                    | `e.listen(h)`                         | люк наружу: колбэк после момента  |
-| — (в Sodium нет)            | `perform(e, run)`                     | IO-граница с `Result` как данными |
+| Sodium (книга)              | Continuum                           | Что это                         |
+| --------------------------- | ----------------------------------- | ------------------------------- |
+| `Cell<A>`                   | `Wire<A>` (до 07.2026 — `Behavior`) | значение во времени             |
+| `Stream<A>`                 | `Stream<A>`                         | дискретные происшествия         |
+| `CellSink` / `StreamSink`   | `wire(init)` / `stream()`           | вход в граф извне               |
+| `stream.hold(init)`         | `e.hold(init)`                      | ступенчатая функция из событий  |
+| `stream.snapshot(cell, f)`  | `w.at(e, (value, event) => …)`      | снять значение в момент         |
+| `stream.map` / `filter`     | `e.map` / `e.filter`                | как везде                       |
+| `stream.merge(other, f)`    | `Stream.merge(ea, eb, f)`           | слияние с коалесингом           |
+| `stream.orElse(other)`      | `ea.or(eb)`                         | лево-приоритетное слияние       |
+| `stream.gate(cell)`         | `e.when(w)`                         | пропускать, пока wire истинен   |
+| `stream.accum(init, f)`     | `e.accum(init, f)`                  | свёртка в wire                  |
+| `stream.once()`             | `e.once()`                          | только первое происшествие      |
+| `cell.map`, `lift`          | `w.map`, `combine(a, b, f)`         | поточечные операции             |
+| `cell.sample()`             | `w.sample()`                        | операционное чтение             |
+| `Operational.updates(cell)` | `w.updates`                         | дискретные изменения wire       |
+| `Operational.value(cell)`   | `w.listen(h)`                       | текущее значение + изменения    |
+| `Cell.switchC(cc)`          | `flatten(ww)`                       | следовать за выбранным wire     |
+| `Cell.switchS(cs)`          | `flatten(we)`                       | следовать за выбранным event    |
+| `calm` (паттерн, гл. 12)    | `distinct(e)` / `distinctB(w)`      | гасить повторы значений         |
+| `listen`                    | `e.listen(h)`                       | люк наружу: колбэк после        |
+| — (в Sodium нет)            | `perform(e, run)`                   | IO-граница, `Result` как данные |
+| — (в Sodium нет)            | `wire(0).on(e, (state, ev) => …)`   | декларативные переходы          |
+| — (в Sodium нет)            | `Scope` / `root()`                  | владение состоянием/эффектами   |
 
 Книга насчитывает **десять первичных примитивов** (гл. 2 + `switch` из гл. 7):
 `never`, `constant`, `map`, `merge`, `hold`, `snapshot`, `filter`, `lift`,
@@ -392,9 +394,11 @@ const fast = integral(
 
 ## 11. Где Continuum сознательно отходит от книги
 
-- **Имена** — `Behavior`/`Stream` вместо `Cell`/`Stream`: мы держимся
-  терминологии денотационной линии (Fran/Elliott), книга — практической
-  (Sodium). Семантика та же.
+- **Имена** — `Wire`/`Stream` вместо `Cell`/`Stream`: в июле 2026 тип
+  `Behavior` переименован в `Wire` («провод» — живое значение, к которому
+  подключаются; спрос = ток течёт, только пока что-то подключено). В этом
+  документе историческое имя Behavior встречается как синоним — это один и
+  тот же тип, алиас живёт до 1.0. Семантика Sodium та же.
 - **`perform` в ядре.** Книга оставляет IO-стыковку паттернам; мы считаем
   границу IO настолько важной, что она — примитив с фиксированной семантикой
   (запуск в `post`, возврат новым моментом, ошибки как `Result`).
