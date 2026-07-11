@@ -35,6 +35,10 @@ const PRED: Array<(x: number) => boolean> = [
   (x) => x % 3 !== 0,
 ];
 
+// Armed only while an abortFire op executes on the warm twin: the boom node
+// then throws mid-delivery, aborting the moment (law-2 probe).
+let bombArmed = false;
+
 // --- graph spec ------------------------------------------------------------
 
 type NodeSpec =
@@ -45,7 +49,8 @@ type NodeSpec =
   | { k: "hold"; src: number; init: number }
   | { k: "accum"; src: number; f: number }
   | { k: "wmap"; src: number; f: number } // wire.map
-  | { k: "combine"; a: number; b: number; f: number }; // lift2
+  | { k: "combine"; a: number; b: number; f: number } // lift2
+  | { k: "boom"; src: number }; // a map that throws while the bomb is armed
 
 interface GraphSpec {
   nStreams: number; // source streams
@@ -58,17 +63,29 @@ type Op =
   | { o: "set"; cell: number; v: number }
   | { o: "batch"; items: Array<{ cell: number; v: number }> }
   | { o: "listen"; node: number } // cold twin gains a listener on a PURE node
-  | { o: "unlisten"; idx: number }; // ...and may drop one it added earlier
+  | { o: "unlisten"; idx: number } // ...and may drop one it added earlier
+  // law-2 ops: the WARM twin runs an aborting moment, the cold twin skips
+  // it entirely — afterwards the twins must still agree (abort = no-trace).
+  | { o: "abortSet"; cell: number; v: number }
+  | { o: "abortFire"; boom: number; v: number };
 
 interface Built {
   fires: Array<(v: number) => void>;
   sets: Array<(v: number) => void>;
   wires: Array<{ w: Behavior<number>; pure: boolean }>;
   streams: Array<{ s: Stream<number>; pure: boolean }>;
+  /** Source indices that feed a boom node (abortFire targets). */
+  boomSrcs: number[];
 }
 
 function build(spec: GraphSpec): Built {
-  const g: Built = { fires: [], sets: [], wires: [], streams: [] };
+  const g: Built = {
+    fires: [],
+    sets: [],
+    wires: [],
+    streams: [],
+    boomSrcs: [],
+  };
   for (let i = 0; i < spec.nStreams; i++) {
     const [s, fire] = newStream<number>();
     g.streams.push({ s, pure: true }); // a bare source is safe to churn
@@ -132,6 +149,18 @@ function build(spec: GraphSpec): Built {
         g.wires.push({ w: src.w.map(FN[n.f % FN.length]), pure: src.pure });
         break;
       }
+      case "boom": {
+        const i = n.src % spec.nStreams; // attach straight to a source
+        g.streams.push({
+          s: g.streams[i].s.map((x) => {
+            if (bombArmed) throw new Error("boom");
+            return x;
+          }),
+          pure: true,
+        });
+        g.boomSrcs.push(i);
+        break;
+      }
       case "combine": {
         const a = pickW(n.a);
         const b = pickW(n.b);
@@ -179,6 +208,7 @@ const arbNode: fc.Arbitrary<NodeSpec> = fc.oneof(
     b: fc.nat(20),
     f: fc.nat(9),
   }),
+  fc.record({ k: fc.constant("boom" as const), src: fc.nat(20) }),
 );
 
 const arbSpec: fc.Arbitrary<GraphSpec> = fc.record({
@@ -226,6 +256,22 @@ const arbOp: fc.Arbitrary<Op> = fc.oneof(
     arbitrary: fc.record({
       o: fc.constant("unlisten" as const),
       idx: fc.nat(20),
+    }),
+  },
+  {
+    weight: 1,
+    arbitrary: fc.record({
+      o: fc.constant("abortSet" as const),
+      cell: fc.nat(20),
+      v: fc.integer({ min: -50, max: 50 }),
+    }),
+  },
+  {
+    weight: 1,
+    arbitrary: fc.record({
+      o: fc.constant("abortFire" as const),
+      boom: fc.nat(20),
+      v: fc.integer({ min: -50, max: 50 }),
     }),
   },
 );
@@ -305,6 +351,28 @@ function runTwinsIn(spec: GraphSpec, ops: Op[]): void {
         coldHandles.splice(i, 1)[0]();
         break;
       }
+      case "abortSet": {
+        // warm only: the moment aborts in the batch body, after the set
+        const i = op.cell % warm.sets.length;
+        expect(() =>
+          batch(() => {
+            warm.sets[i](op.v * 3 + 1); // a value normal ops don't produce? irrelevant — abort discards it
+            throw new Error("abort");
+          }),
+        ).toThrow("abort");
+        break;
+      }
+      case "abortFire": {
+        if (warm.boomSrcs.length === 0) break;
+        const i = warm.boomSrcs[op.boom % warm.boomSrcs.length];
+        bombArmed = true;
+        try {
+          expect(() => warm.fires[i](op.v)).toThrow("boom");
+        } finally {
+          bombArmed = false;
+        }
+        break;
+      }
     }
     checkLaws();
   }
@@ -371,42 +439,36 @@ describe("fuzz seeds — known law violations (flip to test() in their phase)", 
     });
   });
 
-  test.fails(
-    "[фаза 5] an aborted batch does not poison the cell's equality skip (law 2)",
-    () => {
-      const [b, setB] = newBehavior(1);
-      const [other] = newStream<number>();
-      let armed = true;
-      const bomb = Stream.merge(b.updates, other, (l) => l).map((x) => {
-        if (armed && x === 5) {
-          armed = false;
-          throw new Error("boom");
-        }
-        return x;
-      });
-      bomb.listen(() => {});
-      expect(() => batch(() => setB(5))).toThrow();
-      setB(5); // bomb disarmed; today this is a silent no-op
-      expect(b.sample()).toBe(5);
-    },
-  );
+  test("[фаза 5 ✓] an aborted batch does not poison the cell's equality skip (law 2)", () => {
+    const [b, setB] = newBehavior(1);
+    const [other] = newStream<number>();
+    let armed = true;
+    const bomb = Stream.merge(b.updates, other, (l) => l).map((x) => {
+      if (armed && x === 5) {
+        armed = false;
+        throw new Error("boom");
+      }
+      return x;
+    });
+    bomb.listen(() => {});
+    expect(() => batch(() => setB(5))).toThrow();
+    setB(5); // bomb disarmed; today this is a silent no-op
+    expect(b.sample()).toBe(5);
+  });
 
-  test.fails(
-    "[фаза 5] a combine woken inside a batch body reseeds from committed values (law 1)",
-    () => {
-      const [a, setA] = newBehavior(1);
-      const [b, setB] = newBehavior(10);
-      setB(20);
-      const sum = Behavior.lift2((x, y) => x + y, a, b);
-      const seen: number[] = [];
-      batch(() => {
-        sum.listen((v) => seen.push(v)); // wake mid-moment
-        setA(2); // commit lands AFTER today's reseed
-      });
-      setB(30);
-      expect(seen[seen.length - 1]).toBe(sum.sample()); // today: push 31, pull 32
-    },
-  );
+  test("[фаза 5 ✓] a combine woken inside a batch body reseeds from committed values (law 1)", () => {
+    const [a, setA] = newBehavior(1);
+    const [b, setB] = newBehavior(10);
+    setB(20);
+    const sum = Behavior.lift2((x, y) => x + y, a, b);
+    const seen: number[] = [];
+    batch(() => {
+      sum.listen((v) => seen.push(v)); // wake mid-moment
+      setA(2); // commit lands AFTER today's reseed
+    });
+    setB(30);
+    expect(seen[seen.length - 1]).toBe(sum.sample()); // today: push 31, pull 32
+  });
 
   test.fails(
     "[фаза 6] flatten converges on simultaneous switch + inner update (law 1)",

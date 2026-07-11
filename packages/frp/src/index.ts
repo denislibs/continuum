@@ -605,9 +605,17 @@ export class Stream<A> {
   once(): Stream<A> {
     const out = new Stream<A>(this.rank + 1);
     let fired = false;
+    let stagedTx: Transaction | null = null;
     out.source(this, (t, a) => {
-      if (fired) return;
-      fired = true;
+      if (fired || stagedTx === t) return;
+      // spend the once at the boundary — an aborted moment leaves it armed
+      stagedTx = t;
+      t.last(() => {
+        if (stagedTx === t) {
+          fired = true;
+          stagedTx = null;
+        }
+      });
       out.send_(t, a);
     });
     return out;
@@ -785,12 +793,46 @@ export class Wire<A> {
   ): Wire<C> {
     const rank = Math.max(ba.updates.rank, bb.updates.rank) + 1;
     const out = new Stream<C>(rank);
+    // Committed caches + per-moment staging: the engine's own bookkeeping
+    // obeys the boundary-commit discipline it imposes on user state (law 2)
+    // — an aborted moment leaves the caches exactly as they were.
     let va = ba.sampleNoTrans();
     let vb = bb.sampleNoTrans();
+    let stagedTx: Transaction | null = null;
+    let sa: A;
+    let sb: B;
+    let hasSa = false;
+    let hasSb = false;
     let scheduledTx: Transaction | null = null;
+    let reseeding = false;
+    let suppressed = false;
+    const stage = (t: Transaction) => {
+      if (stagedTx !== t) {
+        stagedTx = t;
+        hasSa = false;
+        hasSb = false;
+        t.last(() => {
+          if (stagedTx === t) {
+            if (hasSa) va = sa;
+            if (hasSb) vb = sb;
+            stagedTx = null;
+            hasSa = false;
+            hasSb = false;
+          }
+        });
+      }
+    };
     const flush = (t: Transaction) => {
       scheduledTx = null;
-      out.send_(t, f(va, vb));
+      if (reseeding) {
+        // Woken mid-moment: the caches are not trustworthy until after the
+        // commits — the deferred reseed emits once from fresh values.
+        suppressed = true;
+        return;
+      }
+      const a = stagedTx === t && hasSa ? sa : va;
+      const b = stagedTx === t && hasSb ? sb : vb;
+      out.send_(t, f(a, b));
     };
     const schedule = (t: Transaction) => {
       if (scheduledTx !== t) {
@@ -799,20 +841,49 @@ export class Wire<A> {
       }
     };
     out.source(ba.updates, (t, a) => {
-      va = a;
+      stage(t);
+      sa = a;
+      hasSa = true;
       schedule(t);
     });
     out.source(bb.updates, (t, b) => {
-      vb = b;
+      stage(t);
+      sb = b;
+      hasSb = true;
       schedule(t);
     });
-    // While asleep the caches go stale — reseed from the live values the
-    // instant the node wakes (also cures joins over continuous behaviors
-    // frozen at construction time).
+    // While asleep the caches go stale — reseed on wake (also cures joins
+    // over continuous behaviors frozen at construction time).
     out.onWake = () => {
-      va = ba.sampleNoTrans();
-      vb = bb.sampleNoTrans();
-      scheduledTx = null;
+      const t = Transaction.current;
+      if (!t) {
+        va = ba.sampleNoTrans();
+        vb = bb.sampleNoTrans();
+        scheduledTx = null;
+        return;
+      }
+      // Waking mid-moment (a listen inside a batch, a switch rewire):
+      // fresh values exist only after this moment's commits. A nested
+      // `last` lands in the NEXT last batch — after every commit queued so
+      // far — so the reseed reads committed values; any flush scheduled
+      // meanwhile is suppressed and replaced by one emission from the
+      // reseeded caches.
+      reseeding = true;
+      t.last(() =>
+        t.last(() => {
+          va = ba.sampleNoTrans();
+          vb = bb.sampleNoTrans();
+          stagedTx = null;
+          hasSa = false;
+          hasSb = false;
+          reseeding = false;
+          scheduledTx = null;
+          if (suppressed) {
+            suppressed = false;
+            out.send_(t, f(va, vb));
+          }
+        }),
+      );
     };
     return new Wire<C>(() => f(ba.sampleNoTrans(), bb.sampleNoTrans()), out);
   }
@@ -986,14 +1057,14 @@ function makeCell<A>(init: A, eq: (prev: A, next: A) => boolean): Cell<A> {
     staged = a; // last write wins within a moment
     updates.send_(t, a);
   };
-  // Skip against the last SENT value, not the committed one: inside a batch
-  // the cell still shows the pre-moment value, and comparing with it would
-  // wrongly swallow a set back to that value (4 → 5 → 4 in one moment must
-  // commit 4).
-  let current = init;
+  // Skip against the PENDING value: the staged one if this very moment
+  // already wrote (4 → 5 → 4 in one batch must commit 4), else the
+  // committed one. Staging dies with an aborted moment, so the skip can
+  // never be poisoned by a throw (law 2) — no side variable to desync.
   const set = (a: A) => {
-    if (eq(current, a)) return;
-    if (Transaction.current?.pureZone) {
+    const t0 = Transaction.current;
+    if (eq(t0 && stagedTx === t0 ? staged : value, a)) return;
+    if (t0?.pureZone) {
       throw new Error(
         "Source fired inside a pure combinator (map/filter/at/accum). " +
           "Keep those callbacks pure — fire from a handler, `listen`, or `perform`.",
@@ -1007,7 +1078,6 @@ function makeCell<A>(init: A, eq: (prev: A, next: A) => boolean): Cell<A> {
         t.sending--;
       }
     });
-    current = a; // after the moment: an abort must not poison the skip
   };
   return { w: new Wire<A>(() => value, updates), updates, set, stage, pending };
 }
@@ -1191,17 +1261,31 @@ export function distinct<A>(
   const out = new Stream<A>(e.rank + 1);
   let hasPrev = false;
   let prev: A;
+  // The memory commits at the moment boundary (law 2: an aborted moment
+  // must not prime the dedup) …
+  let stagedTx: Transaction | null = null;
+  let staged: A;
   out.source(e, (t, a) => {
     if (!hasPrev || !eq(prev, a)) {
-      hasPrev = true;
-      prev = a;
+      if (stagedTx !== t) {
+        stagedTx = t;
+        t.last(() => {
+          if (stagedTx === t) {
+            hasPrev = true;
+            prev = staged;
+            stagedTx = null;
+          }
+        });
+      }
+      staged = a;
       out.send_(t, a);
     }
   });
-  // The memory belongs to a warm period: occurrences nobody observed never
+  // … and belongs to a warm period: occurrences nobody observed never
   // primed it, so a fresh period starts fresh.
   out.onWake = () => {
     hasPrev = false;
+    stagedTx = null;
   };
   return out;
 }
