@@ -146,14 +146,17 @@ describe("leak stress", () => {
 });
 
 describe("derivation lifecycle semantics", () => {
-  test("a module-level derivation reused across mounts throws loudly", () => {
-    const [b] = newBehavior(0);
+  test("a module-level derivation reused across mounts just works (sleeps and wakes)", () => {
+    const [b, set] = newBehavior(0);
     const shared = b.map((v) => v + 1); // created once, outside any mount
     const container = document.createElement("div");
-    mount(container, () => <span>{shared}</span>)(); // last listener leaves → auto-disposed
-    expect(() => mount(container, () => <span>{shared}</span>)).toThrow(
-      /disposed after its last listener/,
-    );
+    mount(container, () => <span>{shared}</span>)(); // last listener leaves → node sleeps
+    // Demand-driven activation: a second mount simply wakes the node —
+    // the old "disposed after its last listener" trap is gone.
+    const unmount = mount(container, () => <span class="live">{shared}</span>);
+    set(41);
+    expect(container.querySelector(".live")!.textContent).toBe("42");
+    unmount();
   });
 
   test("retain() makes a shared derivation survive listener churn", () => {

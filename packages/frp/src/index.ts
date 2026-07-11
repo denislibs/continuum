@@ -166,6 +166,27 @@ export class Transaction {
 // Stream<A> — discrete occurrences (push).
 // ---------------------------------------------------------------------------
 
+// Reap stateful behaviors: a hold that became unreachable can never be
+// sampled again — its missed occurrences are unobservable, so detaching it
+// from the source is invisible. Guarded at fire time: an updates stream
+// still observed WITHOUT its wrapper (listeners or downstream nodes) is
+// left alone. No-op on runtimes without FinalizationRegistry.
+const REAPER =
+  typeof FinalizationRegistry === "undefined"
+    ? null
+    : new FinalizationRegistry<() => void>((reap) => reap());
+
+// Built at TOP LEVEL on purpose: closures share their defining scope's
+// context in V8, so a reap callback created inside `hold` would drag the
+// whole activation (including a strong `updates`) into the registry and
+// pin its own target. Here the context is exactly {w}.
+function reapVia(w: WeakRef<Stream<any>>): () => void {
+  return () => {
+    const u = w.deref();
+    if (u && u.unobserved()) u.dispose();
+  };
+}
+
 // A rank beyond any realistic static graph depth. Reaching it means the live
 // topology is cyclic through time (see the error in `ensureBiggerThan`).
 const RANK_LIMIT = 1 << 16;
@@ -190,6 +211,17 @@ export class Stream<A> {
   private targets = new Map<Stream<any>, number>();
   /** Teardown handles for this node's own subscriptions to its inputs. */
   private cleanups: Array<() => void> = [];
+  /**
+   * Recipe inputs of a demand-activated (pure) node: subscribed on the
+   * first listener, torn down after the last one. Stateful nodes
+   * (hold/accum/once/distinct/switch) use `consume` instead — their value
+   * depends on the full history and must not miss occurrences.
+   */
+  private srcs: Array<{ i: Stream<any>; h: Handler<any> }> | null = null;
+  /** Live unlistens while awake; null while asleep. */
+  private live: Unlisten[] | null = null;
+  /** @internal Reseed hook run on wake, before inputs attach (lift caches). */
+  onWake: (() => void) | null = null;
   /** True once `dispose()` has run. */
   disposed = false;
   /** Exempt from the listener-count cascade (see `retain`). */
@@ -266,6 +298,7 @@ export class Stream<A> {
       );
     }
     this.listeners.add(h);
+    if (this.listeners.size === 1) this.wake();
     if (target) {
       this.targets.set(target, (this.targets.get(target) ?? 0) + 1);
       // keep the target strictly above this source (handles dynamic
@@ -284,6 +317,7 @@ export class Stream<A> {
           else this.targets.set(target, n - 1);
         }
       }
+      this.sleep(); // no-op unless a lazy node just lost its last listener
     };
   }
 
@@ -294,6 +328,31 @@ export class Stream<A> {
     // bookkeeping tests).
     const ls = [...this.listeners];
     for (const h of ls) h(t, a);
+  }
+
+  /** @internal True when nothing observes this node (no listeners, no downstream). */
+  unobserved(): boolean {
+    return this.listeners.size === 0 && this.targets.size === 0;
+  }
+
+  /** @internal Register a lazy input (see `srcs`). */
+  source<X>(input: Stream<X>, h: Handler<X>): void {
+    (this.srcs ??= []).push({ i: input, h });
+    if (this.live) this.live.push(input.listen_(this, h));
+  }
+
+  private wake(): void {
+    if (this.live || !this.srcs) return;
+    this.onWake?.(); // reseed caches from current values first
+    this.live = []; // set before attaching: source() during wake appends
+    for (const s of this.srcs) this.live.push(s.i.listen_(this, s.h));
+  }
+
+  private sleep(): void {
+    if (!this.live || this.pinned || this.listeners.size > 0) return;
+    const l = this.live;
+    this.live = null;
+    for (const un of l) un(); // inputs lose a listener -> they may sleep too
   }
 
   /**
@@ -333,6 +392,11 @@ export class Stream<A> {
   dispose(): void {
     if (this.disposed) return;
     this.disposed = true;
+    if (this.live) {
+      for (const un of this.live) un();
+      this.live = null;
+    }
+    this.srcs = null;
     const cs = this.cleanups;
     this.cleanups = [];
     for (const c of cs) c();
@@ -344,7 +408,7 @@ export class Stream<A> {
 
   map<B>(f: (a: A) => B): Stream<B> {
     const out = new Stream<B>(this.rank + 1);
-    out.consume(this, (t, a) => out.send_(t, f(a)));
+    out.source(this, (t, a) => out.send_(t, f(a)));
     return out;
   }
 
@@ -354,7 +418,7 @@ export class Stream<A> {
 
   filter(pred: (a: A) => boolean): Stream<A> {
     const out = new Stream<A>(this.rank + 1);
-    out.consume(this, (t, a) => {
+    out.source(this, (t, a) => {
       if (pred(a)) out.send_(t, a);
     });
     return out;
@@ -363,7 +427,7 @@ export class Stream<A> {
   /** Sample a behavior at the instant of each occurrence (sees pre-moment value). */
   snapshot<B, C>(b: Behavior<B>, f: (a: A, b: B) => C): Stream<C> {
     const out = new Stream<C>(this.rank + 1);
-    out.consume(this, (t, a) => out.send_(t, f(a, b.sampleNoTrans())));
+    out.source(this, (t, a) => out.send_(t, f(a, b.sampleNoTrans())));
     return out;
   }
 
@@ -389,15 +453,43 @@ export class Stream<A> {
       stagedVal = a; // last write wins within a moment
       updates.send_(t, a);
     });
-    return new Behavior<A>(() => value, updates);
+    const b = new Behavior<A>(() => value, updates);
+    // The wrapper is the liveness sentinel: while anybody can sample it, it
+    // is reachable; once collected, the chain may be torn down (unless the
+    // updates stream is independently observed). The held closure must
+    // reach `updates` WEAKLY: dom code captures behavior wrappers inside
+    // downstream handlers, so a strong path here could reach the target
+    // itself — an entry whose held value pins its own target never fires.
+    // Two outcomes at reap time: the island died wholesale (deref fails,
+    // nothing to do) or a live source still feeds it (deref succeeds,
+    // detach).
+    REAPER?.register(b, reapVia(new WeakRef(updates)));
+    return b;
   }
 
   /** Fold occurrences into a stream of accumulated states. */
   accumE<B>(init: B, f: (a: A, acc: B) => B): Stream<B> {
-    const self = this;
     const out = new Stream<B>(this.rank + 1);
-    const acc = out.hold(init); // delayed: snapshot sees previous state
-    out.consume(self, (t, a) => out.send_(t, f(a, acc.sampleNoTrans())));
+    // The accumulator is staged like `hold` (commits at the moment's
+    // boundary, so same-moment readers still see the past) — a plain cell,
+    // not an internal hold: a hidden self-listener would keep the chain
+    // hostage and defeat the reaper's cascade.
+    let value = init;
+    let stagedTx: Transaction | null = null;
+    let staged: B;
+    out.consume(this, (t, a) => {
+      if (stagedTx !== t) {
+        stagedTx = t;
+        t.last(() => {
+          if (stagedTx === t) {
+            value = staged;
+            stagedTx = null;
+          }
+        });
+      }
+      staged = f(a, value); // folds over the committed (pre-moment) state
+      out.send_(t, staged);
+    });
     return out;
   }
 
@@ -423,7 +515,7 @@ export class Stream<A> {
   /** Pass occurrences only while the behavior is true. */
   gate(b: Behavior<boolean>): Stream<A> {
     const out = new Stream<A>(this.rank + 1);
-    out.consume(this, (t, a) => {
+    out.source(this, (t, a) => {
       if (b.sampleNoTrans()) out.send_(t, a);
     });
     return out;
@@ -590,14 +682,22 @@ export class Behavior<A> {
         t.prioritized(out.rank, flush); // out.rank may have been bumped
       }
     };
-    out.consume(ba.updates, (t, a) => {
+    out.source(ba.updates, (t, a) => {
       va = a;
       schedule(t);
     });
-    out.consume(bb.updates, (t, b) => {
+    out.source(bb.updates, (t, b) => {
       vb = b;
       schedule(t);
     });
+    // While asleep the caches go stale — reseed from the live values the
+    // instant the node wakes (also cures joins over continuous behaviors
+    // frozen at construction time).
+    out.onWake = () => {
+      va = ba.sampleNoTrans();
+      vb = bb.sampleNoTrans();
+      scheduledTx = null;
+    };
     return new Behavior<C>(
       () => f(ba.sampleNoTrans(), bb.sampleNoTrans()),
       out,
@@ -646,7 +746,9 @@ export class Behavior<A> {
       });
     });
     out.onDispose(() => innerUn());
-    return new Behavior<A>(() => bb.sampleNoTrans().sampleNoTrans(), out);
+    const b = new Behavior<A>(() => bb.sampleNoTrans().sampleNoTrans(), out);
+    REAPER?.register(b, reapVia(new WeakRef(out)));
+    return b;
   }
 
   /** Follow the event currently selected by a behavior. */

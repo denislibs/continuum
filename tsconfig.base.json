@@ -8,7 +8,7 @@
     "skipLibCheck": true,
     "declaration": true,
     "composite": true,
-    "lib": ["es2020", "dom"],
+    "lib": ["es2021", "dom"],
     // `jsx`/`jsxImportSource` intentionally live in the configs that render
     // (dom, examples, benchmark) — frp/std must compile without resolving a
     // JSX runtime at all.

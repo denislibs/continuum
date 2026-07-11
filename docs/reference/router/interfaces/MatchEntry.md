@@ -6,7 +6,7 @@
 
 # Interface: MatchEntry
 
-Defined in: [match.ts:29](https://github.com/denislibs/continuum/blob/944371c394c0c26acf1400ff3d9564ada9a945a4/packages/router/src/match.ts#L29)
+Defined in: [match.ts:29](https://github.com/denislibs/continuum/blob/1009133524ef880e679ba1f379dfc0cffc91979b/packages/router/src/match.ts#L29)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [match.ts:29](https://github.com/denislibs/continuum/blob/944371c394
 
 > **def**: [`RouteDef`](RouteDef.md)
 
-Defined in: [match.ts:30](https://github.com/denislibs/continuum/blob/944371c394c0c26acf1400ff3d9564ada9a945a4/packages/router/src/match.ts#L30)
+Defined in: [match.ts:30](https://github.com/denislibs/continuum/blob/1009133524ef880e679ba1f379dfc0cffc91979b/packages/router/src/match.ts#L30)
 
 ***
 
@@ -22,6 +22,6 @@ Defined in: [match.ts:30](https://github.com/denislibs/continuum/blob/944371c394
 
 > **params**: [`Params`](../type-aliases/Params.md)
 
-Defined in: [match.ts:32](https://github.com/denislibs/continuum/blob/944371c394c0c26acf1400ff3d9564ada9a945a4/packages/router/src/match.ts#L32)
+Defined in: [match.ts:32](https://github.com/denislibs/continuum/blob/1009133524ef880e679ba1f379dfc0cffc91979b/packages/router/src/match.ts#L32)
 
 Own params merged with every ancestor's.

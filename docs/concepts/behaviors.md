@@ -52,6 +52,16 @@ If a value can be computed from existing Behaviors, don't store it — derive
 it. `Behavior.apply`, `lift2`, `lift3` combine multiple sources; deriving is
 glitch-free (see [Transactions](/concepts/transactions)).
 
+Derivations are **demand-driven**: `map`/`lift`/`filter` are just recipes
+until somebody listens (a JSX binding, `.listen()`, or a downstream node
+with listeners of its own). The first listener attaches the whole chain up
+to its sources; the last one to leave detaches it. A chain nobody listens
+to costs nothing and is collected like any garbage — and `sample()` always
+answers correctly, warm or cold, by recomputing on the spot. Stateful
+derivations (`hold`, `accum`) are the exception: their value depends on
+every occurrence, so they stay attached while you can still reach them —
+and once unreachable, the engine detaches them after garbage collection.
+
 ## Reading
 
 - **In JSX** — place the Behavior itself: `{count}`, `class={cls}`. That is

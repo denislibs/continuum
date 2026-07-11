@@ -55,7 +55,9 @@ describe("Stream.dispose", () => {
       return n;
     });
     const a = mid.map((n) => n);
-    mid.map((n) => n); // second consumer b (kept)
+    a.listen(() => {});
+    const b = mid.map((n) => n); // second consumer (kept, LIVE)
+    b.listen(() => {});
     a.dispose();
     fire(1);
     expect(midCalls).toBe(1); // mid still feeds b

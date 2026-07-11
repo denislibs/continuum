@@ -8,7 +8,7 @@
 
 > **provide**\<`T`\>(`ctx`, `value`): `void`
 
-Defined in: [index.tsx:603](https://github.com/denislibs/continuum/blob/944371c394c0c26acf1400ff3d9564ada9a945a4/packages/dom/src/index.tsx#L603)
+Defined in: [index.tsx:603](https://github.com/denislibs/continuum/blob/1009133524ef880e679ba1f379dfc0cffc91979b/packages/dom/src/index.tsx#L603)
 
 Write a context value into the current owner. Throws outside any owner.
 

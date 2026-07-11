@@ -8,7 +8,7 @@
 
 > **filterMap**\<`A`, `B`\>(`e`, `f`): `Stream`\<`B`\>
 
-Defined in: [index.ts:91](https://github.com/denislibs/continuum/blob/944371c394c0c26acf1400ff3d9564ada9a945a4/packages/std/src/index.ts#L91)
+Defined in: [index.ts:91](https://github.com/denislibs/continuum/blob/1009133524ef880e679ba1f379dfc0cffc91979b/packages/std/src/index.ts#L91)
 
 Map, dropping occurrences whose result is `null`/`undefined`.
 

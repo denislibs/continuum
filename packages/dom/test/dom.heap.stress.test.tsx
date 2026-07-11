@@ -12,9 +12,14 @@ import { memoryUsage } from "node:process";
 
 const gc = (globalThis as { gc?: () => void }).gc;
 
-function heapAfterGc(): number {
-  gc!();
-  gc!(); // twice: let finalizers from the first pass settle
+async function heapAfterGc(): Promise<number> {
+  // Several gc+task rounds: FinalizationRegistry callbacks (the frp reaper)
+  // are delivered between event-loop tasks, so a purely synchronous loop
+  // piles their queue up — let it drain before measuring.
+  for (let i = 0; i < 5; i++) {
+    gc!();
+    await new Promise((r) => setTimeout(r, 0));
+  }
   return memoryUsage().heapUsed;
 }
 
@@ -40,15 +45,15 @@ function App() {
 }
 
 describe.skipIf(!gc)("heap stress (--expose-gc)", () => {
-  test("10k mount/unmount cycles keep heap growth under 5 MB", () => {
+  test("10k mount/unmount cycles keep heap growth under 5 MB", async () => {
     const container = document.createElement("div");
     const cycle = () => mount(container, () => <App />)();
 
     for (let i = 0; i < 2_000; i++) cycle(); // warmup: caches, JIT, shapes
-    const baseline = heapAfterGc();
+    const baseline = await heapAfterGc();
 
     for (let i = 0; i < 10_000; i++) cycle();
-    const grown = heapAfterGc() - baseline;
+    const grown = (await heapAfterGc()) - baseline;
 
     // A single leaked listener closure is ~100+ bytes; 10k cycles of any
     // per-cycle leak lands in megabytes. 5 MB absorbs jsdom/V8 noise.
