@@ -8,7 +8,7 @@
 
 > **time**(): [`Behavior`](../classes/Behavior.md)\<`number`\>
 
-Defined in: [index.ts:773](https://github.com/denislibs/continuum/blob/944371c394c0c26acf1400ff3d9564ada9a945a4/packages/frp/src/index.ts#L773)
+Defined in: [index.ts:875](https://github.com/denislibs/continuum/blob/1009133524ef880e679ba1f379dfc0cffc91979b/packages/frp/src/index.ts#L875)
 
 Continuous wall-clock behavior (milliseconds), sampled on demand.
 

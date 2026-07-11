@@ -8,7 +8,7 @@
 
 > **never**\<`A`\>(): [`Stream`](../classes/Stream.md)\<`A`\>
 
-Defined in: [index.ts:768](https://github.com/denislibs/continuum/blob/944371c394c0c26acf1400ff3d9564ada9a945a4/packages/frp/src/index.ts#L768)
+Defined in: [index.ts:870](https://github.com/denislibs/continuum/blob/1009133524ef880e679ba1f379dfc0cffc91979b/packages/frp/src/index.ts#L870)
 
 The event with no occurrences (identity of `merge`).
 

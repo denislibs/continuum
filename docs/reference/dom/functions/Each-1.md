@@ -8,7 +8,7 @@
 
 > **Each**\<`T`, `K`\>(`props`): `Node`
 
-Defined in: [index.tsx:758](https://github.com/denislibs/continuum/blob/944371c394c0c26acf1400ff3d9564ada9a945a4/packages/dom/src/index.tsx#L758)
+Defined in: [index.tsx:758](https://github.com/denislibs/continuum/blob/1009133524ef880e679ba1f379dfc0cffc91979b/packages/dom/src/index.tsx#L758)
 
 Keyed list. The `by` key selector defaults to identity. (Note: `key` is a
 reserved JSX attribute stripped by the compiler, so the prop is named `by`.)

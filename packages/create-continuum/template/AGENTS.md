@@ -40,6 +40,7 @@ JSX, missing `.retain()`, `onChange` on text fields). Format with
 ```ts
 // @continuum-js/frp
 const [b, set] = newBehavior<T>(init);      // Behavior<T> + setter (set of an equal value is a no-op; custom eq as 2nd arg)
+// map/filter/lift are demand-driven: attached while listened, sample() always works
 const [e, fire] = newStream<T>();            // Stream<T> + injector
 batch(() => { setA(1); setB(2); });          // several sets/fires as ONE moment
 b.map(f); b.sample(); b.updates;            // updates: Stream<T> of changes

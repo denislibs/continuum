@@ -406,8 +406,22 @@ function lookupErrorHandler(
   return null;
 }
 
+// A dynamic region's lifecycle must attach somewhere — unlike static JSX,
+// which may live forever, a region REBUILDS and needs an owner to dispose
+// replaced subtrees. Checked up front for a teaching error instead of an
+// internal onCleanup() throw.
+function needRegionOwner(what: string): void {
+  if (!currentOwner) {
+    throw new Error(
+      `Continuum: ${what} needs an owner — build it inside a component, ` +
+        "mount(), or root().",
+    );
+  }
+}
+
 /** Conditional / switching subtree: rebuilds on each change of `b`. */
 export function dyn<T>(b: Behavior<T>, render: (v: T) => Child): Node {
+  needRegionOwner("dyn()");
   const owner = currentOwner;
   const start = document.createComment("dyn");
   const end = document.createComment("/dyn");
@@ -518,6 +532,7 @@ export function each<T, K>(
   key: (item: T) => K,
   render: (item: T) => Child,
 ): Node {
+  needRegionOwner("each()");
   const owner = currentOwner;
   const start = document.createComment("each");
   const end = document.createComment("/each");
@@ -660,6 +675,7 @@ export function bindInput(
 
 /** Render `child` into another node, cleaning up on dispose. */
 export function portal(target: Node, child: Child): Node {
+  needRegionOwner("portal()");
   const built = buildScoped(currentOwner, () => child);
   for (const n of built.nodes) target.appendChild(n);
   onCleanup(() => {

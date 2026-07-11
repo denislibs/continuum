@@ -8,7 +8,7 @@
 
 > **Dynamic**\<`T`\>(`props`): `Node`
 
-Defined in: [index.tsx:775](https://github.com/denislibs/continuum/blob/944371c394c0c26acf1400ff3d9564ada9a945a4/packages/dom/src/index.tsx#L775)
+Defined in: [index.tsx:775](https://github.com/denislibs/continuum/blob/1009133524ef880e679ba1f379dfc0cffc91979b/packages/dom/src/index.tsx#L775)
 
 Switch the subtree on a behavior's value (rebuilds on every change).
 

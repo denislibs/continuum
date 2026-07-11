@@ -10,6 +10,10 @@ describe("rank maintenance (ensureBiggerThan)", () => {
     expect(mid.rank).toBe(1);
     expect(leaf.rank).toBe(2);
 
+    // Wake the chain: lazy nodes join the live topology (and the rank
+    // bookkeeping) only while they have listeners.
+    leaf.listen_(null, () => {});
+
     // Force a high-rank producer upstream of src: src becomes a target of it.
     const high = new Stream<number>(5);
     high.listen_(src, () => {});

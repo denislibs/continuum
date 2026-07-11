@@ -8,7 +8,7 @@
 
 > **FocusEvent**\<`E`\> = [`Targeted`](Targeted.md)\<`globalThis.FocusEvent`, `E`\>
 
-Defined in: [events.ts:36](https://github.com/denislibs/continuum/blob/944371c394c0c26acf1400ff3d9564ada9a945a4/packages/dom/src/events.ts#L36)
+Defined in: [events.ts:36](https://github.com/denislibs/continuum/blob/1009133524ef880e679ba1f379dfc0cffc91979b/packages/dom/src/events.ts#L36)
 
 ## Type Parameters
 

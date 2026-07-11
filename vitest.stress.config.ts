@@ -7,7 +7,10 @@ export default {
   ...base,
   test: {
     ...(base as { test?: object }).test,
-    include: ["packages/dom/test/dom.heap.stress.test.tsx"],
+    include: [
+      "packages/dom/test/dom.heap.stress.test.tsx",
+      "packages/frp/test/frp.reaper.stress.test.ts",
+    ],
     pool: "forks",
     // vitest 4: `poolOptions` is gone, exec arguments are top-level.
     execArgv: ["--expose-gc"],
