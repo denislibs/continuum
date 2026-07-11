@@ -1,6 +1,6 @@
 {
   "name": "@continuum-js/example-showcase",
-  "version": "0.2.16",
+  "version": "0.2.17",
   "private": true,
   "type": "module",
   "scripts": {
@@ -9,8 +9,8 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@continuum-js/dom": "0.14.0",
-    "@continuum-js/frp": "0.14.0"
+    "@continuum-js/dom": "0.15.0",
+    "@continuum-js/frp": "0.15.0"
   },
   "devDependencies": {
     "vite": "^8.1.3"
