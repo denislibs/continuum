@@ -27,7 +27,8 @@ const PURE_CALLBACK_MEMBERS = new Set([
 ]);
 
 // Module-level derivations ending in these members need `.retain()`.
-const RETAIN_MEMBERS = new Set(["hold", "accum", "snapshot", "lift2", "lift3"]);
+// Stateful constructors: their process needs an owner (a component or root()).
+const STATE_MEMBERS = new Set(["hold", "accum", "accumE"]);
 
 // Globals whose mere use inside a pure callback is an effect or a read of
 // the outside world. `console` is deliberately absent: temporary debug
@@ -196,18 +197,18 @@ const noSampleInJsx: Rule.RuleModule = {
   },
 };
 
-const requireRetain: Rule.RuleModule = {
+const stateNeedsScope: Rule.RuleModule = {
   meta: {
     type: "problem",
     docs: {
       description:
-        "require .retain() on module-level derivations (they auto-dispose with their last listener)",
+        "module-level state (hold/accum/perform) must declare its lifetime with root()",
     },
     messages: {
-      retain:
-        "A module-level derivation is disposed when its last listener " +
-        "unsubscribes; the next mount then throws. Append `.retain()` for " +
-        "intentionally long-lived shared derivations.",
+      scope:
+        "State lives as long as its scope — and at module level no scope " +
+        "exists, so this throws at runtime. Declare app-level state " +
+        "explicitly: `export const value = root(() => …);`.",
     },
     schema: [],
   },
@@ -226,11 +227,16 @@ const requireRetain: Rule.RuleModule = {
           .declarations as AnyNode[]) {
           const init = decl.init as AnyNode | null;
           if (!init || init.type !== "CallExpression") continue;
-          const name = memberName(init.callee as AnyNode);
-          if (name && RETAIN_MEMBERS.has(name)) {
+          const callee = init.callee as AnyNode;
+          // already scoped: root(() => …)
+          if (callee.type === "Identifier" && callee.name === "root") continue;
+          const name = memberName(callee);
+          const direct =
+            callee.type === "Identifier" && callee.name === "perform";
+          if (direct || (name && STATE_MEMBERS.has(name))) {
             context.report({
               node: init as unknown as Rule.Node,
-              messageId: "retain",
+              messageId: "scope",
             });
           }
         }
@@ -285,7 +291,7 @@ const preferOninput: Rule.RuleModule = {
 const rules = {
   "no-impure-combinators": noImpureCombinators,
   "no-sample-in-jsx": noSampleInJsx,
-  "require-retain": requireRetain,
+  "state-needs-scope": stateNeedsScope,
   "prefer-oninput": preferOninput,
 };
 
@@ -309,7 +315,7 @@ plugin.configs.recommended = {
   rules: {
     "continuum/no-impure-combinators": "error",
     "continuum/no-sample-in-jsx": "error",
-    "continuum/require-retain": "warn",
+    "continuum/state-needs-scope": "error",
     "continuum/prefer-oninput": "warn",
   },
 };

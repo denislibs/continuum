@@ -2,12 +2,12 @@
   {
     "name": "@continuum-js/frp",
     "path": "packages/frp/src/index.ts",
-    "limit": "3.1 kB"
+    "limit": "3.35 kB"
   },
   {
     "name": "@continuum-js/dom (incl. frp)",
     "path": "packages/dom/src/index.tsx",
-    "limit": "5.25 kB"
+    "limit": "5.4 kB"
   },
   {
     "name": "@continuum-js/std (incl. frp)",

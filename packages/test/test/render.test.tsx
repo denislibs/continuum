@@ -1,5 +1,5 @@
 import { describe, test, expect, afterEach, vi } from "vitest";
-import { newStream, newBehavior, perform } from "@continuum-js/frp";
+import { root, newStream, newBehavior, perform } from "@continuum-js/frp";
 import { bindInput } from "@continuum-js/dom";
 import { debounce } from "@continuum-js/std";
 import {
@@ -75,7 +75,7 @@ describe("events", () => {
 describe("async helpers", () => {
   test("flush() waits for perform results to land", async () => {
     const [req, fireReq] = newStream<number>();
-    const res = perform(req, async (n) => n * 2);
+    const res = root(() => perform(req, async (n) => n * 2));
     const seen: number[] = [];
     res.listen((r) => {
       if (r.ok) seen.push(r.value);

@@ -1,11 +1,11 @@
 import { describe, test, expect } from "vitest";
-import { newStream, newBehavior, constant } from "@continuum-js/frp";
+import { newStream, newBehavior, constant, root } from "@continuum-js/frp";
 import { integral, derivative, warp } from "@continuum-js/frp";
 
 describe("integral", () => {
   test("accumulates value * dt over a tick clock", () => {
     const [tick, fire] = newStream<number>(); // timestamps (ms)
-    const x = integral(constant(2), tick, 0); // constant velocity 2/ms
+    const x = root(() => integral(constant(2), tick, 0)); // constant velocity 2/ms
     expect(x.sample()).toBe(0);
     fire(0); // baseline
     expect(x.sample()).toBe(0);
@@ -18,7 +18,7 @@ describe("integral", () => {
   test("integrates a changing behavior (forward Euler)", () => {
     const [tick, fire] = newStream<number>();
     const [v, setV] = newBehavior(1);
-    const x = integral(v, tick, 0);
+    const x = root(() => integral(v, tick, 0));
     fire(0);
     fire(10); // v=1, dt=10 -> +10
     expect(x.sample()).toBe(10);
@@ -32,7 +32,7 @@ describe("derivative", () => {
   test("computes (dvalue / dt) over ticks", () => {
     const [tick, fire] = newStream<number>();
     const [pos, setPos] = newBehavior(0);
-    const d = derivative(pos, tick);
+    const d = root(() => derivative(pos, tick));
     fire(0); // baseline
     setPos(10);
     fire(10); // (10-0)/10 = 1
@@ -57,10 +57,12 @@ describe("warp (time remapping)", () => {
 
   test("integrating over a warped clock runs faster", () => {
     const [tick, fire] = newStream<number>();
-    const x = integral(
-      constant(1),
-      warp(tick, (t) => t * 2),
-      0,
+    const x = root(() =>
+      integral(
+        constant(1),
+        warp(tick, (t) => t * 2),
+        0,
+      ),
     );
     fire(0); // warped baseline 0
     fire(5); // warped 10 -> dt=10 -> +10 (unwarped would be +5)

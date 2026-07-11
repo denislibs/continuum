@@ -1,5 +1,5 @@
 import { describe, test, expect } from "vitest";
-import { newStream } from "@continuum-js/frp";
+import { root, newStream } from "@continuum-js/frp";
 import {
   filterMap,
   pairwise,
@@ -53,7 +53,7 @@ describe("event combinators", () => {
 
   test("count folds occurrences into a running total", () => {
     const [e, fire] = newStream<void>();
-    const c = count(e);
+    const c = root(() => count(e));
     expect(c.sample()).toBe(0);
     fire();
     fire();

@@ -1,5 +1,11 @@
 import { describe, test, expect } from "vitest";
-import { newStream, newBehavior, constant, never } from "@continuum-js/frp";
+import {
+  root,
+  newStream,
+  newBehavior,
+  constant,
+  never,
+} from "@continuum-js/frp";
 
 describe("sources and basic push", () => {
   test("listen receives the value that was sent", () => {
@@ -57,7 +63,7 @@ describe("never / constant", () => {
 describe("hold and sample", () => {
   test("hold starts at init and updates across moments", () => {
     const [e, fire] = newStream<number>();
-    const b = e.hold(0);
+    const b = root(() => e.hold(0));
     expect(b.sample()).toBe(0);
     fire(5);
     expect(b.sample()).toBe(5);
@@ -76,7 +82,7 @@ describe("hold and sample", () => {
 describe("hold delay semantics (classic FRP)", () => {
   test("snapshot within the moment sees the value at the start of the moment", () => {
     const [e, fire] = newStream<number>();
-    const b = e.hold(0);
+    const b = root(() => e.hold(0));
     // snapshot samples b in the same moment e fires; must see PRE-update value.
     const snapped: Array<[number, number]> = [];
     e.snapshot(b, (a, s) => [a, s] as [number, number]).listen((pair) =>

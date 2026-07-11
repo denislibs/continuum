@@ -15,6 +15,7 @@ import {
   newStream,
   newBehavior,
   batch,
+  root,
   Stream,
   Behavior,
 } from "@continuum-js/frp";
@@ -115,8 +116,6 @@ function build(spec: GraphSpec): Built {
       }
       case "hold": {
         const src = pickS(n.src);
-        // stateful: unlisten currently KILLS it (see the phase-3 seed) — the
-        // cold twin must not churn listeners on it until owned-state lands.
         g.wires.push({ w: src.s.hold(n.init), pure: false });
         break;
       }
@@ -236,6 +235,13 @@ const arbOps = fc.array(arbOp, { minLength: 1, maxLength: 30 });
 // --- the twin run ------------------------------------------------------------
 
 function runTwins(spec: GraphSpec, ops: Op[]): void {
+  root((disposeRun) => {
+    runTwinsIn(spec, ops);
+    disposeRun(); // the graphs' stateful processes die with the run
+  });
+}
+
+function runTwinsIn(spec: GraphSpec, ops: Op[]): void {
   const warm = build(spec);
   const cold = build(spec);
 
@@ -288,9 +294,8 @@ function runTwins(spec: GraphSpec, ops: Op[]): void {
         break;
       }
       case "listen": {
-        const pool = cold.wires.filter((x) => x.pure);
-        if (pool.length === 0) break;
-        const w = pool[op.node % pool.length].w;
+        // phase 3 made stateful nodes churn-safe: listen anywhere
+        const w = cold.wires[op.node % cold.wires.length].w;
         coldHandles.push(w.listen(() => {}));
         break;
       }
@@ -353,19 +358,18 @@ describe("fuzz — the two laws on random graphs", () => {
 // the fix lands — forcing the flip to a plain `test` in the right phase.
 
 describe("fuzz seeds — known law violations (flip to test() in their phase)", () => {
-  test.fails(
-    "[фаза 3] a hold survives its last unlisten (law 1: no lying nodes)",
-    () => {
+  test("[фаза 3 ✓] a hold survives its last unlisten (law 1: no lying nodes)", () => {
+    root(() => {
       const [src, fire] = newStream<number>();
       const held = src.hold(0);
       const un = held.listen(() => {});
       fire(1);
       un();
       fire(2);
-      expect(held.sample()).toBe(2); // today: frozen at 1
-      expect(() => held.listen(() => {})).not.toThrow(); // today: throws disposed
-    },
-  );
+      expect(held.sample()).toBe(2);
+      expect(() => held.listen(() => {})).not.toThrow();
+    });
+  });
 
   test.fails(
     "[фаза 5] an aborted batch does not poison the cell's equality skip (law 2)",

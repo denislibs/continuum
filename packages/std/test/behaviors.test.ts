@@ -1,11 +1,11 @@
 import { describe, test, expect } from "vitest";
-import { newBehavior } from "@continuum-js/frp";
+import { root, newBehavior } from "@continuum-js/frp";
 import { previous, distinctB } from "@continuum-js/std";
 
 describe("behavior combinators", () => {
   test("previous lags one step behind", () => {
     const [b, setB] = newBehavior(0);
-    const prev = previous(b, -1);
+    const prev = root(() => previous(b, -1));
     expect(prev.sample()).toBe(-1);
 
     setB(5);

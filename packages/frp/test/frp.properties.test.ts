@@ -3,7 +3,13 @@
 // checked against a pure functional model.
 import { describe, test, expect } from "vitest";
 import fc from "fast-check";
-import { newStream, newBehavior, Stream, Behavior } from "@continuum-js/frp";
+import {
+  root,
+  newStream,
+  newBehavior,
+  Stream,
+  Behavior,
+} from "@continuum-js/frp";
 
 // A small pool of total unary functions to build random derivation chains.
 const FN_POOL: Array<(x: number) => number> = [
@@ -33,8 +39,8 @@ describe("transactional invariants (property-based)", () => {
     fc.assert(
       fc.property(arbChain, arbChain, arbFires, (ca, cb, fires) => {
         const [src, fire] = newStream<number>();
-        const a = buildChain(src, ca).hold(0);
-        const b = buildChain(src, cb).hold(0);
+        const a = root(() => buildChain(src, ca).hold(0));
+        const b = root(() => buildChain(src, cb).hold(0));
         const joined = Behavior.lift2((x, y) => [x, y] as const, a, b);
         const seen: Array<readonly [number, number]> = [];
         const un = joined.updates.listen((p) => seen.push(p));
@@ -77,7 +83,7 @@ describe("transactional invariants (property-based)", () => {
     fc.assert(
       fc.property(fc.integer(), arbFires, (init, fires) => {
         const [src, fire] = newStream<number>();
-        const held = src.hold(init);
+        const held = root(() => src.hold(init));
         const pairs = src.snapshot(held, (now, prev) => [now, prev] as const);
         const seen: Array<readonly [number, number]> = [];
         const un = pairs.listen((p) => seen.push(p));
@@ -131,7 +137,7 @@ describe("transactional invariants (property-based)", () => {
     fc.assert(
       fc.property(fc.integer(), arbFires, (init, fires) => {
         const [src, fire] = newStream<number>();
-        const acc = src.accum(init, (a, s) => s * 31 + a);
+        const acc = root(() => src.accum(init, (a, s) => s * 31 + a));
         const un = acc.updates.listen(() => {});
 
         let model = init;

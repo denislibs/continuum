@@ -1,5 +1,5 @@
 import { describe, test, expect } from "vitest";
-import { newStream } from "@continuum-js/frp";
+import { root, newStream } from "@continuum-js/frp";
 
 describe("error semantics (§5.1 + isolation)", () => {
   test("exception in a combinator propagates but the engine recovers", () => {
@@ -23,7 +23,7 @@ describe("error semantics (§5.1 + isolation)", () => {
       if (n === 99) throw new Error("nope");
       return n;
     });
-    const b = mapped.hold(0);
+    const b = root(() => mapped.hold(0));
     fire(5);
     expect(b.sample()).toBe(5);
     expect(() => fire(99)).toThrow("nope");

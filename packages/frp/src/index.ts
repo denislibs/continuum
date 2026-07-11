@@ -252,25 +252,20 @@ export class Transaction {
 // Stream<A> — discrete occurrences (push).
 // ---------------------------------------------------------------------------
 
-// Reap stateful behaviors: a hold that became unreachable can never be
-// sampled again — its missed occurrences are unobservable, so detaching it
-// from the source is invisible. Guarded at fire time: an updates stream
-// still observed WITHOUT its wrapper (listeners or downstream nodes) is
-// left alone. No-op on runtimes without FinalizationRegistry.
-const REAPER =
-  typeof FinalizationRegistry === "undefined"
-    ? null
-    : new FinalizationRegistry<() => void>((reap) => reap());
-
-// Built at TOP LEVEL on purpose: closures share their defining scope's
-// context in V8, so a reap callback created inside `hold` would drag the
-// whole activation (including a strong `updates`) into the registry and
-// pin its own target. Here the context is exactly {w}.
-function reapVia(w: WeakRef<Stream<any>>): () => void {
-  return () => {
-    const u = w.deref();
-    if (u && u.unobserved()) u.dispose();
-  };
+// The scope every stateful derivation and effect must declare. Nothing in
+// the engine guesses liveness anymore: formulas sleep by demand, state and
+// effects die with their owner.
+function requireScope(what: string, example: string): Scope {
+  const s = getScope();
+  if (!s) {
+    throw new Error(
+      `Continuum: ${what} creates state or an effect, and those need an ` +
+        "owner. Build it inside a component (dom sets the scope for you), " +
+        "or declare app-level state explicitly:\n" +
+        `  const value = root(() => ${example});`,
+    );
+  }
+  return s;
 }
 
 // The in-flight wake wave (see Stream.wake): non-null while a wake loop
@@ -380,13 +375,11 @@ export class Stream<A> {
   /** @internal Register an in-graph subscriber. Returns an unsubscribe handle. */
   listen_(target: Stream<any> | null, h: Handler<A>): Unlisten {
     if (this.disposed) {
-      // The only paths to `disposed` are an explicit dispose() and the
-      // reaper (an unreachable stateful behavior) — say so.
+      // The only path to `disposed` is an explicit dispose() — say so.
       throw new Error(
-        "Continuum: this node was disposed — by an explicit dispose() or " +
-          "reaped after its behavior became unreachable — and cannot be " +
-          "re-subscribed. Create derivations inside the scope that uses " +
-          "them.",
+        "Continuum: this node was disposed — dispose() was called on it — " +
+          "and cannot be re-subscribed. Create derivations inside the " +
+          "scope that uses them.",
       );
     }
     this.listeners.add(h);
@@ -424,11 +417,6 @@ export class Stream<A> {
     // steady-state delivery allocates nothing.
     const ls = (this.snap ??= [...this.listeners]);
     for (const h of ls) h(t, a);
-  }
-
-  /** @internal True when nothing observes this node (no listeners, no downstream). */
-  unobserved(): boolean {
-    return this.listeners.size === 0 && this.targets.size === 0;
   }
 
   /** @internal Register a lazy input (see `srcs`). */
@@ -476,23 +464,9 @@ export class Stream<A> {
     for (const un of l) un(); // inputs lose a listener -> they may sleep too
   }
 
-  /**
-   * @internal Subscribe this node to `input`, returning a teardown that also
-   * cascades: if `input` is a derived node left with no listeners, it disposes
-   * too. Sources (no cleanups of their own) are never auto-disposed.
-   */
+  /** @internal Subscribe this node to `input` (rank-tracked). */
   subscribe<X>(input: Stream<X>, h: Handler<X>): Unlisten {
-    const un = input.listen_(this, h);
-    return () => {
-      un();
-      if (
-        !input.pinned &&
-        input.listeners.size === 0 &&
-        input.cleanups.length > 0
-      ) {
-        input.dispose();
-      }
-    };
+    return input.listen_(this, h);
   }
 
   /** @internal Subscribe to `input` and register the teardown for `dispose()`. */
@@ -554,16 +528,21 @@ export class Stream<A> {
     return b.at(this, (value, event: A) => f(event, value));
   }
 
-  /** Step function: hold the last occurrence, committing at the moment boundary. */
+  /**
+   * Step function: hold the last occurrence, committing at the moment
+   * boundary. State — so it needs an owner: the process that keeps the value
+   * current is registered in the ambient scope and detaches when the scope
+   * disposes (the wire then answers with its final value).
+   */
   hold(init: A): Wire<A> {
-    const self = this;
+    const scope = requireScope("hold()", "src.hold(init)");
     let value = init;
     // Staging is keyed by transaction identity, so an aborted (dropped)
     // moment leaves nothing to commit and never blocks a later moment.
     let stagedTx: Transaction | null = null;
     let stagedVal: A;
     const updates = new Stream<A>(this.rank + 1);
-    updates.consume(self, (t, a) => {
+    const un = this.listen_(updates, (t, a) => {
       if (stagedTx !== t) {
         stagedTx = t;
         t.last(() => {
@@ -576,31 +555,23 @@ export class Stream<A> {
       stagedVal = a; // last write wins within a moment
       updates.send_(t, a);
     });
-    const b = new Wire<A>(() => value, updates);
-    // The wrapper is the liveness sentinel: while anybody can sample it, it
-    // is reachable; once collected, the chain may be torn down (unless the
-    // updates stream is independently observed). The held closure must
-    // reach `updates` WEAKLY: dom code captures behavior wrappers inside
-    // downstream handlers, so a strong path here could reach the target
-    // itself — an entry whose held value pins its own target never fires.
-    // Two outcomes at reap time: the island died wholesale (deref fails,
-    // nothing to do) or a live source still feeds it (deref succeeds,
-    // detach).
-    REAPER?.register(b, reapVia(new WeakRef(updates)));
-    return b;
+    scope.onDispose(un);
+    return new Wire<A>(() => value, updates);
   }
 
-  /** Fold occurrences into a stream of accumulated states. */
+  /**
+   * Fold occurrences into a stream of accumulated states. State — the fold
+   * process belongs to the ambient scope (see `hold`).
+   */
   accumE<B>(init: B, f: (a: A, acc: B) => B): Stream<B> {
+    const scope = requireScope("accumE()", "src.accumE(init, f)");
     const out = new Stream<B>(this.rank + 1);
-    // The accumulator is staged like `hold` (commits at the moment's
-    // boundary, so same-moment readers still see the past) — a plain cell,
-    // not an internal hold: a hidden self-listener would keep the chain
-    // hostage and defeat the reaper's cascade.
+    // The accumulator is staged like `hold`: commits at the moment's
+    // boundary, so same-moment readers still see the past.
     let value = init;
     let stagedTx: Transaction | null = null;
     let staged: B;
-    out.consume(this, (t, a) => {
+    const un = this.listen_(out, (t, a) => {
       if (stagedTx !== t) {
         stagedTx = t;
         t.last(() => {
@@ -613,6 +584,7 @@ export class Stream<A> {
       staged = f(a, value); // folds over the committed (pre-moment) state
       out.send_(t, staged);
     });
+    scope.onDispose(un);
     return out;
   }
 
@@ -704,29 +676,16 @@ export class Stream<A> {
 
   /** Observer (phase post): fires after the moment closes, FIFO. */
   listen(h: (a: A) => void): Unlisten {
-    const un = this.listen_(null, (t, a) => t.post(() => h(a)));
-    return () => {
-      un();
-      // Mirror the in-graph cascade (see `subscribe`): a derived node left
-      // with no listeners detaches from its inputs, so long-lived sources
-      // don't accumulate dead chains — every `{b.map(f)}` binding on a
-      // behavior that outlives its component would otherwise leak. Sources
-      // (no cleanups of their own) are never auto-disposed.
-      if (
-        !this.pinned &&
-        this.listeners.size === 0 &&
-        this.cleanups.length > 0
-      ) {
-        this.dispose();
-      }
-    };
+    // No dispose-cascade here (it used to guess liveness from listener
+    // counts and guessed wrong): pure derivations sleep on their own, and
+    // stateful ones live exactly as long as their owning scope.
+    return this.listen_(null, (t, a) => t.post(() => h(a)));
   }
 
   /**
-   * Keep this node alive when its last listener unsubscribes. Derived nodes
-   * normally auto-dispose at that point (so per-component derivations don't
-   * leak onto long-lived sources); call `retain()` on a derivation you
-   * intentionally share across mounts (e.g. a module-level one).
+   * Performance hint: keep a pure derivation attached across listener churn
+   * instead of sleeping and re-waking (useful for a hot shared chain whose
+   * listeners come and go). Never required for correctness.
    */
   retain(): this {
     this.pinned = true;
@@ -893,9 +852,7 @@ export class Wire<A> {
       });
     });
     out.onDispose(() => innerUn());
-    const b = new Wire<A>(() => bb.sampleNoTrans().sampleNoTrans(), out);
-    REAPER?.register(b, reapVia(new WeakRef(out)));
-    return b;
+    return new Wire<A>(() => bb.sampleNoTrans().sampleNoTrans(), out);
   }
 
   /**
@@ -967,37 +924,83 @@ export function newStream<A>(): [Stream<A>, (a: A) => void] {
   return [e, makeFire(e, true)];
 }
 
+// A source cell: a value committed at the moment boundary plus its updates
+// stream, fused into one leaf node (no internal hold, no subscriptions of
+// its own — a cell needs no owner). `stage` is the in-transaction writer
+// used by processes (`wire().on()`); `set` is the public entry that opens a
+// moment.
+interface Cell<A> {
+  w: Wire<A>;
+  updates: Stream<A>;
+  set: (a: A) => void;
+  stage: (t: Transaction, a: A) => void;
+  /** Staged value if this moment already wrote one, else the committed one. */
+  pending: (t: Transaction) => A;
+}
+
+function makeCell<A>(init: A, eq: (prev: A, next: A) => boolean): Cell<A> {
+  const updates = new Stream<A>(0);
+  let value = init;
+  let stagedTx: Transaction | null = null;
+  let staged: A;
+  const pending = (t: Transaction) => (stagedTx === t ? staged : value);
+  const stage = (t: Transaction, a: A) => {
+    if (stagedTx !== t) {
+      stagedTx = t;
+      t.last(() => {
+        if (stagedTx === t) {
+          value = staged;
+          stagedTx = null;
+        }
+      });
+    }
+    staged = a; // last write wins within a moment
+    updates.send_(t, a);
+  };
+  // Skip against the last SENT value, not the committed one: inside a batch
+  // the cell still shows the pre-moment value, and comparing with it would
+  // wrongly swallow a set back to that value (4 → 5 → 4 in one moment must
+  // commit 4).
+  let current = init;
+  const set = (a: A) => {
+    if (eq(current, a)) return;
+    if (Transaction.current?.pureZone) {
+      throw new Error(
+        "Source fired inside a pure combinator (map/filter/at/accum). " +
+          "Keep those callbacks pure — fire from a handler, `listen`, or `perform`.",
+      );
+    }
+    Transaction.run((t) => {
+      t.sending++;
+      try {
+        stage(t, a);
+      } finally {
+        t.sending--;
+      }
+    });
+    current = a; // after the moment: an abort must not poison the skip
+  };
+  return { w: new Wire<A>(() => value, updates), updates, set, stage, pending };
+}
+
 /**
- * A source behavior (a `hold` over a source event) plus its setter.
+ * A source behavior plus its setter.
  *
  * Setting a value equal to the current one (by `eq`, default `Object.is`)
- * is a no-op: no moment opens, no subscriber wakes. A behavior is a value
+ * is a no-op: no moment opens, no subscriber wakes. A wire is a value
  * across time — "changing" it to the same value is not a change. Pass a
  * custom `eq` for structural comparison, or `() => false` to deliver every
- * set (then de-duplicate downstream with `distinctB` where needed).
+ * set.
+ *
+ * @deprecated Use `wire(init, eq?)` — the same cell as one value with
+ * `.set` (and `.on` for declarative transitions). Removed in 1.0.
  */
 export function newBehavior<A>(
   init: A,
   eq: (prev: A, next: A) => boolean = Object.is,
 ): [Wire<A>, (a: A) => void] {
-  const e = new Stream<A>(0);
-  // once=false: repeated `set` within one moment is last-write-wins (hold
-  // stages exactly that), unlike a stream's fire.
-  const fire = makeFire(e, false);
-  // A source construct: the internal hold must survive listener churn
-  // (bindings come and go with mounts) — exempt it from the cascade.
-  const b = e.hold(init).retain();
-  // Skip against the last SENT value, not the hold's committed one: inside
-  // a batch the hold still shows the pre-moment value, and comparing with
-  // it would wrongly swallow a set back to that value (4 → 5 → 4 in one
-  // moment must commit 4).
-  let current = init;
-  const set = (a: A) => {
-    if (eq(current, a)) return;
-    fire(a);
-    current = a; // after the fire: an aborted moment must not poison the skip
-  };
-  return [b, set];
+  const c = makeCell(init, eq);
+  return [c.w, c.set];
 }
 
 /**
@@ -1021,6 +1024,14 @@ export function batch<A>(f: () => A): A {
 export interface WireSource<A> extends Wire<A> {
   /** Set the current value; equal values (by the cell's `eq`) are a no-op. */
   set(a: A): void;
+  /**
+   * Declare a state transition: on each occurrence of `e`, fold the reducer
+   * over the current value — `(state, event) => next`, `useReducer` order.
+   * The occurrence and the wire's update share ONE moment (snapshot
+   * semantics hold), and several `.on` sources firing simultaneously fold
+   * sequentially. The transition process belongs to the ambient scope.
+   */
+  on<E>(e: Stream<E>, f: (state: A, event: E) => A): this;
 }
 
 /** A source stream: occurrences enter the network via `.fire`. */
@@ -1038,8 +1049,19 @@ export function wire<A>(
   init: A,
   eq: (prev: A, next: A) => boolean = Object.is,
 ): WireSource<A> {
-  const [b, set] = newBehavior(init, eq);
-  return Object.assign(b, { set });
+  const c = makeCell(init, eq);
+  const on = <E>(e: Stream<E>, f: (state: A, event: E) => A) => {
+    const scope = requireScope("wire(...).on(...)", "wire(0).on(e, f)");
+    const un = e.listen_(c.updates, (t, ev) => {
+      const next = f(c.pending(t), ev);
+      if (eq(c.pending(t), next)) return;
+      c.stage(t, next);
+    });
+    scope.onDispose(un);
+    return src;
+  };
+  const src: WireSource<A> = Object.assign(c.w, { set: c.set, on });
+  return src;
 }
 
 /** A source stream plus its `fire`, as one value. */
@@ -1159,17 +1181,27 @@ export function perform<A, B>(
   e: Stream<A>,
   run: (a: A) => Promise<B>,
 ): Stream<Result<unknown, B>> {
+  // An effect — so it needs an owner: the request subscription detaches with
+  // the scope, and results that settle after the scope died are dropped.
+  const scope = requireScope("perform()", "perform(requests, fetcher)");
   const [out, fire] = newStream<Result<unknown, B>>();
+  let dead = false;
   // listen runs in phase post (after the moment closes); the promise
   // settles later, and `fire` opens a brand-new moment.
-  out.onDispose(
-    e.listen((a) => {
-      run(a).then(
-        (value) => fire({ ok: true, value }),
-        (error) => fire({ ok: false, error }),
-      );
-    }),
-  );
+  const un = e.listen((a) => {
+    run(a).then(
+      (value) => {
+        if (!dead) fire({ ok: true, value });
+      },
+      (error) => {
+        if (!dead) fire({ ok: false, error });
+      },
+    );
+  });
+  scope.onDispose(() => {
+    dead = true;
+    un();
+  });
   return out;
 }
 

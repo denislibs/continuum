@@ -4,7 +4,7 @@
 // `Stream`/`newStream` are the names; `Event`/`newEvent` stay as deprecated
 // aliases until 1.0.
 import { describe, test, expect } from "vitest";
-import { Stream, newStream, Event, newEvent } from "@continuum-js/frp";
+import { root, Stream, newStream, Event, newEvent } from "@continuum-js/frp";
 
 describe("Stream naming", () => {
   test("newStream creates a working source", () => {
@@ -34,7 +34,7 @@ describe("Stream naming", () => {
 
   test("old-name code keeps working until 1.0", () => {
     const [e, fire] = newEvent<string>();
-    const held = e.hold("start");
+    const held = root(() => e.hold("start"));
     // the alias is usable in type position too
     const typed: Event<string> = e;
     void typed;
