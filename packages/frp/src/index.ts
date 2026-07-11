@@ -309,6 +309,8 @@ export class Stream<A> {
   private live: Unlisten[] | null = null;
   /** @internal Reseed hook run on wake, before inputs attach (lift caches). */
   onWake: (() => void) | null = null;
+  /** @internal Extra teardown run on sleep/dispose (flatten's inner subscription). */
+  onSleep: (() => void) | null = null;
   /** True once `dispose()` has run. */
   disposed = false;
   /** Exempt from the listener-count cascade (see `retain`). */
@@ -462,6 +464,7 @@ export class Stream<A> {
     const l = this.live;
     this.live = null;
     for (const un of l) un(); // inputs lose a listener -> they may sleep too
+    this.onSleep?.();
   }
 
   /** @internal Subscribe this node to `input` (rank-tracked). */
@@ -490,6 +493,7 @@ export class Stream<A> {
     if (this.live) {
       for (const un of this.live) un();
       this.live = null;
+      this.onSleep?.();
     }
     this.srcs = null;
     const cs = this.cleanups;
@@ -593,17 +597,19 @@ export class Stream<A> {
     return this.accumE(init, f).hold(init);
   }
 
-  /** Only the first occurrence passes. */
+  /**
+   * Only the first occurrence passes. A formula: cold occurrences nobody
+   * observed do not spend it; once it fired while warm, the flag persists
+   * across sleep (an observed occurrence stays observed).
+   */
   once(): Stream<A> {
     const out = new Stream<A>(this.rank + 1);
     let fired = false;
-    const stop = out.subscribe(this, (t, a) => {
+    out.source(this, (t, a) => {
       if (fired) return;
       fired = true;
       out.send_(t, a);
-      stop();
     });
-    out.onDispose(stop);
     return out;
   }
 
@@ -661,12 +667,12 @@ export class Stream<A> {
         t.prioritized(out.rank, flush); // out.rank may have been bumped
       }
     };
-    out.consume(ea, (t, a) => {
+    out.source(ea, (t, a) => {
       schedule(t);
       left = a;
       hasLeft = true;
     });
-    out.consume(eb, (t, a) => {
+    out.source(eb, (t, a) => {
       schedule(t);
       right = a;
       hasRight = true;
@@ -830,51 +836,74 @@ export class Wire<A> {
   /**
    * @internal The wire-of-wires switch behind `flatten`. Public under the
    * deprecated `switchB` name until 1.0 — prefer `flatten(w)`.
+   *
+   * A formula: cold it is a recipe (pull samples straight through); waking
+   * attaches the outer wire AND the currently selected inner; sleeping
+   * detaches both. Rewiring while warm commits at the moment boundary.
    */
   static switchB<A>(bb: Wire<Wire<A>>): Wire<A> {
-    let current = bb.sampleNoTrans();
-    const out = new Stream<A>(current.updates.rank + 1);
-    let innerUn = out.subscribe(current.updates, (t, a) => out.send_(t, a));
-    out.consume(bb.updates, (t, nb) => {
-      // Emit the new inner's current value as this behavior's update.
+    const out = new Stream<A>(bb.updates.rank + 1);
+    let innerUn: Unlisten | null = null;
+    const attach = (b: Wire<A>) => {
+      innerUn = out.subscribe(b.updates, (t, a) => out.send_(t, a));
+    };
+    out.source(bb.updates, (t, nb) => {
+      // Emit the new inner's current value as this wire's update.
       out.send_(t, nb.sampleNoTrans());
       // Rewire at the moment boundary (classic switch delay).
       t.last(() => {
+        if (!innerUn) return; // fell asleep before the boundary
         innerUn();
-        current = nb;
         // Rebase: after leaving a deep inner, come back down to the live
         // topology. Lowering is safe — downstream nodes stayed strictly
         // above the old (larger) rank, and the floor keeps `out` above
         // both of its live inputs.
-        const floor = Math.max(bb.updates.rank, current.updates.rank) + 1;
+        const floor = Math.max(bb.updates.rank, nb.updates.rank) + 1;
         if (floor < out.rank) out.rank = floor;
-        innerUn = out.subscribe(current.updates, (t2, a) => out.send_(t2, a));
+        attach(nb);
       });
     });
-    out.onDispose(() => innerUn());
+    out.onWake = () => attach(bb.sampleNoTrans());
+    out.onSleep = () => {
+      if (innerUn) {
+        innerUn();
+        innerUn = null;
+      }
+    };
     return new Wire<A>(() => bb.sampleNoTrans().sampleNoTrans(), out);
   }
 
   /**
    * @internal The wire-of-streams switch behind `flatten`. Public under the
    * deprecated `switchE` name until 1.0 — prefer `flatten(w)`.
+   *
+   * A formula (see switchB): waking attaches the CURRENT selection, even
+   * one chosen while asleep.
    */
   static switchE<A>(be: Wire<Stream<A>>): Stream<A> {
-    let current = be.sampleNoTrans();
-    const out = new Stream<A>(current.rank + 1);
-    let innerUn = out.subscribe(current, (t, a) => out.send_(t, a));
-    out.consume(be.updates, (t, ne) => {
+    const out = new Stream<A>(be.updates.rank + 1);
+    let innerUn: Unlisten | null = null;
+    const attach = (e: Stream<A>) => {
+      innerUn = out.subscribe(e, (t, a) => out.send_(t, a));
+    };
+    out.source(be.updates, (t, ne) => {
       // Rewire at the moment boundary so the old event stays live this moment.
       t.last(() => {
+        if (!innerUn) return; // fell asleep before the boundary
         innerUn();
-        current = ne;
         // Rebase to the live topology (see switchB for the safety argument).
-        const floor = Math.max(be.updates.rank, current.rank) + 1;
+        const floor = Math.max(be.updates.rank, ne.rank) + 1;
         if (floor < out.rank) out.rank = floor;
-        innerUn = out.subscribe(current, (t2, a) => out.send_(t2, a));
+        attach(ne);
       });
     });
-    out.onDispose(() => innerUn());
+    out.onWake = () => attach(be.sampleNoTrans());
+    out.onSleep = () => {
+      if (innerUn) {
+        innerUn();
+        innerUn = null;
+      }
+    };
     return out;
   }
 }
@@ -1162,13 +1191,18 @@ export function distinct<A>(
   const out = new Stream<A>(e.rank + 1);
   let hasPrev = false;
   let prev: A;
-  out.consume(e, (t, a) => {
+  out.source(e, (t, a) => {
     if (!hasPrev || !eq(prev, a)) {
       hasPrev = true;
       prev = a;
       out.send_(t, a);
     }
   });
+  // The memory belongs to a warm period: occurrences nobody observed never
+  // primed it, so a fresh period starts fresh.
+  out.onWake = () => {
+    hasPrev = false;
+  };
   return out;
 }
 
