@@ -8,7 +8,7 @@
 
 > **Fragment**(`props`): `Node`
 
-Defined in: [index.tsx:321](https://github.com/denislibs/continuum/blob/1009133524ef880e679ba1f379dfc0cffc91979b/packages/dom/src/index.tsx#L321)
+Defined in: [index.tsx:322](https://github.com/denislibs/continuum/blob/cc4617269797dda656aa4d28267b6b87666cd809/packages/dom/src/index.tsx#L322)
 
 Fragment marker for `--jsxFragmentFactory Fragment`.
 

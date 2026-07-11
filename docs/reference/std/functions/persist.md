@@ -8,7 +8,7 @@
 
 > **persist**\<`T`\>(`key`, `b`, `storage?`): `Unlisten`
 
-Defined in: [index.ts:245](https://github.com/denislibs/continuum/blob/1009133524ef880e679ba1f379dfc0cffc91979b/packages/std/src/index.ts#L245)
+Defined in: [index.ts:242](https://github.com/denislibs/continuum/blob/cc4617269797dda656aa4d28267b6b87666cd809/packages/std/src/index.ts#L242)
 
 Mirror every value of `b` (including the current one) into storage as JSON.
 Best-effort: a throwing `setItem` (quota, private mode) is swallowed — the
@@ -29,7 +29,7 @@ to a scope (`onCleanup(persist(key, b))`) or keep it for a manual stop.
 
 ### b
 
-`Behavior`\<`T`\>
+`Wire`\<`T`\>
 
 ### storage?
 

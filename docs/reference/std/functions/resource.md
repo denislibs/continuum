@@ -6,9 +6,9 @@
 
 # Function: resource()
 
-> **resource**\<`A`, `T`\>(`trigger`, `fetcher`): `Behavior`\<[`Async`](../type-aliases/Async.md)\<`T`\>\>
+> **resource**\<`A`, `T`\>(`trigger`, `fetcher`): `Wire`\<[`Async`](../type-aliases/Async.md)\<`T`\>\>
 
-Defined in: [index.ts:183](https://github.com/denislibs/continuum/blob/1009133524ef880e679ba1f379dfc0cffc91979b/packages/std/src/index.ts#L183)
+Defined in: [index.ts:180](https://github.com/denislibs/continuum/blob/cc4617269797dda656aa4d28267b6b87666cd809/packages/std/src/index.ts#L180)
 
 Turn a stream of requests into a behavior tracking the async lifecycle
 (`idle → loading → ok | error`). Requests are stamped with a sequence number,
@@ -37,4 +37,4 @@ the classic out-of-order-response bug, solved declaratively.
 
 ## Returns
 
-`Behavior`\<[`Async`](../type-aliases/Async.md)\<`T`\>\>
+`Wire`\<[`Async`](../type-aliases/Async.md)\<`T`\>\>

@@ -1,4 +1,4 @@
-import { newStream, newBehavior, type Behavior } from "@continuum-js/frp";
+import { stream, wire, type Wire } from "@continuum-js/frp";
 import { Show, Each, bindInput } from "@continuum-js/dom";
 
 export interface Todo {
@@ -7,17 +7,17 @@ export interface Todo {
 }
 
 /**
- * A small keyed list demo exercising snapshot/accum, the `<Each>` and `<Show>`
+ * A small keyed list demo exercising at/accum, the `<Each>` and `<Show>`
  * components, and a controlled input via `bindInput`. All dynamics flow
  * through the network.
  */
 export function TodoApp() {
   let nextId = 1;
-  const [draft, setDraft] = newBehavior("");
-  const [submit, fireSubmit] = newStream<void>();
+  const draft = wire("");
+  const submit = stream<void>();
 
-  const todos: Behavior<Todo[]> = submit
-    .snapshot(draft, (_void, text) => text.trim())
+  const todos: Wire<Todo[]> = draft
+    .at(submit, (text) => text.trim())
     .filter((text) => text.length > 0)
     .accum<Todo[]>([], (text, list) => [...list, { id: nextId++, text }]);
 
@@ -25,13 +25,13 @@ export function TodoApp() {
 
   const onSubmit = (e: Event) => {
     e.preventDefault();
-    fireSubmit();
-    setDraft("");
+    submit.fire();
+    draft.set("");
   };
 
   return (
     <form onSubmit={onSubmit}>
-      <input placeholder="what to do?" {...bindInput(draft, setDraft)} />
+      <input placeholder="what to do?" {...bindInput(draft, draft.set)} />
       <Show when={hasItems} fallback={() => <p class="empty">nothing yet</p>}>
         {() => (
           <ul>

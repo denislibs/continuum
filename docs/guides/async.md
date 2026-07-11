@@ -36,7 +36,7 @@ import { resource } from "@continuum-js/std";
 import { Dynamic } from "@continuum-js/dom";
 
 const state = resource(userId.updates, (id) => api.fetchUser(id));
-// Behavior<Async<User>>: { status: "idle" | "loading" | "ok" | "error" }
+// Wire<Async<User>>: { status: "idle" | "loading" | "ok" | "error" }
 
 <Dynamic value={state}>
   {(s) =>

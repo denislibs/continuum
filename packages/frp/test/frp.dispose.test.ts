@@ -1,5 +1,5 @@
 import { describe, test, expect } from "vitest";
-import { newStream, Stream } from "@continuum-js/frp";
+import { root, newStream, Stream } from "@continuum-js/frp";
 
 describe("Stream.dispose", () => {
   test("detaches a derived node from its source", () => {
@@ -80,7 +80,7 @@ describe("Stream.dispose", () => {
 describe("Behavior.dispose", () => {
   test("detaches a stepped behavior from its source event", () => {
     const [e, fire] = newStream<number>();
-    const b = e.hold(0);
+    const b = root(() => e.hold(0));
     let seen = 0;
     b.updates.listen(() => seen++);
     fire(1);

@@ -11,8 +11,9 @@
 > изменение, а хуки протаскивают состояние между перезапусками.
 >
 > **Continuum**: компонент выполняется **один раз**. Реактивные величины —
-> это объекты (`Behavior`), которые кладутся прямо в JSX; дальше меняются
-> только затронутые текстовые узлы и атрибуты.
+> это объекты (`Wire`, «провод»; в FRP-литературе такой тип называют
+> Behavior), которые кладутся прямо в JSX; дальше меняются только затронутые
+> текстовые узлы и атрибуты.
 
 Отсюда следствия: нет re-render'ов → нет deps-массивов, нет `memo`, нет
 `useCallback`, нет stale closures, нет правил хуков.
@@ -34,23 +35,23 @@ undo/redo — вторая свёртка тех же действий, перс
 
 ## Таблица соответствий
 
-| React                         | Continuum                              | Комментарий                                                        |
-| ----------------------------- | -------------------------------------- | ------------------------------------------------------------------ |
-| `useState(init)`              | `newBehavior(init)`                    | возвращает `[Behavior, set]`; можно объявлять и вне компонента     |
-| `useMemo(f, [a, b])`          | `a.map(f)` / `Behavior.lift2(f, a, b)` | зависимости — сама структура выражения, массив не нужен            |
-| `useEffect(f, [x])`           | `x.listen(f)` + `onCleanup`            | подписка на значение; очистка — явная и одноразовая                |
-| `useEffect(f, [])` (маунт)    | `onMount(f)`                           | вызывается один раз, когда узлы уже вставлены в DOM                |
-| `useEffect(fetch…)`           | `perform` / `resource`                 | IO — граница сети; ошибки — данные (`Result`), не исключения       |
-| `useContext` / `<Provider>`   | `use(ctx)` / `provide(ctx, v)`         | то же, но через дерево владения                                    |
-| `useRef(dom)`                 | обычная переменная или `ref={…}`       | компонент выполняется один раз — `const el = <div/>` уже стабилен  |
-| `useCallback` / `memo`        | —                                      | не нужны: ничего не перезапускается, идентичность стабильна        |
-| `key` в списках               | `by` в `<Each>`                        | тот же смысл (keyed reconciliation, у нас LIS-диффинг)             |
-| `{cond && <A/>}`              | `<Show when={b}>`                      | перестройка только при смене истинности                            |
-| `<Suspense>` + `React.lazy`   | `lazy(() => import(…), { fallback })`  | pending/error — обычные значения, не механизм исключений           |
-| Error Boundary (класс / либа) | `<Catch fallback={(e, reset) => …}>`   | компонент, не класс; ловит ошибки построения и пересборки регионов |
-| `useSyncExternalStore`        | `Behavior.fromPoll` / `newBehavior`    | внешний мир входит как behavior                                    |
-| `onClick={handler}`           | `onClick={fire}`                       | событие уходит в FRP-сеть, не в setState                           |
-| StrictMode double-render      | —                                      | нечему перезапускаться — нечего и проверять                        |
+| React                         | Continuum                             | Комментарий                                                          |
+| ----------------------------- | ------------------------------------- | -------------------------------------------------------------------- |
+| `useState(init)`              | `wire(init)`                          | возвращает Wire с методом `.set`; на уровне модуля — внутри `root()` |
+| `useMemo(f, [a, b])`          | `a.map(f)` / `combine(a, b, f)`       | зависимости — сама структура выражения, массив не нужен              |
+| `useEffect(f, [x])`           | `x.listen(f)` + `onCleanup`           | подписка на значение; очистка — явная и одноразовая                  |
+| `useEffect(f, [])` (маунт)    | `onMount(f)`                          | вызывается один раз, когда узлы уже вставлены в DOM                  |
+| `useEffect(fetch…)`           | `perform` / `resource`                | IO — граница сети; ошибки — данные (`Result`), не исключения         |
+| `useContext` / `<Provider>`   | `use(ctx)` / `provide(ctx, v)`        | то же, но через дерево владения                                      |
+| `useRef(dom)`                 | обычная переменная или `ref={…}`      | компонент выполняется один раз — `const el = <div/>` уже стабилен    |
+| `useCallback` / `memo`        | —                                     | не нужны: ничего не перезапускается, идентичность стабильна          |
+| `key` в списках               | `by` в `<Each>`                       | тот же смысл (keyed reconciliation, у нас LIS-диффинг)               |
+| `{cond && <A/>}`              | `<Show when={b}>`                     | перестройка только при смене истинности                              |
+| `<Suspense>` + `React.lazy`   | `lazy(() => import(…), { fallback })` | pending/error — обычные значения, не механизм исключений             |
+| Error Boundary (класс / либа) | `<Catch fallback={(e, reset) => …}>`  | компонент, не класс; ловит ошибки построения и пересборки регионов   |
+| `useSyncExternalStore`        | `Wire.fromPoll` / `wire`              | внешний мир входит как Wire                                          |
+| `onClick={handler}`           | `onClick={e.fire}`                    | событие уходит в FRP-сеть, не в setState                             |
+| StrictMode double-render      | —                                     | нечему перезапускаться — нечего и проверять                          |
 
 ---
 
@@ -68,12 +69,14 @@ function Counter() {
 **Continuum**
 
 ```tsx
-import { newBehavior } from "@continuum-js/frp";
+import { wire } from "@continuum-js/frp";
 
 function Counter() {
-  const [count, setCount] = newBehavior(0);
+  const count = wire(0);
   return (
-    <button onClick={() => setCount(count.sample() + 1)}>count: {count}</button>
+    <button onClick={() => count.set(count.sample() + 1)}>
+      count: {count}
+    </button>
   );
 }
 ```
@@ -81,8 +84,10 @@ function Counter() {
 Почти одинаково — но семантика разная: React перезапустит `Counter` на
 каждый клик и пере-render'ит поддерево; Continuum выполнит `Counter` один
 раз, а клик патчит ровно один текстовый узел — тот, что привязан к `count`.
-Любители потоков могут выразить тот же счётчик событием:
-`clicks.accum(0, (_e, n) => n + 1)` — «count есть свёртка кликов».
+Любители потоков могут объявить те же переходы явно:
+`wire(0).on(clicks, (n) => n + 1)` — «count есть свёртка кликов»; редьюсер
+получает `(состояние, событие)`, а сам переход регистрируется в текущем
+скоупе.
 
 ## 2. Производное состояние
 
@@ -102,7 +107,7 @@ function Cart({ items }: { items: Item[] }) {
 **Continuum** — зависимость и есть выражение:
 
 ```tsx
-function Cart(props: { items: Behavior<Item[]> }) {
+function Cart(props: { items: Wire<Item[]> }) {
   const total = props.items.map((xs) =>
     xs.reduce((s, i) => s + i.price * i.qty, 0),
   );
@@ -113,7 +118,7 @@ function Cart(props: { items: Behavior<Item[]> }) {
 
 Массивов зависимостей нет как класса: `label` зависит от `total`, потому что
 _построен из него_. Забыть зависимость синтаксически невозможно. Несколько
-источников — `Behavior.lift2((a, b) => …, ba, bb)`.
+источников — `combine(wa, wb, (a, b) => …)`.
 
 ## 3. Эффект и его очистка
 
@@ -139,13 +144,13 @@ function Online() {
 **Continuum**
 
 ```tsx
-import { newBehavior } from "@continuum-js/frp";
+import { wire } from "@continuum-js/frp";
 import { onCleanup } from "@continuum-js/dom";
 
 function Online() {
-  const [online, setOnline] = newBehavior(navigator.onLine);
-  const on = () => setOnline(true);
-  const off = () => setOnline(false);
+  const online = wire(navigator.onLine);
+  const on = () => online.set(true);
+  const off = () => online.set(false);
   window.addEventListener("online", on);
   window.addEventListener("offline", off);
   onCleanup(() => {
@@ -227,11 +232,11 @@ function User({ id }: { id: string }) {
 error`, гонка ответов решена внутри (last-request-wins):
 
 ```tsx
-import { type Behavior } from "@continuum-js/frp";
+import { type Wire } from "@continuum-js/frp";
 import { Dynamic } from "@continuum-js/dom";
 import { resource } from "@continuum-js/std";
 
-function User(props: { id: Behavior<string> }) {
+function User(props: { id: Wire<string> }) {
   const state = resource(props.id.updates, (id) =>
     fetch(`/api/users/${id}`).then((r) => r.json() as Promise<User>),
   );
@@ -316,8 +321,8 @@ const [text, setText] = useState("");
 **Continuum**
 
 ```tsx
-const [text, setText] = newBehavior("");
-<input {...bindInput(text, setText)} />;
+const text = wire("");
+<input {...bindInput(text, text.set)} />;
 ```
 
 Так же, минус перезапуски компонента на каждый символ.
@@ -328,7 +333,7 @@ Continuum вешает **нативные** DOM-слушатели, а нати�
 каждый символ, используйте `onInput` (именно это делает `bindInput`):
 
 ```tsx
-<input value={text} onInput={(e) => setText(e.currentTarget.value)} />
+<input value={text} onInput={(e) => text.set(e.currentTarget.value)} />
 ```
 
 События полностью типизированы — редактор подсказывает их и знает тип
@@ -389,7 +394,7 @@ function Toolbar() {
 ```
 
 Провайдер — не обёртка-компонент, а запись в дерево владения. Хочешь
-реактивную тему — положи в контекст `Behavior<string>` и используй его в
+реактивную тему — положи в контекст `Wire<string>` и используй его в
 атрибуте как обычно.
 
 ## 9. Debounce-поиск
@@ -457,7 +462,7 @@ const routes: RouteDef[] = [
 Чанк-сплиттинг одинаковый (литеральный `import()` режет бандлер), но
 pending-состояние — не «подвешенный рендер, пойманный Suspense'ом», а обычное
 значение. Бонус Continuum-роутера: `/users/1 → /users/2` не пересобирает
-страницу — обновляется только `useParams()`-behavior.
+страницу — обновляется только `useParams()`-Wire.
 
 ---
 
@@ -469,10 +474,11 @@ pending-состояние — не «подвешенный рендер, по�
   Класс багов «забыл зависимость» / «лишняя зависимость» не существует.
 - **`memo` / `useCallback` / стабилизации идентичности.** Ничего не
   перезапускается, идентичность значений и функций стабильна по построению.
-- **Stale closures.** Замыкание захватывает `Behavior` — саму величину, а не
-  её снапшот; `b.sample()` всегда читает актуальное.
-- **Правил хуков.** `newBehavior`/`listen` — обычные функции: можно в
-  условии, в цикле, вне компонента, в модуле.
+- **Stale closures.** Замыкание захватывает `Wire` — саму величину, а не
+  её снапшот; `w.sample()` всегда читает актуальное.
+- **Правил хуков.** `wire`/`listen` — обычные функции: можно в условии, в
+  цикле, в хелпере. Состояние уровня модуля тоже можно — явно, внутри
+  `root(() => …)`, который задаёт его время жизни.
 - **Suspense как механизма.** Асинхронность — это данные (`Async<T>`,
   `Result<E, T>`), их рендерят обычным `<Show>`/`<Dynamic>`.
 - **Батчинга как оптимизации.** Транзакции ядра — это не «оптимизация

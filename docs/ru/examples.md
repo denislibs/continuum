@@ -11,7 +11,7 @@
 | **Todo**       | Списки по ключу (`Each`/LIS), производная фильтрация, двусторонний ввод      | [StackBlitz](https://stackblitz.com/github/denislibs/continuum/tree/main/examples/todo) · [код](https://github.com/denislibs/continuum/tree/main/examples/todo)             |
 | **Data**       | `resource`: асинхронный автомат состояний, last-request-wins                 | [StackBlitz](https://stackblitz.com/github/denislibs/continuum/tree/main/examples/data) · [код](https://github.com/denislibs/continuum/tree/main/examples/data)             |
 | **Animation**  | Непрерывное время: `integral` над rAF-часами, `warp` со скоростью 2×         | [StackBlitz](https://stackblitz.com/github/denislibs/continuum/tree/main/examples/animation) · [код](https://github.com/denislibs/continuum/tree/main/examples/animation)   |
-| **Router app** | Вложенные роуты, layouts, параметры-Behavior, guards, `lazy`-чанки           | [StackBlitz](https://stackblitz.com/github/denislibs/continuum/tree/main/examples/router-app) · [код](https://github.com/denislibs/continuum/tree/main/examples/router-app) |
+| **Router app** | Вложенные роуты, layouts, параметры-Wire, guards, `lazy`-чанки               | [StackBlitz](https://stackblitz.com/github/denislibs/continuum/tree/main/examples/router-app) · [код](https://github.com/denislibs/continuum/tree/main/examples/router-app) |
 | **Showcase**   | Смешанная экскурсия: привязки, регионы, контекст                             | [StackBlitz](https://stackblitz.com/github/denislibs/continuum/tree/main/examples/showcase) · [код](https://github.com/denislibs/continuum/tree/main/examples/showcase)     |
 
 ::: tip Как работают ссылки StackBlitz

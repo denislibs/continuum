@@ -7,8 +7,9 @@
 :::
 
 Рецепты предполагают знание основ: [состояние](/ru/guides/state),
-[асинхронность](/ru/guides/async), [события и
-поведения](/ru/concepts/events). Импорты показаны один раз на сниппет; всё
+[асинхронность](/ru/guides/async), [Streams и
+Wires](/ru/concepts/events). Wire («провод») — реактивное значение; в
+FRP-литературе Behavior. Импорты показаны один раз на сниппет; всё
 берётся из `@continuum-js/frp`, `@continuum-js/dom` или `@continuum-js/std`.
 
 ## Состояние
@@ -27,7 +28,7 @@ type Action =
   | { type: "remove"; id: string }
   | { type: "toggle"; id: string };
 
-const [actions, dispatch] = newStream<Action>();
+const actions = stream<Action>();
 
 const todos = actions.accum<Todo[]>([], (a, acc) => {
   switch (a.type) {
@@ -40,7 +41,7 @@ const todos = actions.accum<Todo[]>([], (a, acc) => {
   }
 });
 
-<button onClick={() => dispatch({ type: "remove", id: t.id })}>×</button>;
+<button onClick={() => actions.fire({ type: "remove", id: t.id })}>×</button>;
 ```
 
 Вся логика списка читается сверху вниз в одном месте, а каждое изменение —
@@ -78,11 +79,11 @@ _исходный_ факт, остальное вычисляйте:
 
 ```ts
 // ❌ два источника истины, синхронизируемых вручную
-const [items, setItems] = newBehavior<Item[]>([]);
-const [total, setTotal] = newBehavior(0); // забыли обновить один раз — баг
+const items = wire<Item[]>([]);
+const total = wire(0); // забыли обновить один раз — баг
 
 // ✅ один источник, остальное — арифметика
-const [items, setItems] = newBehavior<Item[]>([]);
+const items = wire<Item[]>([]);
 const total = items.map((xs) => xs.reduce((s, i) => s + i.price, 0));
 const isEmpty = items.map((xs) => xs.length === 0);
 ```
@@ -94,44 +95,53 @@ const isEmpty = items.map((xs) => xs.length === 0);
 
 **Когда:** одно состояние нужно нескольким компонентам по всему приложению.
 
-Источники закреплены автоматически, а вот модульная _производная_ обязана
-явно отказаться от авто-уничтожения через `.retain()` (см. [частые
-ошибки](/ru/guides/common-mistakes), №7):
+Ячейки и чистые производные — обычные значения: экспортируйте свободно.
+Формула (`map`/`combine`) живёт по требованию — подключается по первому
+слушателю и спит без слушателей. А вот стейтовая свёртка (`hold`, `accum`,
+`.on`) — процесс, и на уровне модуля её время жизни объявляется явно через
+`root()` (см. [частые ошибки](/ru/guides/common-mistakes), №7):
 
 ```ts
 // store.ts
-export const [cart, setCart] = newBehavior<Item[]>([]);
-export const cartTotal = cart
-  .map((xs) => xs.reduce((s, i) => s + i.price, 0))
-  .retain(); // разделяемая производная живёт дольше любого компонента
+import { wire, stream, root } from "@continuum-js/frp";
+
+export const cart = wire<Item[]>([]);
+export const cartTotal = cart.map(
+  (xs) => xs.reduce((s, i) => s + i.price, 0), // формула: владелец не нужен
+);
+
+export const checkouts = stream<Order>();
+export const orderCount = root(
+  () => checkouts.accum(0, (_o, n) => n + 1), // процесс: живёт до dispose корня
+);
 ```
 
 ## События как алгебра
 
-### 5. Прочитать состояние в момент события — `snapshot`
+### 5. Прочитать состояние в момент события — `at`
 
 **Когда:** обработчику нужно «значение на момент этого клика».
 
 ```ts
 // отправить текущий черновик
-const submitted = submits.snapshot(draft, (_e, text) => text);
+const submitted = draft.at(submits);
 ```
 
-`sampleWith(trigger, b)` из std — то же самое, когда полезная нагрузка
-триггера не нужна. Помните про [задержку hold](/ru/concepts/transactions):
+Форма с функцией — `draft.at(submits, (text, e) => …)` — получает сначала
+значение, затем само вхождение. Помните про [задержку hold](/ru/concepts/transactions):
 внутри момента читается значение _до_ момента — именно это делает приём
 композируемым.
 
-### 6. Поставить поток на паузу — `gate`
+### 6. Поставить поток на паузу — `when`
 
 **Когда:** игнорировать ввод, пока что-то в полёте.
 
 ```ts
-const [saving, setSaving] = newBehavior(false);
-const effectiveClicks = saveClicks.gate(saving.map((s) => !s));
+const saving = wire(false);
+const effectiveClicks = saveClicks.when(saving.map((s) => !s));
 ```
 
-Пока «ворота» закрыты, у потока просто нет происшествий — коду ниже не нужны
+Пока условие ложно, у потока просто нет происшествий — коду ниже не нужны
 рассыпанные `if (saving) return`.
 
 ### 7. Только изменения — `distinct` / `distinctB`
@@ -154,16 +164,15 @@ const stableTheme = distinctB(theme); // Behavior: подавить пустые
 **Когда:** важно направление изменения (скролл вверх/вниз, стрелки тренда).
 
 ```ts
+import { combine } from "@continuum-js/frp";
 import { pairwise, previous } from "@continuum-js/std";
 
 const direction = pairwise(scrollY).map(([prev, cur]) =>
   cur > prev ? "down" : "up",
 );
-const lastPrice = previous(price, 0); // Behavior, отстающий на шаг
-const trend = Behavior.lift2(
-  (now, before) => Math.sign(now - before),
-  price,
-  lastPrice,
+const lastPrice = previous(price, 0); // Wire, отстающий на шаг
+const trend = combine(price, lastPrice, (now, before) =>
+  Math.sign(now - before),
 );
 ```
 
@@ -204,13 +213,28 @@ const settledQuery = debounce(queryInput, 300); // когда юзер пере�
 const scrollSample = throttle(scrolls, 100); // не чаще 10 раз/сек
 ```
 
-### 12. Состояние из многих источников — слияние событий-_функций_
+### 12. Состояние из многих источников — переходы `.on`
 
 **Когда:** actions кажется тяжеловесным, а источники по-настоящему
 независимы.
 
-Нишевый, но прекрасный трюк: превратите каждый источник в _функцию над
-состоянием_, слейте, сверните применением:
+Идиоматичная форма — объявить переходы прямо на ячейке. Редьюсер получает
+`(состояние, событие)`; вхождение и обновление — один момент, а несколько
+одновременных `.on`-источников сворачиваются последовательно:
+
+```ts
+const counter = wire(0)
+  .on(plusClicks, (n) => n + 1)
+  .on(minusClicks, (n) => n - 1)
+  .on(resetClicks, () => 0);
+```
+
+Ни типов действий, ни switch — каждый источник несёт свою семантику с собой.
+(`.on` регистрирует процесс в текущем скоупе: в компоненте — автоматически,
+на уровне модуля оберните в `root(...)`.)
+
+Тот же приём в потоковой форме — слияние событий-_функций_, если дальше
+нужна именно алгебра потоков:
 
 ```ts
 const increments = plusClicks.mapTo((n: number) => n + 1);
@@ -218,14 +242,13 @@ const decrements = minusClicks.mapTo((n: number) => n - 1);
 const resets = resetClicks.mapTo((_: number) => 0);
 
 const counter = increments
-  .orElse(decrements)
-  .orElse(resets)
+  .or(decrements)
+  .or(resets)
   .accum(0, (f, n) => f(n));
 ```
 
-Ни типов действий, ни switch — каждый источник несёт свою семантику с собой.
 Если два источника могут выстрелить в один момент и оба должны примениться,
-вместо `orElse` возьмите `Stream.merge(l, r, (f, g) => (n) => g(f(n)))`.
+вместо `or` возьмите `Stream.merge(l, r, (f, g) => (n) => g(f(n)))`.
 
 ## Асинхронность
 
@@ -253,7 +276,7 @@ import { resource } from "@continuum-js/std";
 const results = resource(debounce(queries, 300), (q) =>
   fetch(`/api/search?q=${encodeURIComponent(q)}`).then((r) => r.json()),
 );
-// Behavior<Async<T>>: idle → loading → ok | error, «последний запрос
+// Wire<Async<T>>: idle → loading → ok | error, «последний запрос
 // побеждает» уже встроено
 
 <Dynamic value={results}>
@@ -278,7 +301,7 @@ const results = resource(debounce(queries, 300), (q) =>
 ```ts
 type Action = UserAction | { type: "rollback"; id: string };
 
-const [userActions, dispatch] = newStream<UserAction>();
+const userActions = stream<UserAction>();
 
 const saves = perform(
   userActions.filter((a) => a.type === "add"),
@@ -289,7 +312,7 @@ const rollbacks: Stream<Action> = filterMap(saves, (r) =>
 );
 
 const todos = (userActions as Stream<Action>)
-  .orElse(rollbacks)
+  .or(rollbacks)
   .accum<Todo[]>([], reduce);
 ```
 
@@ -302,28 +325,28 @@ const todos = (userActions as Stream<Action>)
 ```ts
 import { interval } from "@continuum-js/std";
 
-const [live, setLive] = newBehavior(true);
-const ticks = interval(30_000).gate(live);
+const live = wire(true);
+const ticks = interval(30_000).when(live);
 const stats = resource(ticks, () => fetch("/api/stats").then((r) => r.json()));
 ```
 
-Переключите `setLive(false)`, когда вкладка скрыта (`onMount` + слушатель
+Переключите `live.set(false)`, когда вкладка скрыта (`onMount` + слушатель
 `visibilitychange`), — и поллинг вместе со всеми запросами ниже по течению
 остановится как одно целое.
 
 ## UI
 
-### 17. Мастер–детали — `lift2`
+### 17. Мастер–детали — `combine`
 
 **Когда:** выбранный id плюс список — и представления выбранного элемента.
 
 ```ts
-const [selectedId, select] = newBehavior<string | null>(null);
+const selectedId = wire<string | null>(null);
 
-const selected = Behavior.lift2(
-  (id, xs) => xs.find((t) => t.id === id) ?? null,
+const selected = combine(
   selectedId,
   todos,
+  (id, xs) => xs.find((t) => t.id === id) ?? null,
 );
 
 <Show when={selected.map((s) => s !== null)} fallback={() => <PickSomething />}>
@@ -334,32 +357,32 @@ const selected = Behavior.lift2(
 `selected` не может разойтись со списком: удалите выбранный элемент — и
 панель деталей закроется по построению.
 
-### 18. Источник как значение — `switchB`
+### 18. Источник как значение — `flatten`
 
 **Когда:** _какой источник данных использовать_ — само по себе состояние.
 Флагманский нишевый трюк классического FRP.
 
 ```ts
-const source: Behavior<Behavior<Todo[]>> = mode.map((m) =>
+const source: Wire<Wire<Todo[]>> = mode.map((m) =>
   m === "local" ? localTodos : serverTodos,
 );
-const todos = Behavior.switchB(source);
+const todos = flatten(source);
 // код ниже не знает и не хочет знать, что источник подменяемый
 ```
 
 Всё построенное над `todos` — счётчики, фильтры, `<Each>` — переживает
-подмену нетронутым. Та же форма с `Behavior.switchE` переключает потоки
-событий (например, «какой WebSocket я сейчас слушаю»).
+подмену нетронутым. Тот же `flatten` над `Wire<Stream<A>>` переключает
+потоки событий (например, «какой WebSocket я сейчас слушаю»).
 
 ### 19. Модалка — `<Show>` + `<Portal>`
 
 ```tsx
-const [open, setOpen] = newBehavior(false);
+const open = wire(false);
 
 <Show when={open}>
   {() => (
     <Portal mount={document.body}>
-      <div class="backdrop" onClick={() => setOpen(false)}>
+      <div class="backdrop" onClick={() => open.set(false)}>
         <dialog open>…</dialog>
       </div>
     </Portal>
@@ -375,7 +398,7 @@ const [open, setOpen] = newBehavior(false);
 **Когда:** оборачиваете нереактивную библиотеку (график, карту, редактор).
 
 ```tsx
-function Chart(props: { data: Behavior<number[]> }) {
+function Chart(props: { data: Wire<number[]> }) {
   let el!: HTMLDivElement;
   onMount(() => {
     const chart = new ThirdPartyChart(el); // DOM уже в документе
@@ -477,7 +500,7 @@ export function Button(props: ButtonProps) {
 - **children проходят через спред** — рантайм доставляет их в
   `props.children`, так что `{...rest}` уносит их в тег;
 - `loading` — это `Reactive<boolean>`: вызывающий передаёт хоть `true`, хоть
-  живой `Behavior<boolean>`, и `disabled` следит за ним без проводки;
+  живой `Wire<boolean>`, и `disabled` следит за ним без проводки;
 - обработчики результата полностью типизированы, включая `e.currentTarget`
   (`HTMLButtonElement` или `HTMLAnchorElement` по ветке).
 

@@ -8,7 +8,7 @@
 
 > **Unlisten** = () => `void`
 
-Defined in: [index.ts:6](https://github.com/denislibs/continuum/blob/1009133524ef880e679ba1f379dfc0cffc91979b/packages/frp/src/index.ts#L6)
+Defined in: [index.ts:10](https://github.com/denislibs/continuum/blob/cc4617269797dda656aa4d28267b6b87666cd809/packages/frp/src/index.ts#L10)
 
 Handle returned by `listen`: call it to unsubscribe.
 

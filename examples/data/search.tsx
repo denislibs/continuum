@@ -1,4 +1,4 @@
-import { newBehavior } from "@continuum-js/frp";
+import { wire } from "@continuum-js/frp";
 import { bindInput, Dynamic, type Child } from "@continuum-js/dom";
 import { resource, debounce } from "@continuum-js/std";
 
@@ -19,7 +19,7 @@ export function UserSearch({
 }: {
   search: (query: string) => Promise<User[]>;
 }) {
-  const [draft, setDraft] = newBehavior("");
+  const draft = wire("");
 
   // keystrokes → quiet 300 ms → non-empty query
   const query = debounce(draft.updates, 300)
@@ -32,7 +32,7 @@ export function UserSearch({
     <div class="user-search">
       <input
         placeholder="search GitHub users…"
-        {...bindInput(draft, setDraft)}
+        {...bindInput(draft, draft.set)}
       />
       <Dynamic value={state}>
         {(s): Child => {

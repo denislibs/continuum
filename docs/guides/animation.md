@@ -29,7 +29,7 @@ subtree is disposed, the `requestAnimationFrame` loop stops by itself.
 import { constant, integral } from "@continuum-js/frp";
 
 const velocity = constant(0.1); // px per ms
-const x = integral(velocity, ticks); // Behavior<number>, px
+const x = integral(velocity, ticks); // Wire<number>, px
 
 const style = x.map((px) => ({ transform: `translateX(${px}px)` }));
 return <div class="box" style={style} />;
@@ -38,7 +38,7 @@ return <div class="box" style={style} />;
 `integral(b, tick, init?)` accumulates `b · dt` once per tick (forward
 Euler). The _description_ is resolution-independent — "position is the
 integral of velocity" — and the clock's resolution only enters at sampling
-time. Velocity is a Behavior, so it can itself be derived: ease-outs,
+time. Velocity is a wire, so it can itself be derived: ease-outs,
 spring forces, pause (velocity 0) are all ordinary `map`s.
 
 ## `derivative`: velocity from position

@@ -7,7 +7,7 @@ Skim the headings, steal what you need.
 :::
 
 The recipes assume the basics: [state](/guides/state),
-[async](/guides/async), [events vs behaviors](/concepts/events). Imports are
+[async](/guides/async), [events vs wires](/concepts/events). Imports are
 shown once per snippet; everything comes from `@continuum-js/frp`,
 `@continuum-js/dom` or `@continuum-js/std`.
 
@@ -17,42 +17,46 @@ shown once per snippet; everything comes from `@continuum-js/frp`,
 
 **When:** one piece of state, many kinds of changes (add / remove / toggle…).
 
-Collect every change into a single `Stream<Action>` and fold it with one pure
-reducer. `accum` _is_ the store; you just don't need the library.
+Give each kind of change its own event and declare the transitions right on
+the wire. Each reducer is `(state, event) => next` — `useReducer`, minus the
+dispatch ceremony:
 
 ```tsx
-type Action =
-  | { type: "add"; text: string }
-  | { type: "remove"; id: string }
-  | { type: "toggle"; id: string };
+import { wire, stream } from "@continuum-js/frp";
 
-const [actions, dispatch] = newStream<Action>();
+const adds = stream<string>();
+const removes = stream<string>();
+const toggles = stream<string>();
 
-const todos = actions.accum<Todo[]>([], (a, acc) => {
-  switch (a.type) {
-    case "add":
-      return [...acc, createTodo(a.text)];
-    case "remove":
-      return acc.filter((t) => t.id !== a.id);
-    case "toggle":
-      return acc.map((t) => (t.id === a.id ? { ...t, done: !t.done } : t));
-  }
-});
+const todos = wire<Todo[]>([])
+  .on(adds, (acc, text) => [...acc, createTodo(text)])
+  .on(removes, (acc, id) => acc.filter((t) => t.id !== id))
+  .on(toggles, (acc, id) =>
+    acc.map((t) => (t.id === id ? { ...t, done: !t.done } : t)),
+  );
 
-<button onClick={() => dispatch({ type: "remove", id: t.id })}>×</button>;
+<button onClick={() => removes.fire(t.id)}>×</button>;
 ```
 
 All list logic reads top-to-bottom in one place, and every change is a value
-you can log, replay or test.
+you can log, replay or test. When the changes themselves must be data — one
+serializable log to replay or persist — collect them into a single
+`Stream<Action>` and fold it with `accum` instead; the next recipe does
+exactly that.
 
 ### 2. Undo / redo
 
-**When:** you already have the actions pattern and want history for free.
+**When:** you want history for free.
 
-Fold the _same_ action stream into a history instead of a plain value:
+This is where a single action stream beats separate events: fold the _same_
+stream into a history instead of a plain value:
 
 ```ts
+import { stream } from "@continuum-js/frp";
+
 type Hist = { past: Todo[][]; present: Todo[] };
+
+const actions = stream<Action>();
 
 const history = actions.accum<Hist>({ past: [], present: [] }, (a, h) => {
   if (a.type === "undo") {
@@ -77,11 +81,11 @@ _source_ fact; compute the rest:
 
 ```ts
 // ❌ two sources of truth that must be kept in sync by hand
-const [items, setItems] = newBehavior<Item[]>([]);
-const [total, setTotal] = newBehavior(0); // forget to update this once — bug
+const items = wire<Item[]>([]);
+const total = wire(0); // forget to update this once — bug
 
 // ✅ one source, the rest is arithmetic
-const [items, setItems] = newBehavior<Item[]>([]);
+const items = wire<Item[]>([]);
 const total = items.map((xs) => xs.reduce((s, i) => s + i.price, 0));
 const isEmpty = items.map((xs) => xs.length === 0);
 ```
@@ -92,45 +96,57 @@ Deriving is free: no dependency arrays, no memo keys, no staleness.
 
 **When:** several components across the app need the same state.
 
-Sources are pinned automatically; a module-level _derivation_ must opt out of
-auto-disposal with `.retain()` (see [common
+Values are formulas; state belongs to a scope. A source `wire` and any pure
+derivation are safe at module level as they are. A stateful fold (`.on`,
+`accum`, `hold`) starts a process, and at module level you must say who owns
+it — wrap it in `root()` (see [common
 mistakes](/guides/common-mistakes) #7):
 
 ```ts
 // store.ts
-export const [cart, setCart] = newBehavior<Item[]>([]);
-export const cartTotal = cart
-  .map((xs) => xs.reduce((s, i) => s + i.price, 0))
-  .retain(); // shared derivation outlives any single component
+import { wire, stream, root } from "@continuum-js/frp";
+
+export const adds = stream<Item>();
+
+// state with transitions — root() declares its lifetime (the page's)
+export const cart = root(() =>
+  wire<Item[]>([]).on(adds, (xs, item) => [...xs, item]),
+);
+
+// a pure derivation is a formula: no owner, no ceremony
+export const cartTotal = cart.map((xs) => xs.reduce((s, i) => s + i.price, 0));
 ```
+
+A plain `wire()` that you only `.set` from handlers needs no `root()` —
+only stateful folds and effects do.
 
 ## Streams as algebra
 
-### 5. Read state at the moment of an event — `snapshot`
+### 5. Read state at the moment of an event — `at`
 
 **When:** a handler needs "the value as of this click".
 
 ```ts
 // submit the current draft, then clear it
-const submitted = submits.snapshot(draft, (_e, text) => text);
+const submitted = draft.at(submits);
 ```
 
-`sampleWith(trigger, b)` from std is the same thing when you don't need the
-trigger's payload. Remember the [hold delay](/concepts/transactions): within
-one moment you read the value from _before_ the moment — that's what makes
-this composable.
+Pass a combiner when the event's payload matters too:
+`draft.at(submits, (text, click) => …)` receives `(value, event)`. Remember
+the [hold delay](/concepts/transactions): within one moment you read the
+value from _before_ the moment — that's what makes this composable.
 
-### 6. Pause a stream — `gate`
+### 6. Pause a stream — `when`
 
 **When:** ignore input while something is in flight.
 
 ```ts
-const [saving, setSaving] = newBehavior(false);
-const effectiveClicks = saveClicks.gate(saving.map((s) => !s));
+const saving = wire(false);
+const effectiveClicks = saveClicks.when(saving.map((s) => !s));
 ```
 
-The stream simply has no occurrences while the gate is closed — downstream
-code doesn't need `if (saving) return` sprinkled everywhere.
+The stream simply has no occurrences while the condition is false —
+downstream code doesn't need `if (saving) return` sprinkled everywhere.
 
 ### 7. Only changes — `distinct` / `distinctB`
 
@@ -141,7 +157,7 @@ import { distinct } from "@continuum-js/frp";
 import { distinctB } from "@continuum-js/std";
 
 const realMoves = distinct(moves); // Stream: drop consecutive equals
-const stableTheme = distinctB(theme); // Behavior: suppress no-op updates
+const stableTheme = distinctB(theme); // Wire: suppress no-op updates
 ```
 
 `distinctB` is how you stop a `dyn`/`<Dynamic>` region from rebuilding on
@@ -152,16 +168,15 @@ same-value writes.
 **When:** direction of change matters (scroll up vs down, trend arrows).
 
 ```ts
+import { combine } from "@continuum-js/frp";
 import { pairwise, previous } from "@continuum-js/std";
 
 const direction = pairwise(scrollY).map(([prev, cur]) =>
   cur > prev ? "down" : "up",
 );
-const lastPrice = previous(price, 0); // Behavior lagging one step behind
-const trend = Behavior.lift2(
-  (now, before) => Math.sign(now - before),
-  price,
-  lastPrice,
+const lastPrice = previous(price, 0); // Wire lagging one step behind
+const trend = combine(price, lastPrice, (now, before) =>
+  Math.sign(now - before),
 );
 ```
 
@@ -202,27 +217,23 @@ const settledQuery = debounce(queryInput, 300); // after the user stops typing
 const scrollSample = throttle(scrolls, 100); // at most 10/sec while active
 ```
 
-### 12. Multi-source state — merge events of _functions_
+### 12. Multi-source state — `.on`
 
-**When:** the actions pattern feels heavy and sources are truly independent.
+**When:** independent sources each change one value in their own way.
 
-The niche-but-lovely trick: map each source to a _state-transforming
-function_, merge, fold with application:
+Declare one transition per source, right on the wire:
 
 ```ts
-const increments = plusClicks.mapTo((n: number) => n + 1);
-const decrements = minusClicks.mapTo((n: number) => n - 1);
-const resets = resetClicks.mapTo((_: number) => 0);
-
-const counter = increments
-  .orElse(decrements)
-  .orElse(resets)
-  .accum(0, (f, n) => f(n));
+const counter = wire(0)
+  .on(plusClicks, (n) => n + 1)
+  .on(minusClicks, (n) => n - 1)
+  .on(resetClicks, () => 0);
 ```
 
-No action types, no switch — each source carries its own semantics. Use
-`Stream.merge(l, r, (f, g) => (n) => g(f(n)))` instead of `orElse` if two
-sources can genuinely fire in the same moment and both must apply.
+No action types, no switch — each source carries its own semantics. If two
+sources fire in the same moment, the transitions fold sequentially in
+declaration order, and the wire still delivers a single coalesced update
+for that moment.
 
 ## Async
 
@@ -250,7 +261,7 @@ import { resource } from "@continuum-js/std";
 const results = resource(debounce(queries, 300), (q) =>
   fetch(`/api/search?q=${encodeURIComponent(q)}`).then((r) => r.json()),
 );
-// Behavior<Async<T>>: idle → loading → ok | error, last-request-wins built in
+// Wire<Async<T>>: idle → loading → ok | error, last-request-wins built in
 
 <Dynamic value={results}>
   {(r) =>
@@ -274,7 +285,7 @@ action flows back in through the same reducer:
 ```ts
 type Action = UserAction | { type: "rollback"; id: string };
 
-const [userActions, dispatch] = newStream<UserAction>();
+const userActions = stream<UserAction>();
 
 const saves = perform(
   userActions.filter((a) => a.type === "add"),
@@ -285,7 +296,7 @@ const rollbacks: Stream<Action> = filterMap(saves, (r) =>
 );
 
 const todos = (userActions as Stream<Action>)
-  .orElse(rollbacks)
+  .or(rollbacks)
   .accum<Todo[]>([], reduce);
 ```
 
@@ -298,28 +309,30 @@ There's no cycle: `perform` re-enters the network in a _new_ moment.
 ```ts
 import { interval } from "@continuum-js/std";
 
-const [live, setLive] = newBehavior(true);
-const ticks = interval(30_000).gate(live);
+const live = wire(true);
+const ticks = interval(30_000).when(live);
 const stats = resource(ticks, () => fetch("/api/stats").then((r) => r.json()));
 ```
 
-Flip `setLive(false)` when the tab hides (an `onMount` +
+Flip `live.set(false)` when the tab hides (an `onMount` +
 `visibilitychange` listener) and the polling — and every request downstream —
 stops as one.
 
 ## UI
 
-### 17. Master–detail — `lift2`
+### 17. Master–detail — `combine`
 
 **When:** a selected id plus a list, and views of the chosen item.
 
 ```ts
-const [selectedId, select] = newBehavior<string | null>(null);
+import { combine } from "@continuum-js/frp";
 
-const selected = Behavior.lift2(
-  (id, xs) => xs.find((t) => t.id === id) ?? null,
+const selectedId = wire<string | null>(null);
+
+const selected = combine(
   selectedId,
   todos,
+  (id, xs) => xs.find((t) => t.id === id) ?? null,
 );
 
 <Show when={selected.map((s) => s !== null)} fallback={() => <PickSomething />}>
@@ -330,32 +343,34 @@ const selected = Behavior.lift2(
 `selected` can never disagree with the list: delete the selected item and the
 detail pane closes by construction.
 
-### 18. A source as a value — `switchB`
+### 18. A source as a value — `flatten`
 
 **When:** _which data source to use_ is itself state. The flagship niche
 trick of classic FRP.
 
 ```ts
-const source: Behavior<Behavior<Todo[]>> = mode.map((m) =>
+import { flatten } from "@continuum-js/frp";
+
+const source: Wire<Wire<Todo[]>> = mode.map((m) =>
   m === "local" ? localTodos : serverTodos,
 );
-const todos = Behavior.switchB(source);
+const todos = flatten(source);
 // downstream code doesn't know or care that the source can be swapped
 ```
 
 Everything built on `todos` — counts, filters, the `<Each>` — survives the
-swap untouched. The same shape with `Behavior.switchE` switches event
-streams (e.g. "which WebSocket am I listening to").
+swap untouched. The same call flattens a wire of event streams
+(`Wire<Stream<A>> → Stream<A>`) — e.g. "which WebSocket am I listening to".
 
 ### 19. Modal — `<Show>` + `<Portal>`
 
 ```tsx
-const [open, setOpen] = newBehavior(false);
+const open = wire(false);
 
 <Show when={open}>
   {() => (
     <Portal mount={document.body}>
-      <div class="backdrop" onClick={() => setOpen(false)}>
+      <div class="backdrop" onClick={() => open.set(false)}>
         <dialog open>…</dialog>
       </div>
     </Portal>
@@ -371,7 +386,7 @@ and every subscription inside it.
 **When:** wrapping a non-reactive library (a chart, a map, an editor).
 
 ```tsx
-function Chart(props: { data: Behavior<number[]> }) {
+function Chart(props: { data: Wire<number[]> }) {
   let el!: HTMLDivElement;
   onMount(() => {
     const chart = new ThirdPartyChart(el); // DOM is in the document here
@@ -404,15 +419,15 @@ const todos = actions.accum<Todo[]>(loadPersisted("todos", []), reduce);
 onCleanup(persist("todos", todos));
 ```
 
-For chatty state, debounce the mirror; and since you already have the actions
-pattern, cross-tab sync is just one more dispatcher — the browser fires
-`storage` in _other_ tabs on every write:
+For chatty state, debounce the mirror; and since you already have an action
+stream, cross-tab sync is just one more source that fires into it — the
+browser fires `storage` in _other_ tabs on every write:
 
 ```ts
 onMount(() => {
   const onStorage = (e: StorageEvent) => {
     if (e.key === "todos" && e.newValue)
-      dispatch({ type: "replace", todos: JSON.parse(e.newValue) });
+      actions.fire({ type: "replace", todos: JSON.parse(e.newValue) });
   };
   window.addEventListener("storage", onStorage);
   onCleanup(() => window.removeEventListener("storage", onStorage));
@@ -472,7 +487,7 @@ Notes worth stealing:
 - **children forward through the spread** — the runtime delivers them as
   `props.children`, so `{...rest}` carries them into the tag;
 - `loading` is `Reactive<boolean>`: callers pass a plain `true` or a live
-  `Behavior<boolean>` and `disabled` tracks it — no wiring;
+  `Wire<boolean>` and `disabled` tracks it — no wiring;
 - handlers on the result are fully typed, including `e.currentTarget` (an
   `HTMLButtonElement` or `HTMLAnchorElement` per branch).
 

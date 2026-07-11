@@ -6,15 +6,15 @@ the DOM in sync by itself.
 ## The 30-second version
 
 ```tsx
-import { newBehavior } from "@continuum-js/frp";
+import { wire } from "@continuum-js/frp";
 import { mount } from "@continuum-js/dom";
 
 function Counter() {
-  const [count, setCount] = newBehavior(0);
+  const count = wire(0);
   const double = count.map((n) => n * 2);
   return (
     <div>
-      <button onClick={() => setCount(count.sample() + 1)}>+1</button>
+      <button onClick={() => count.set(count.sample() + 1)}>+1</button>
       <p>
         count: {count}, double: {double}
       </p>
@@ -27,10 +27,11 @@ mount(document.getElementById("app")!, () => <Counter />);
 
 Three moves, and they are the whole core model:
 
-1. **Create state** — `newBehavior(0)` gives you a reactive value and a
-   setter. Like `useState`, but the component never re-runs.
-2. **Derive** — `count.map(n => n * 2)` is a value computed from another
-   one. No dependency array: `double` depends on `count` because it is
+1. **Create state** — `wire(0)` gives you a reactive value with a `.set`
+   method. Like `useState`, but the component never re-runs. The component's
+   scope owns the state: unmount the component and the state goes with it.
+2. **Derive** — `count.map(n => n * 2)` is a formula computed from another
+   value. No dependency array: `double` depends on `count` because it is
    built from it.
 3. **Bind** — putting a value in JSX (`{count}`, `class={cls}`) wires that
    exact text node or attribute to it. Change the value, and only that node
@@ -46,7 +47,7 @@ something happening — clicks, submitted forms, server responses — and state
 is a _fold_ over that history:
 
 ```tsx
-const [actions, dispatch] = newStream<Action>();
+const actions = stream<Action>();
 const todos = actions.accum([], reduce); // state = everything that happened, folded
 ```
 
@@ -63,12 +64,27 @@ features that usually cost a library each cost **one more fold** each:
   solved once, in the library
   ([recipe](/guides/patterns#14-race-free-search-resource)).
 
-The rule of thumb for which tool to reach for: **no history — `newBehavior`;
-a history worth keeping — a stream.** `newBehavior` is itself just sugar over
-`newStream` + `hold`: perfect for form fields, toggles and everything you
+The rule of thumb for which tool to reach for: **no history — `wire`;
+a history worth keeping — a stream.** `wire` is itself just sugar over
+`stream` + `hold`: perfect for form fields, toggles and everything you
 simply overwrite. The moment you catch yourself wanting "how did this value
 get here" — undo, audit, sync — the stream form is the same state with its
 story attached.
+
+And when one value has several sources, don't scatter `.set` calls — declare
+the transitions on the wire itself:
+
+```tsx
+const count = wire(0)
+  .on(inc, (n) => n + 1)
+  .on(dec, (n) => n - 1)
+  .on(reset, () => 0);
+```
+
+Each `.on(event, reducer)` is a `(state, event) => state` step, registered
+as a process in the current scope. The single-source counter above could be
+a fold too — `clicks.accum(0, (_e, n) => n + 1)` — but `wire(0).on(…)` is the
+idiomatic form the moment sources multiply.
 
 ## Why trust it
 
@@ -82,8 +98,9 @@ Sodium-style discrete branch). What that buys you in practice:
 - **Honest async.** IO results and errors come back as ordinary data;
   response races are solved once, in the library (`resource`,
   last-request-wins).
-- **Deterministic cleanup.** Everything a component creates is disposed
-  with its subtree — subscriptions, timers, portals.
+- **Deterministic cleanup.** Values are formulas; state and effects belong
+  to a scope. Everything a component creates is owned by its scope and
+  disposed with its subtree — subscriptions, timers, portals.
 
 You don't need the theory to use the framework — it's there when you want
 to know _why_ it works: see [the deep dive](/tutorial/thinking-in-frp).
@@ -106,7 +123,7 @@ to know _why_ it works: see [the deep dive](/tutorial/thinking-in-frp).
 3. [Concepts](/concepts/components) — one idea per page.
 4. [From React](/from-react) — a construct-by-construct migration map.
 5. When you're curious about the engine:
-   [Thinking in Behaviors and Streams](/tutorial/thinking-in-frp).
+   [Thinking in Wires and Streams](/tutorial/thinking-in-frp).
 
 ---
 

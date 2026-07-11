@@ -9,7 +9,7 @@ per appearance in the tree — it is a _constructor of a live subtree_, not a
 render function.
 
 ```tsx
-function Greeting(props: { name: Behavior<string> }) {
+function Greeting(props: { name: Wire<string> }) {
   return <p>Hello, {props.name}!</p>;
 }
 ```
@@ -23,11 +23,11 @@ subtree is disposed (see [Ownership](/concepts/ownership)).
 Props are read once, in the body. The convention that keeps components
 honest:
 
-- **changes over time** → take a `Behavior<T>`;
+- **changes over time** → take a `Wire<T>`;
 - **fixed for the subtree's lifetime** → take a plain `T`.
 
 ```tsx
-function Price(props: { amount: Behavior<number>; currency: string }) {
+function Price(props: { amount: Wire<number>; currency: string }) {
   return (
     <span>
       {props.amount.map((a) => a.toFixed(2))} {props.currency}
@@ -37,12 +37,12 @@ function Price(props: { amount: Behavior<number>; currency: string }) {
 ```
 
 There is no "props changed" mechanism: if a parent wants to change what a
-child shows, it hands the child a Behavior. Destructuring props is safe —
+child shows, it hands the child a Wire. Destructuring props is safe —
 they are ordinary values.
 
 ## Children
 
-`children` is whatever JSX puts there: nodes, strings, Behaviors, arrays, or
+`children` is whatever JSX puts there: nodes, strings, Wires, arrays, or
 a function (render prop) if your component wants one:
 
 ```tsx
@@ -73,8 +73,10 @@ at creation time.
 ## No rules
 
 Because nothing re-runs, component helpers are ordinary functions. Create
-state in a condition, in a loop, at module level; extract "custom hooks" as
-functions returning Behaviors/Streams — no ordering rules, no lint plugin.
+state in a condition, in a loop, at module level (stateful values need a
+`root(...)` owner there — see [Ownership](/concepts/ownership)); extract
+"custom hooks" as functions returning Wires/Streams — no ordering rules, no
+lint plugin.
 
 ---
 

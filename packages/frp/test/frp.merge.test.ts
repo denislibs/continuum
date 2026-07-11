@@ -1,10 +1,10 @@
 import { describe, test, expect } from "vitest";
-import { newStream, Stream, newBehavior } from "@continuum-js/frp";
+import { root, newStream, Stream, newBehavior } from "@continuum-js/frp";
 
 describe("accumulation", () => {
   test("accum folds occurrences into a behavior", () => {
     const [e, fire] = newStream<number>();
-    const sum = e.accum(0, (a, s) => s + a);
+    const sum = root(() => e.accum(0, (a, s) => s + a));
     expect(sum.sample()).toBe(0);
     fire(3);
     expect(sum.sample()).toBe(3);
@@ -15,7 +15,7 @@ describe("accumulation", () => {
   test("accumE emits the stream of accumulated states", () => {
     const [e, fire] = newStream<number>();
     const seen: number[] = [];
-    e.accumE(0, (a, s) => s + a).listen((v) => seen.push(v));
+    root(() => e.accumE(0, (a, s) => s + a)).listen((v) => seen.push(v));
     fire(1);
     fire(2);
     fire(3);

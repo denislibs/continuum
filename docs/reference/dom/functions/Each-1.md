@@ -8,7 +8,7 @@
 
 > **Each**\<`T`, `K`\>(`props`): `Node`
 
-Defined in: [index.tsx:758](https://github.com/denislibs/continuum/blob/1009133524ef880e679ba1f379dfc0cffc91979b/packages/dom/src/index.tsx#L758)
+Defined in: [index.tsx:805](https://github.com/denislibs/continuum/blob/cc4617269797dda656aa4d28267b6b87666cd809/packages/dom/src/index.tsx#L805)
 
 Keyed list. The `by` key selector defaults to identity. (Note: `key` is a
 reserved JSX attribute stripped by the compiler, so the prop is named `by`.)
@@ -41,7 +41,7 @@ reserved JSX attribute stripped by the compiler, so the prop is named `by`.)
 
 #### each
 
-`Behavior`\<`T`[]\>
+`Wire`\<`T`[]\>
 
 ## Returns
 

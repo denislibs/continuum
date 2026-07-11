@@ -8,7 +8,7 @@
 
 > `const` **newEvent**: \<`A`\>() => \[[`Stream`](../classes/Stream.md)\<`A`\>, (`a`) => `void`\] = `newStream`
 
-Defined in: [index.ts:947](https://github.com/denislibs/continuum/blob/1009133524ef880e679ba1f379dfc0cffc91979b/packages/frp/src/index.ts#L947)
+Defined in: [index.ts:1348](https://github.com/denislibs/continuum/blob/cc4617269797dda656aa4d28267b6b87666cd809/packages/frp/src/index.ts#L1348)
 
 A source event plus its `fire`. Each `fire` opens a fresh moment.
 

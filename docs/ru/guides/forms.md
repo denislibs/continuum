@@ -6,19 +6,20 @@
 
 ## Контролируемый инпут
 
-`bindInput` связывает `Behavior<string>` с полем в обе стороны:
+`bindInput` связывает `Wire<string>` (Wire — «провод», реактивное значение;
+в FRP-литературе Behavior) с полем в обе стороны:
 
 ```tsx
-import { newBehavior } from "@continuum-js/frp";
+import { wire } from "@continuum-js/frp";
 import { bindInput } from "@continuum-js/dom";
 
-const [name, setName] = newBehavior("");
-<input {...bindInput(name, setName)} />;
+const name = wire("");
+<input {...bindInput(name, name.set)} />;
 ```
 
-Под капотом это просто `{ value: name, onInput: (e) => setName(…) }` —
+Под капотом это просто `{ value: name, onInput: (e) => name.set(…) }` —
 никакой магии, при желании пишется вручную (например, чтобы нормализовать
-ввод: `setName(v.trimStart())`).
+ввод: `name.set(v.trimStart())`).
 
 ## Валидация — производное значение
 
@@ -28,10 +29,10 @@ const [name, setName] = newBehavior("");
 const emailError = email.map((v) =>
   v === "" ? null : /@/.test(v) ? null : "нужен адрес с @",
 );
-const formValid = Behavior.lift2(
-  (e1, e2) => e1 === null && e2 === null,
+const formValid = combine(
   emailError,
   nameError,
+  (e1, e2) => e1 === null && e2 === null,
 );
 
 <span class="error">{emailError.map((e) => e ?? "")}</span>
@@ -41,26 +42,24 @@ const formValid = Behavior.lift2(
 Состояния «touched/dirty», если нужны, — это свёртка событий:
 `blurs.once().mapTo(true).hold(false)`.
 
-## Сабмит: `snapshot` собирает форму
+## Сабмит: `at` собирает форму
 
 Кнопка порождает событие; значения полей оно _захватывает_ в момент клика:
 
 ```tsx
-const [submits, fireSubmit] = newStream<void>();
+const submits = stream<void>();
 
-const payload = submits
-  .gate(formValid) // игнорировать сабмит невалидной формы
-  .snapshot(
-    Behavior.lift2((n, e) => ({ name: n, email: e }), name, email),
-    (_click, form) => form,
-  );
+const form = combine(name, email, (n, e) => ({ name: n, email: e }));
+const payload = form.at(
+  submits.when(formValid), // игнорировать сабмит невалидной формы
+);
 
 const results = perform(payload, (form) => api.register(form));
 
 <form
   onSubmit={(e: SubmitEvent) => {
     e.preventDefault();
-    fireSubmit();
+    submits.fire();
   }}
 >
   …
@@ -69,9 +68,9 @@ const results = perform(payload, (form) => api.register(form));
 
 Разбор по строкам:
 
-- `gate(formValid)` — событие проходит, только пока Behavior истинен;
+- `when(formValid)` — событие проходит, только пока Wire истинен;
   «дизейбл» продублирован семантически, а не только в атрибуте кнопки;
-- `snapshot` берёт значения полей _на момент_ сабмита — никакого чтения
+- `at` берёт значения полей _на момент_ сабмита — никакого чтения
   из DOM или стейта в обработчике;
 - `perform` уводит форму в IO, результат возвращается событием (см. гайд
   об асинхронности).
@@ -86,8 +85,8 @@ import { onCleanup } from "@continuum-js/dom";
 const saved = results.filter((r) => r.ok);
 onCleanup(
   saved.listen(() => {
-    setName("");
-    setEmail("");
+    name.set("");
+    email.set("");
   }),
 );
 ```

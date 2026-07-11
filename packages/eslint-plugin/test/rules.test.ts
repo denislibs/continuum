@@ -94,29 +94,30 @@ tester.run("no-sample-in-jsx", plugin.rules["no-sample-in-jsx"], {
   ],
 });
 
-tester.run("require-retain", plugin.rules["require-retain"], {
+tester.run("state-needs-scope", plugin.rules["state-needs-scope"], {
   valid: [
-    // retained — the documented idiom for shared module-level derivations
-    `export const held = src.hold(0).retain();`,
-    // sources are pinned automatically
-    `export const [cart, setCart] = newBehavior([]);`,
-    // inside a function/component the ownership tree manages it
+    // the documented idiom for app-level state
+    `export const count = root(() => clicks.accum(0, (n) => n + 1));`,
+    // sources are leaves — no owner needed
+    `export const cart = wire([]);`,
+    `export const clicks = stream();`,
+    // inside a function/component the ambient scope owns it
     `function App() { const held = src.hold(0); return held; }`,
-    // Array-ish chains are not flagged (hold/accum/snapshot only)
+    // Array-ish chains are not flagged (hold/accum only)
     `const ids = ITEMS.map((x) => x.id);`,
   ],
   invalid: [
     {
       code: `export const held = src.hold(0);`,
-      errors: [{ messageId: "retain" }],
+      errors: [{ messageId: "scope" }],
     },
     {
       code: `const total = actions.accum(0, (a, n) => n + 1);`,
-      errors: [{ messageId: "retain" }],
+      errors: [{ messageId: "scope" }],
     },
     {
-      code: `export const pairs = src.snapshot(held, (a, b) => a + b);`,
-      errors: [{ messageId: "retain" }],
+      code: `export const res = perform(requests, fetcher);`,
+      errors: [{ messageId: "scope" }],
     },
   ],
 });

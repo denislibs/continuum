@@ -1,5 +1,5 @@
 import { describe, test, expect } from "vitest";
-import { newStream } from "@continuum-js/frp";
+import { root, newStream } from "@continuum-js/frp";
 import { resource, type Async } from "@continuum-js/std";
 
 const tick = () => new Promise((r) => setTimeout(r, 0));
@@ -8,9 +8,11 @@ describe("resource", () => {
   test("walks idle → loading → ok as the promise settles", async () => {
     const [trigger, fire] = newStream<string>();
     let resolve!: (v: string[]) => void;
-    const state = resource<string, string[]>(
-      trigger,
-      () => new Promise<string[]>((res) => (resolve = res)),
+    const state = root(() =>
+      resource<string, string[]>(
+        trigger,
+        () => new Promise<string[]>((res) => (resolve = res)),
+      ),
     );
 
     expect(state.sample().status).toBe("idle");
@@ -24,8 +26,10 @@ describe("resource", () => {
 
   test("captures rejection as an error state", async () => {
     const [trigger, fire] = newStream<string>();
-    const state = resource<string, string[]>(trigger, () =>
-      Promise.reject(new Error("boom")),
+    const state = root(() =>
+      resource<string, string[]>(trigger, () =>
+        Promise.reject(new Error("boom")),
+      ),
     );
 
     fire("x");
@@ -40,9 +44,11 @@ describe("resource", () => {
   test("drops a stale response when a newer request was issued", async () => {
     const resolvers: Array<(v: string[]) => void> = [];
     const [trigger, fire] = newStream<string>();
-    const state = resource<string, string[]>(
-      trigger,
-      () => new Promise<string[]>((res) => resolvers.push(res)),
+    const state = root(() =>
+      resource<string, string[]>(
+        trigger,
+        () => new Promise<string[]>((res) => resolvers.push(res)),
+      ),
     );
 
     fire("first");

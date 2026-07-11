@@ -9,17 +9,17 @@
 // (forward Euler / finite differences), and the clock resolution appears only
 // at tick time.
 
-import type { Behavior, Stream } from "./index.js";
+import type { Wire, Stream } from "./index.js";
 
 /**
  * Integrate a behavior with respect to a clock (forward Euler).
  * `tick` carries the current time; the first tick establishes the baseline.
  */
 export function integral(
-  b: Behavior<number>,
+  b: Wire<number>,
   tick: Stream<number>,
   init = 0,
-): Behavior<number> {
+): Wire<number> {
   return tick
     .accum<{ t: number | null; acc: number }>({ t: null, acc: init }, (t, s) =>
       s.t === null
@@ -34,9 +34,9 @@ export function integral(
  * The first tick establishes the baseline (derivative 0).
  */
 export function derivative(
-  b: Behavior<number>,
+  b: Wire<number>,
   tick: Stream<number>,
-): Behavior<number> {
+): Wire<number> {
   return tick
     .accum<{ t: number | null; v: number; d: number }>(
       { t: null, v: b.sampleNoTrans(), d: 0 },

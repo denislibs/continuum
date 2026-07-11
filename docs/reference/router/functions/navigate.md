@@ -8,7 +8,7 @@
 
 > **navigate**(`to`, `opts?`): `void`
 
-Defined in: [location.ts:27](https://github.com/denislibs/continuum/blob/1009133524ef880e679ba1f379dfc0cffc91979b/packages/router/src/location.ts#L27)
+Defined in: [location.ts:27](https://github.com/denislibs/continuum/blob/cc4617269797dda656aa4d28267b6b87666cd809/packages/router/src/location.ts#L27)
 
 Programmatic navigation (History API push, or replace with `{ replace }`).
 

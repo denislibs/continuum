@@ -5,6 +5,7 @@
 // handlers, `listen` (post phase), `perform`.
 import { describe, test, expect } from "vitest";
 import {
+  root,
   newStream,
   newBehavior,
   Behavior,
@@ -32,10 +33,12 @@ describe("firing a source inside a pure combinator throws", () => {
     echo.listen(() => {});
 
     const [src, fire] = newStream<number>();
-    const acc = src.accum(0, (a, n) => {
-      fireEcho(a);
-      return n + a;
-    });
+    const acc = root(() =>
+      src.accum(0, (a, n) => {
+        fireEcho(a);
+        return n + a;
+      }),
+    );
     const un = acc.updates.listen(() => {});
 
     expect(() => fire(1)).toThrow(/pure combinator/i);
@@ -63,7 +66,7 @@ describe("firing a source inside a pure combinator throws", () => {
     other.listen(() => {});
 
     const [src, fire] = newStream<number>();
-    const held = src.hold(0);
+    const held = root(() => src.hold(0));
     const un = src
       .snapshot(held, (now, prev) => {
         fireOther(now);

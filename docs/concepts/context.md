@@ -31,13 +31,13 @@ that subtree and disappears with it.
 ## Reactive context
 
 The context value itself is plain (looked up once, at build time). For a
-value that changes, put a **Behavior** in the context:
+value that changes, put a **Wire** in the context:
 
 ```tsx
-const Theme = createContext<Behavior<string>>(constant("light"));
+const Theme = createContext<Wire<string>>(constant("light"));
 
 function App() {
-  const [theme, setTheme] = newBehavior("dark");
+  const theme = wire("dark");
   provide(Theme, theme);
   return <Toolbar />;
 }
@@ -48,7 +48,7 @@ function Toolbar() {
 ```
 
 No "re-render on context change" exists or is needed: consumers bind to the
-Behavior once.
+Wire once.
 
 ## Rule of thumb
 

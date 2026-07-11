@@ -6,9 +6,9 @@
 
 # Function: constant()
 
-> **constant**\<`A`\>(`v`): [`Behavior`](../classes/Behavior.md)\<`A`\>
+> **constant**\<`A`\>(`v`): [`Wire`](../classes/Wire.md)\<`A`\>
 
-Defined in: [index.ts:865](https://github.com/denislibs/continuum/blob/1009133524ef880e679ba1f379dfc0cffc91979b/packages/frp/src/index.ts#L865)
+Defined in: [index.ts:1235](https://github.com/denislibs/continuum/blob/cc4617269797dda656aa4d28267b6b87666cd809/packages/frp/src/index.ts#L1235)
 
 The behavior that is `v` at every moment (applicative `pure`).
 
@@ -26,4 +26,4 @@ The behavior that is `v` at every moment (applicative `pure`).
 
 ## Returns
 
-[`Behavior`](../classes/Behavior.md)\<`A`\>
+[`Wire`](../classes/Wire.md)\<`A`\>

@@ -1,5 +1,6 @@
 import { describe, test, expect } from "vitest";
 import {
+  root,
   newStream,
   newBehavior,
   Behavior,
@@ -99,7 +100,7 @@ describe("batch — several fires as one moment", () => {
 describe("batch — one occurrence per source per moment", () => {
   test("firing the SAME stream twice in one batch throws (no silent fold loss)", () => {
     const [src, fire] = newStream<number>();
-    const acc = src.accum(0, (a, s) => s + a);
+    const acc = root(() => src.accum(0, (a, s) => s + a));
     acc.updates.listen(() => {});
     expect(() =>
       batch(() => {
@@ -111,7 +112,7 @@ describe("batch — one occurrence per source per moment", () => {
 
   test("a throwing double-fire aborts the whole moment atomically", () => {
     const [src, fire] = newStream<number>();
-    const acc = src.accum(0, (a, s) => s + a);
+    const acc = root(() => src.accum(0, (a, s) => s + a));
     acc.updates.listen(() => {});
     try {
       batch(() => {
@@ -154,7 +155,7 @@ describe("batch — one occurrence per source per moment", () => {
 
   test("sequential fires outside a batch are separate moments as before", () => {
     const [src, fire] = newStream<number>();
-    const acc = src.accum(0, (a, s) => s + a);
+    const acc = root(() => src.accum(0, (a, s) => s + a));
     acc.updates.listen(() => {});
     fire(1);
     fire(2);

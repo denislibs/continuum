@@ -4,19 +4,19 @@
 
 [@continuum-js/frp](../index.md) / newBehavior
 
-# Function: newBehavior()
+# ~~Function: newBehavior()~~
 
-> **newBehavior**\<`A`\>(`init`, `eq?`): \[[`Behavior`](../classes/Behavior.md)\<`A`\>, (`a`) => `void`\]
+> **newBehavior**\<`A`\>(`init`, `eq?`): \[[`Wire`](../classes/Wire.md)\<`A`\>, (`a`) => `void`\]
 
-Defined in: [index.ts:829](https://github.com/denislibs/continuum/blob/1009133524ef880e679ba1f379dfc0cffc91979b/packages/frp/src/index.ts#L829)
+Defined in: [index.ts:1100](https://github.com/denislibs/continuum/blob/cc4617269797dda656aa4d28267b6b87666cd809/packages/frp/src/index.ts#L1100)
 
-A source behavior (a `hold` over a source event) plus its setter.
+A source behavior plus its setter.
 
 Setting a value equal to the current one (by `eq`, default `Object.is`)
-is a no-op: no moment opens, no subscriber wakes. A behavior is a value
+is a no-op: no moment opens, no subscriber wakes. A wire is a value
 across time — "changing" it to the same value is not a change. Pass a
 custom `eq` for structural comparison, or `() => false` to deliver every
-set (then de-duplicate downstream with `distinctB` where needed).
+set.
 
 ## Type Parameters
 
@@ -36,4 +36,9 @@ set (then de-duplicate downstream with `distinctB` where needed).
 
 ## Returns
 
-\[[`Behavior`](../classes/Behavior.md)\<`A`\>, (`a`) => `void`\]
+\[[`Wire`](../classes/Wire.md)\<`A`\>, (`a`) => `void`\]
+
+## Deprecated
+
+Use `wire(init, eq?)` — the same cell as one value with
+`.set` (and `.on` for declarative transitions). Removed in 1.0.

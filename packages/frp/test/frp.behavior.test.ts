@@ -1,5 +1,6 @@
 import { describe, test, expect } from "vitest";
 import {
+  root,
   newStream,
   newBehavior,
   constant,
@@ -12,7 +13,7 @@ import {
 describe("Behavior.map", () => {
   test("maps sampled value and updates", () => {
     const [n, fire] = newStream<number>();
-    const b = n.hold(1).map((x) => x * 3);
+    const b = root(() => n.hold(1)).map((x) => x * 3);
     expect(b.sample()).toBe(3);
     const seen: number[] = [];
     b.updates.listen((v) => seen.push(v));
@@ -47,7 +48,7 @@ describe("lift2 / apply", () => {
 
   test("lift2 is glitch-free when both inputs share a source", () => {
     const [n, fire] = newStream<number>();
-    const b = n.hold(1);
+    const b = root(() => n.hold(1));
     const b2 = b.map((x) => x * 2);
     const combined = Behavior.lift2((x, y) => x + y, b, b2);
     const seen: number[] = [];

@@ -13,7 +13,7 @@ composable shares.
 them anywhere, name them like any function:
 
 ```ts
-const total = (items: Behavior<Item[]>) =>
+const total = (items: Wire<Item[]>) =>
   items.map((xs) => xs.reduce((s, i) => s + i.price, 0));
 ```
 
@@ -41,15 +41,15 @@ creates something alive.
 Every composable is the same three moves:
 
 ```ts
-import { newBehavior, type Behavior } from "@continuum-js/frp";
+import { wire, type Wire } from "@continuum-js/frp";
 import { onCleanup } from "@continuum-js/dom";
 
-export function createWindowSize(): Behavior<{ w: number; h: number }> {
+export function createWindowSize(): Wire<{ w: number; h: number }> {
   // 1. create the live value
-  const [size, setSize] = newBehavior({ w: innerWidth, h: innerHeight });
+  const size = wire({ w: innerWidth, h: innerHeight });
 
   // 2. bridge the outside world into the network (at the boundary!)
-  const onResize = () => setSize({ w: innerWidth, h: innerHeight });
+  const onResize = () => size.set({ w: innerWidth, h: innerHeight });
   window.addEventListener("resize", onResize);
 
   // 3. register the teardown — the ownership tree calls it on unmount
@@ -72,15 +72,15 @@ A realistic second example — the persisted store from the
 [patterns](/guides/patterns) page, packaged:
 
 ```ts
-import { newStream } from "@continuum-js/frp";
+import { stream } from "@continuum-js/frp";
 import { onCleanup } from "@continuum-js/dom";
 import { persist, loadPersisted } from "@continuum-js/std";
 
 export function createPersistedTodos(key: string) {
-  const [actions, dispatch] = newStream<Action>();
+  const actions = stream<Action>();
   const todos = actions.accum<Todo[]>(loadPersisted(key, []), reduce);
   onCleanup(persist(key, todos));
-  return { todos, dispatch };
+  return { todos, dispatch: actions.fire };
 }
 ```
 
@@ -90,8 +90,10 @@ The component shrinks to `const { todos, dispatch } = createPersistedTodos("todo
 
 **Call a composable synchronously during component build** (or inside
 `root()`/`scope()`), because that is when an owner exists to attach the
-cleanup to. Calling one from a handler or a `setTimeout` throws a teaching
-error — there would be no one to ever run the teardown.
+cleanup to — and everything stateful a composable creates (`hold`, `accum`,
+`.on`, `perform`) requires that owner. Calling one from a handler or a
+`setTimeout` throws a teaching error — there would be no one to ever run
+the teardown.
 
 That is the whole discipline. No call-order requirements, no "top level
 only", no dependency arrays. Conditionals are fine:

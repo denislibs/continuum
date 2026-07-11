@@ -4,6 +4,7 @@
 // value depends on the full history and must not miss occurrences.
 import { describe, test, expect } from "vitest";
 import {
+  root,
   newStream,
   newBehavior,
   batch,
@@ -151,7 +152,7 @@ describe("lazy activation — pure derivations", () => {
 describe("lazy activation — stateful nodes stay eager", () => {
   test("accum counts occurrences even with zero listeners (history must not be lost)", () => {
     const [src, fire] = newStream<number>();
-    const total = src.accum(0, (a, s) => s + a);
+    const total = root(() => src.accum(0, (a, s) => s + a));
     fire(1);
     fire(2);
     expect(total.sample()).toBe(3); // attached from construction
@@ -159,7 +160,7 @@ describe("lazy activation — stateful nodes stay eager", () => {
 
   test("hold tracks the last occurrence without listeners", () => {
     const [src, fire] = newStream<number>();
-    const last = src.hold(0);
+    const last = root(() => src.hold(0));
     fire(42);
     expect(last.sample()).toBe(42);
   });

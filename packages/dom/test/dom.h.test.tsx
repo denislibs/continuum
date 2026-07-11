@@ -1,6 +1,6 @@
 import { describe, test, expect } from "vitest";
 import { mount } from "@continuum-js/dom";
-import { newStream, newBehavior } from "@continuum-js/frp";
+import { root, newStream, newBehavior } from "@continuum-js/frp";
 
 describe("h — static elements", () => {
   test("creates an element with attributes and text children", () => {
@@ -97,7 +97,7 @@ describe("h — events", () => {
 
   test("passing an frp `fire` routes DOM events into the network", () => {
     const [clicks, fire] = newStream<MouseEvent>();
-    const count = clicks.accum(0, (_e, n) => n + 1);
+    const count = root(() => clicks.accum(0, (_e, n) => n + 1));
     const btn = (<button onClick={fire}>{count}</button>) as HTMLButtonElement;
     expect(btn.textContent).toBe("0");
     btn.click();

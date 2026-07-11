@@ -3,7 +3,7 @@
 // real apps: timing, async data, stream shaping, behavior helpers. Nothing here
 // touches internals the core doesn't already expose.
 
-import { Stream, Behavior, newStream, perform } from "@continuum-js/frp";
+import { Stream, Wire, stream, perform } from "@continuum-js/frp";
 import type { Unlisten } from "@continuum-js/frp";
 
 // ===========================================================================
@@ -16,13 +16,13 @@ import type { Unlisten } from "@continuum-js/frp";
  * (Trailing debounce.)
  */
 export function debounce<A>(e: Stream<A>, ms: number): Stream<A> {
-  const [out, fire] = newStream<A>();
+  const out = stream<A>();
   let timer: ReturnType<typeof setTimeout> | undefined;
   const un = e.listen((a) => {
     if (timer !== undefined) clearTimeout(timer);
     timer = setTimeout(() => {
       timer = undefined;
-      fire(a);
+      out.fire(a);
     }, ms);
   });
   out.onDispose(() => {
@@ -37,13 +37,13 @@ export function debounce<A>(e: Stream<A>, ms: number): Stream<A> {
  * (Leading throttle / rate limit.)
  */
 export function throttle<A>(e: Stream<A>, ms: number): Stream<A> {
-  const [out, fire] = newStream<A>();
+  const out = stream<A>();
   let blocked = false;
   let timer: ReturnType<typeof setTimeout> | undefined;
   const un = e.listen((a) => {
     if (blocked) return;
     blocked = true;
-    fire(a);
+    out.fire(a);
     timer = setTimeout(() => {
       blocked = false;
     }, ms);
@@ -57,12 +57,12 @@ export function throttle<A>(e: Stream<A>, ms: number): Stream<A> {
 
 /** Shift every occurrence later by `ms`, preserving order and multiplicity. */
 export function delay<A>(e: Stream<A>, ms: number): Stream<A> {
-  const [out, fire] = newStream<A>();
+  const out = stream<A>();
   const timers = new Set<ReturnType<typeof setTimeout>>();
   const un = e.listen((a) => {
     const id = setTimeout(() => {
       timers.delete(id);
-      fire(a);
+      out.fire(a);
     }, ms);
     timers.add(id);
   });
@@ -76,9 +76,9 @@ export function delay<A>(e: Stream<A>, ms: number): Stream<A> {
 
 /** A source event ticking `1, 2, 3, …` every `ms`. Stops on `dispose()`. */
 export function interval(ms: number): Stream<number> {
-  const [out, fire] = newStream<number>();
+  const out = stream<number>();
   let n = 0;
-  const id = setInterval(() => fire(++n), ms);
+  const id = setInterval(() => out.fire(++n), ms);
   out.onDispose(() => clearInterval(id));
   return out;
 }
@@ -122,34 +122,31 @@ export function partition<A>(
 }
 
 /** A behavior of how many times the event has occurred. */
-export function count(e: Stream<unknown>): Behavior<number> {
+export function count(e: Stream<unknown>): Wire<number> {
   return e.accum(0, (_a, n) => n + 1);
 }
 
 /** Sample `b` at each occurrence of `trigger`, discarding the trigger's value. */
-export function sampleWith<A, B>(
-  trigger: Stream<A>,
-  b: Behavior<B>,
-): Stream<B> {
-  return trigger.snapshot(b, (_a, v) => v);
+export function sampleWith<A, B>(trigger: Stream<A>, b: Wire<B>): Stream<B> {
+  return b.at(trigger);
 }
 
 // ===========================================================================
-// Behavior helpers.
+// Wire helpers.
 // ===========================================================================
 
 /** A behavior lagging one step behind `b` (its value before the latest change). */
-export function previous<A>(b: Behavior<A>, init: A): Behavior<A> {
+export function previous<A>(b: Wire<A>, init: A): Wire<A> {
   // At the instant of an update, `b` still samples its pre-commit (prior) value,
   // since `hold` commits at the moment boundary.
-  return b.updates.snapshot(b, (_new, old) => old).hold(init);
+  return b.at(b.updates, (old) => old).hold(init);
 }
 
 /** A behavior that suppresses updates equal to the current value (default `Object.is`). */
 export function distinctB<A>(
-  b: Behavior<A>,
+  b: Wire<A>,
   eq: (x: A, y: A) => boolean = Object.is,
-): Behavior<A> {
+): Wire<A> {
   const out = new Stream<A>(b.updates.rank + 1);
   let prev = b.sampleNoTrans();
   b.updates.listen_(out, (t, a) => {
@@ -158,7 +155,7 @@ export function distinctB<A>(
       out.send_(t, a);
     }
   });
-  return new Behavior<A>(() => b.sampleNoTrans(), out);
+  return new Wire<A>(() => b.sampleNoTrans(), out);
 }
 
 // ===========================================================================
@@ -183,7 +180,7 @@ export type Async<T> =
 export function resource<A, T>(
   trigger: Stream<A>,
   fetcher: (arg: A) => Promise<T>,
-): Behavior<Async<T>> {
+): Wire<Async<T>> {
   const requests = trigger.accumE({ seq: 0, arg: null as A }, (arg, prev) => ({
     seq: prev.seq + 1,
     arg,
@@ -195,8 +192,8 @@ export function resource<A, T>(
     fetcher(r.arg).then((value) => ({ seq: r.seq, value })),
   );
 
-  const settled = responses
-    .snapshot(latest, (res, latestSeq): Async<T> | null => {
+  const settled = latest
+    .at(responses, (latestSeq, res): Async<T> | null => {
       if (res.ok) {
         if (res.value.seq !== latestSeq) return null; // superseded — ignore
         return { status: "ok", value: res.value.value };
@@ -208,7 +205,7 @@ export function resource<A, T>(
   const loading = requests.mapTo<Async<T>>({ status: "loading" });
 
   // loading (request moment) and settled (later moment) never coincide.
-  return loading.orElse(settled).hold({ status: "idle" });
+  return loading.or(settled).hold({ status: "idle" });
 }
 
 // ===========================================================================
@@ -244,7 +241,7 @@ export function loadPersisted<T>(
  */
 export function persist<T>(
   key: string,
-  b: Behavior<T>,
+  b: Wire<T>,
   storage: StorageLike | undefined = globalThis.localStorage,
 ): Unlisten {
   if (!storage) return () => {};

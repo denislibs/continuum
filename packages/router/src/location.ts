@@ -1,25 +1,25 @@
-// The URL as a first-class FRP value: `location()` is a Behavior<URL>,
+// The URL as a first-class FRP value: `location()` is a Wire<URL>,
 // `navigate` is the event input. One lazily-created singleton per page —
 // created on first use so importing the module has no side effects.
 
-import { newBehavior, type Behavior } from "@continuum-js/frp";
+import { wire, type WireSource, type Wire } from "@continuum-js/frp";
 
-let loc: Behavior<URL> | null = null;
-let setLoc: (u: URL) => void;
+let loc: WireSource<URL> | null = null;
 
-function ensure(): Behavior<URL> {
+function ensure(): WireSource<URL> {
   if (!loc) {
-    [loc, setLoc] = newBehavior(new URL(window.location.href));
+    const l = wire(new URL(window.location.href));
     // Back/forward: the browser moves through history, we follow.
     window.addEventListener("popstate", () =>
-      setLoc(new URL(window.location.href)),
+      l.set(new URL(window.location.href)),
     );
+    loc = l;
   }
   return loc;
 }
 
 /** The current URL across time. Updates on `navigate` and popstate. */
-export function location(): Behavior<URL> {
+export function location(): Wire<URL> {
   return ensure();
 }
 
@@ -29,7 +29,7 @@ export function navigate(to: string, opts?: { replace?: boolean }): void {
   const url = new URL(to, window.location.href);
   if (opts?.replace) history.replaceState(null, "", url);
   else history.pushState(null, "", url);
-  setLoc(url);
+  ensure().set(url);
   if (!opts?.replace) {
     // Scroll to top on forward navigation (browser restores it on popstate).
     document.documentElement.scrollTop = 0;

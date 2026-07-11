@@ -6,8 +6,8 @@
 
 # Type Alias: Child
 
-> **Child** = `Node` \| `Behavior`\<`unknown`\> \| `string` \| `number` \| `boolean` \| `null` \| `undefined` \| `Child`[]
+> **Child** = `Node` \| `Wire`\<`unknown`\> \| `string` \| `number` \| `boolean` \| `null` \| `undefined` \| `Child`[]
 
-Defined in: [index.tsx:207](https://github.com/denislibs/continuum/blob/1009133524ef880e679ba1f379dfc0cffc91979b/packages/dom/src/index.tsx#L207)
+Defined in: [index.tsx:191](https://github.com/denislibs/continuum/blob/cc4617269797dda656aa4d28267b6b87666cd809/packages/dom/src/index.tsx#L191)
 
 Anything placeable in JSX: nodes, behaviors (live-bound), primitives, arrays.

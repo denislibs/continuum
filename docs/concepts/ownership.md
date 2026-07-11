@@ -64,8 +64,20 @@ Both are ordinary functions — call them in conditions, loops, and helpers.
 
 `root(fn)` creates a standalone owner (that is what `mount` uses);
 `scope(fn)` creates a child scope with its own dispose handle. You need them
-only when building custom machinery — for example, batching work outside the
-DOM tree that should still die with a component.
+when building custom machinery — for example, batching work outside the
+DOM tree that should still die with a component — and for **module-level
+state and effects**. Pure formulas (`map`, `combine`, `filter`) need no
+owner: they sleep without listeners and wake on demand. Stateful values
+(`hold`, `accum`, `.on`) and effects (`perform`) register a process with the
+current scope — automatic inside a component; at module level, give them one:
+
+```ts
+const count = root(() => clicks.accum(0, (_e, n) => n + 1));
+```
+
+Without an owner the runtime throws a teaching error. When a scope is
+disposed, its `hold`/`accum` values detach from their sources and freeze,
+deterministically, at their last value.
 
 ---
 

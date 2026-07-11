@@ -6,9 +6,9 @@
 
 # Function: previous()
 
-> **previous**\<`A`\>(`b`, `init`): `Behavior`\<`A`\>
+> **previous**\<`A`\>(`b`, `init`): `Wire`\<`A`\>
 
-Defined in: [index.ts:142](https://github.com/denislibs/continuum/blob/1009133524ef880e679ba1f379dfc0cffc91979b/packages/std/src/index.ts#L142)
+Defined in: [index.ts:139](https://github.com/denislibs/continuum/blob/cc4617269797dda656aa4d28267b6b87666cd809/packages/std/src/index.ts#L139)
 
 A behavior lagging one step behind `b` (its value before the latest change).
 
@@ -22,7 +22,7 @@ A behavior lagging one step behind `b` (its value before the latest change).
 
 ### b
 
-`Behavior`\<`A`\>
+`Wire`\<`A`\>
 
 ### init
 
@@ -30,4 +30,4 @@ A behavior lagging one step behind `b` (its value before the latest change).
 
 ## Returns
 
-`Behavior`\<`A`\>
+`Wire`\<`A`\>

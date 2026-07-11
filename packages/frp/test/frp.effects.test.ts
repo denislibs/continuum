@@ -1,5 +1,5 @@
 import { describe, test, expect } from "vitest";
-import { newStream } from "@continuum-js/frp";
+import { root, newStream } from "@continuum-js/frp";
 import { distinct, perform } from "@continuum-js/frp";
 
 const tick = () => new Promise((r) => setTimeout(r, 0));
@@ -32,7 +32,7 @@ describe("perform", () => {
   test("delivers a successful Result on a fresh moment", async () => {
     const [req, fire] = newStream<number>();
     const seen: Array<{ ok: boolean; value?: number }> = [];
-    perform(req, async (n) => n * 2).listen((r) =>
+    root(() => perform(req, async (n) => n * 2)).listen((r) =>
       seen.push(r as { ok: boolean; value?: number }),
     );
     fire(5);
@@ -43,9 +43,11 @@ describe("perform", () => {
   test("wraps a rejection into a failed Result", async () => {
     const [req, fire] = newStream<number>();
     const seen: Array<{ ok: boolean; error?: unknown }> = [];
-    perform(req, async () => {
-      throw new Error("boom");
-    }).listen((r) => seen.push(r as { ok: boolean; error?: unknown }));
+    root(() =>
+      perform(req, async () => {
+        throw new Error("boom");
+      }),
+    ).listen((r) => seen.push(r as { ok: boolean; error?: unknown }));
     fire(1);
     await tick();
     expect(seen).toHaveLength(1);

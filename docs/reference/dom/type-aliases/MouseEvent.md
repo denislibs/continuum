@@ -8,7 +8,7 @@
 
 > **MouseEvent**\<`E`\> = [`Targeted`](Targeted.md)\<`globalThis.MouseEvent`, `E`\>
 
-Defined in: [events.ts:12](https://github.com/denislibs/continuum/blob/1009133524ef880e679ba1f379dfc0cffc91979b/packages/dom/src/events.ts#L12)
+Defined in: [events.ts:12](https://github.com/denislibs/continuum/blob/cc4617269797dda656aa4d28267b6b87666cd809/packages/dom/src/events.ts#L12)
 
 ## Type Parameters
 

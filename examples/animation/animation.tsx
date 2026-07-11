@@ -1,4 +1,4 @@
-import { constant, integral, warp, type Behavior } from "@continuum-js/frp";
+import { constant, integral, warp, type Wire } from "@continuum-js/frp";
 import { animationFrames } from "@continuum-js/dom";
 
 const TRACK = 260; // px travel before wrapping
@@ -19,7 +19,7 @@ export function TimeWarpDemo() {
     warp(ticks, (t) => t * 2),
   );
 
-  const track = (x: Behavior<number>, color: string) => {
+  const track = (x: Wire<number>, color: string) => {
     const boxStyle = x.map((px) => ({
       position: "absolute",
       width: "24px",

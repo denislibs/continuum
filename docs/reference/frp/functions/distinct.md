@@ -8,7 +8,7 @@
 
 > **distinct**\<`A`\>(`e`, `eq?`): [`Stream`](../classes/Stream.md)\<`A`\>
 
-Defined in: [index.ts:890](https://github.com/denislibs/continuum/blob/1009133524ef880e679ba1f379dfc0cffc91979b/packages/frp/src/index.ts#L890)
+Defined in: [index.ts:1260](https://github.com/denislibs/continuum/blob/cc4617269797dda656aa4d28267b6b87666cd809/packages/frp/src/index.ts#L1260)
 
 De-duplicate consecutive equal values (filter with one-value memory).
 Default comparison is `Object.is`.
