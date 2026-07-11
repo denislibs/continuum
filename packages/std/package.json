@@ -1,6 +1,6 @@
 {
   "name": "@continuum-js/std",
-  "version": "0.12.1",
+  "version": "0.13.0",
   "description": "Continuum standard library — reusable FRP combinators (async, timing, streams)",
   "license": "MIT",
   "repository": {
@@ -30,6 +30,6 @@
     "access": "public"
   },
   "dependencies": {
-    "@continuum-js/frp": "0.12.1"
+    "@continuum-js/frp": "0.13.0"
   }
 }
