@@ -8,7 +8,7 @@
 
 > **integral**(`b`, `tick`, `init?`): [`Wire`](../classes/Wire.md)\<`number`\>
 
-Defined in: [continuous.ts:18](https://github.com/denislibs/continuum/blob/cc4617269797dda656aa4d28267b6b87666cd809/packages/frp/src/continuous.ts#L18)
+Defined in: [continuous.ts:18](https://github.com/denislibs/continuum/blob/cd06cfd704b2e2e6c2e5200a78b1a8b9bff05997/packages/frp/src/continuous.ts#L18)
 
 Integrate a behavior with respect to a clock (forward Euler).
 `tick` carries the current time; the first tick establishes the baseline.

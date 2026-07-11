@@ -8,7 +8,7 @@
 
 > **animationFrames**(): `Stream`\<`number`\>
 
-Defined in: [index.tsx:742](https://github.com/denislibs/continuum/blob/cc4617269797dda656aa4d28267b6b87666cd809/packages/dom/src/index.tsx#L742)
+Defined in: [index.tsx:753](https://github.com/denislibs/continuum/blob/cd06cfd704b2e2e6c2e5200a78b1a8b9bff05997/packages/dom/src/index.tsx#L753)
 
 An `Stream<number>` of `requestAnimationFrame` timestamps (ms). Drives the
 continuous-time combinators (`integral`/`derivative`/`warp` from the core).

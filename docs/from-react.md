@@ -33,23 +33,23 @@ this is the framework that treats the story as a first-class value.
 
 ## Correspondence table
 
-| React                        | Continuum                             | Comment                                                           |
-| ---------------------------- | ------------------------------------- | ----------------------------------------------------------------- |
-| `useState(init)`             | `wire(init)`                          | returns a `Wire` with `.set`; at module level wrap it in `root()` |
-| `useMemo(f, [a, b])`         | `a.map(f)` / `combine(a, b, f)`       | dependencies are the expression's structure; no array needed      |
-| `useEffect(f, [x])`          | `x.listen(f)` + `onCleanup`           | subscribe to a value; cleanup is explicit and one-time            |
-| `useEffect(f, [])` (mount)   | `onMount(f)`                          | runs once, when the nodes are already inserted into the DOM       |
-| `useEffect(fetch…)`          | `perform` / `resource`                | IO is a network boundary; errors are data (`Result`), not throws  |
-| `useContext` / `<Provider>`  | `use(ctx)` / `provide(ctx, v)`        | the same, but over the ownership tree                             |
-| `useRef(dom)`                | a plain variable, or `ref={…}`        | the component runs once — `const el = <div/>` is already stable   |
-| `useCallback` / `memo`       | —                                     | not needed: nothing re-runs, identity is stable                   |
-| `key` in lists               | `by` in `<Each>`                      | same meaning (keyed reconciliation; we diff with LIS)             |
-| `{cond && <A/>}`             | `<Show when={b}>`                     | rebuilds only when truthiness flips                               |
-| `<Suspense>` + `React.lazy`  | `lazy(() => import(…), { fallback })` | pending/error are ordinary values, not an exception mechanism     |
-| Error Boundary (class / lib) | `<Catch fallback={(e, reset) => …}>`  | a component, not a class; catches build and region-rebuild throws |
-| `useSyncExternalStore`       | `Wire.fromPoll` / `wire`              | the outside world enters as a wire                                |
-| `onClick={handler}`          | `onClick={clicks.fire}`               | the event flows into the FRP network, not into setState           |
-| StrictMode double-render     | —                                     | nothing re-runs — nothing to double-check                         |
+| React                        | Continuum                             | Comment                                                                     |
+| ---------------------------- | ------------------------------------- | --------------------------------------------------------------------------- |
+| `useState(init)`             | `wire(init)`                          | returns a `Wire` with `.set`/`.update`; at module level wrap it in `root()` |
+| `useMemo(f, [a, b])`         | `a.map(f)` / `combine(a, b, f)`       | dependencies are the expression's structure; no array needed                |
+| `useEffect(f, [x])`          | `x.listen(f)` + `onCleanup`           | subscribe to a value; cleanup is explicit and one-time                      |
+| `useEffect(f, [])` (mount)   | `onMount(f)`                          | runs once, when the nodes are already inserted into the DOM                 |
+| `useEffect(fetch…)`          | `perform` / `resource`                | IO is a network boundary; errors are data (`Result`), not throws            |
+| `useContext` / `<Provider>`  | `use(ctx)` / `provide(ctx, v)`        | the same, but over the ownership tree                                       |
+| `useRef(dom)`                | a plain variable, or `ref={…}`        | the component runs once — `const el = <div/>` is already stable             |
+| `useCallback` / `memo`       | —                                     | not needed: nothing re-runs, identity is stable                             |
+| `key` in lists               | `by` in `<Each>`                      | same meaning (keyed reconciliation; we diff with LIS)                       |
+| `{cond && <A/>}`             | `<Show when={b}>`                     | rebuilds only when truthiness flips                                         |
+| `<Suspense>` + `React.lazy`  | `lazy(() => import(…), { fallback })` | pending/error are ordinary values, not an exception mechanism               |
+| Error Boundary (class / lib) | `<Catch fallback={(e, reset) => …}>`  | a component, not a class; catches build and region-rebuild throws           |
+| `useSyncExternalStore`       | `Wire.fromPoll` / `wire`              | the outside world enters as a wire                                          |
+| `onClick={handler}`          | `onClick={clicks.fire}`               | the event flows into the FRP network, not into setState                     |
+| StrictMode double-render     | —                                     | nothing re-runs — nothing to double-check                                   |
 
 ---
 
@@ -72,9 +72,7 @@ import { wire } from "@continuum-js/frp";
 function Counter() {
   const count = wire(0);
   return (
-    <button onClick={() => count.set(count.sample() + 1)}>
-      count: {count}
-    </button>
+    <button onClick={() => count.update((n) => n + 1)}>count: {count}</button>
   );
 }
 ```

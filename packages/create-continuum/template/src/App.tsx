@@ -9,9 +9,7 @@ export function App() {
   return (
     <main>
       <h1>Continuum</h1>
-      <button onClick={() => count.set(count.sample() + 1)}>
-        count: {count}
-      </button>
+      <button onClick={() => count.update((n) => n + 1)}>count: {count}</button>
       <p>
         Edit <code>src/App.tsx</code> to get started.
       </p>

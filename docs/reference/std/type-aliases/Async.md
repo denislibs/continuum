@@ -8,7 +8,7 @@
 
 > **Async**\<`T`\> = \{ `status`: `"idle"`; \} \| \{ `status`: `"loading"`; \} \| \{ `status`: `"ok"`; `value`: `T`; \} \| \{ `error`: `unknown`; `status`: `"error"`; \}
 
-Defined in: [index.ts:168](https://github.com/denislibs/continuum/blob/cc4617269797dda656aa4d28267b6b87666cd809/packages/std/src/index.ts#L168)
+Defined in: [index.ts:168](https://github.com/denislibs/continuum/blob/cd06cfd704b2e2e6c2e5200a78b1a8b9bff05997/packages/std/src/index.ts#L168)
 
 The lifecycle of an asynchronous request as first-class data.
 

@@ -8,7 +8,7 @@
 
 > **useParams**(): `Wire`\<[`Params`](../type-aliases/Params.md)\>
 
-Defined in: [index.ts:102](https://github.com/denislibs/continuum/blob/cc4617269797dda656aa4d28267b6b87666cd809/packages/router/src/index.ts#L102)
+Defined in: [index.ts:102](https://github.com/denislibs/continuum/blob/cd06cfd704b2e2e6c2e5200a78b1a8b9bff05997/packages/router/src/index.ts#L102)
 
 Path parameters of the current route as a behavior (own + ancestors'
 merged). Updates in place on same-route navigation — no rebuild.

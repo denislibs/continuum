@@ -8,7 +8,7 @@
 
 > **stream**\<`A`\>(): [`StreamSource`](../interfaces/StreamSource.md)\<`A`\>
 
-Defined in: [index.ts:1170](https://github.com/denislibs/continuum/blob/cc4617269797dda656aa4d28267b6b87666cd809/packages/frp/src/index.ts#L1170)
+Defined in: [index.ts:1197](https://github.com/denislibs/continuum/blob/cd06cfd704b2e2e6c2e5200a78b1a8b9bff05997/packages/frp/src/index.ts#L1197)
 
 A source stream plus its `fire`, as one value.
 

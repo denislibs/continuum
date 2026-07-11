@@ -98,7 +98,7 @@ lazy(() => import("./Page.js"), { fallback: () => <p>…</p> });
 - `interval`/`delay` timers stop on `dispose()`:
   `onCleanup(() => ticks.dispose())`.
 - Reading state: in plain DOM handlers `w.sample()` is fine
-  (`onClick={() => count.set(count.sample() + 1)}`). Inside event-stream
+  (`onClick={() => count.update((n) => n + 1)}`). Inside event-stream
   logic use `w.at(e, …)`, not `sample` — `at` has exact semantics for
   simultaneous events.
 - A wire updates at the end of its transaction: inside the very event

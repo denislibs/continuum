@@ -126,7 +126,7 @@ bound to it updates (we call this pinpoint DOM updates).
 function Counter() {
   const count = wire(0); // a cell
   return (
-    <button onClick={() => count.set(count.sample() + 1)}>
+    <button onClick={() => count.update((n) => n + 1)}>
       count: {count} {/* this text is bound to the cell, forever */}
     </button>
   );
