@@ -236,6 +236,18 @@ function applyRef(ref: unknown, el: Element): void {
     (ref as { current: Element }).current = el;
 }
 
+// Apply a bound style value: object keys dropped since the previous
+// delivery are reset before the new object is assigned.
+function setStyle(el: Element, prev: unknown, next: unknown): void {
+  const style = (el as HTMLElement).style as unknown as Record<string, string>;
+  if (prev && typeof prev === "object" && next && typeof next === "object") {
+    for (const k in prev as Record<string, unknown>) {
+      if (!(k in (next as Record<string, unknown>))) style[k] = "";
+    }
+  }
+  setProp(el, "style", next);
+}
+
 function setProp(el: Element, key: string, value: unknown): void {
   if (key === "class" || key === "className") {
     // SVG elements have a read-only `className` (SVGAnimatedString).
@@ -287,7 +299,19 @@ function applyProps(el: Element, props: Record<string, unknown>): void {
       continue;
     }
     if (value instanceof Wire) {
-      bind(value.listen((v) => setProp(el, key, v)));
+      if (key === "style") {
+        // Diff against the previous object: a key that disappears must be
+        // cleared, not left painted on the element.
+        let prevStyle: unknown;
+        bind(
+          value.listen((v) => {
+            setStyle(el, prevStyle, v);
+            prevStyle = v;
+          }),
+        );
+      } else {
+        bind(value.listen((v) => setProp(el, key, v)));
+      }
       continue;
     }
     setProp(el, key, value);
@@ -629,12 +653,31 @@ export function use<T>(ctx: Context<T>): T {
 function distinctB<T>(b: Wire<T>): Wire<T> {
   const out = new Stream<T>(b.updates.rank + 1);
   let prev = b.sampleNoTrans();
-  b.updates.listen_(out, (t, a) => {
+  let stagedTx: unknown = null;
+  let staged: T;
+  out.source(b.updates, (t, a) => {
     if (!Object.is(prev, a)) {
-      prev = a;
+      // commit the memory at the boundary: an aborted moment must not
+      // swallow the next legitimate rebuild
+      if (stagedTx !== t) {
+        stagedTx = t;
+        t.last(() => {
+          if (stagedTx === t) {
+            prev = staged;
+            stagedTx = null;
+          }
+        });
+      }
+      staged = a;
       out.send_(t, a);
     }
   });
+  // waking reseeds from the live value, so a re-mount never rebuilds for
+  // the value it just rendered
+  out.onWake = () => {
+    prev = b.sampleNoTrans();
+    stagedTx = null;
+  };
   return new Wire<T>(() => b.sampleNoTrans(), out);
 }
 
