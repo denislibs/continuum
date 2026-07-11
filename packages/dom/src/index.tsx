@@ -2,7 +2,7 @@
 // Fine-grained rendering over the frp core: bindings, dynamic regions,
 // keyed lists, an ownership tree for lifecycle, and context.
 
-import { Behavior, Stream, newBehavior, newStream } from "@continuum-js/frp";
+import { Wire, Stream, wire, stream } from "@continuum-js/frp";
 import type { Unlisten } from "@continuum-js/frp";
 
 // ---------------------------------------------------------------------------
@@ -205,14 +205,7 @@ function createEl(tag: string): Element {
 
 /** Anything placeable in JSX: nodes, behaviors (live-bound), primitives, arrays. */
 export type Child =
-  | Node
-  | Behavior<unknown>
-  | string
-  | number
-  | boolean
-  | null
-  | undefined
-  | Child[];
+  Node | Wire<unknown> | string | number | boolean | null | undefined | Child[];
 
 // Helper types for writing typed components (type-only: no runtime import
 // cycle — jsx-runtime imports our values, we re-export only its types).
@@ -239,7 +232,7 @@ function appendChild(parent: Node, child: Child): void {
     for (const c of child) appendChild(parent, c);
     return;
   }
-  if (child instanceof Behavior) {
+  if (child instanceof Wire) {
     // fine-grained: one text node bound to one behavior
     const text = document.createTextNode("");
     bind(child.listen((v) => (text.data = toText(v))));
@@ -309,7 +302,7 @@ function applyProps(el: Element, props: Record<string, unknown>): void {
       bind(() => el.removeEventListener(evt, handler));
       continue;
     }
-    if (value instanceof Behavior) {
+    if (value instanceof Wire) {
       bind(value.listen((v) => setProp(el, key, v)));
       continue;
     }
@@ -420,7 +413,7 @@ function needRegionOwner(what: string): void {
 }
 
 /** Conditional / switching subtree: rebuilds on each change of `b`. */
-export function dyn<T>(b: Behavior<T>, render: (v: T) => Child): Node {
+export function dyn<T>(b: Wire<T>, render: (v: T) => Child): Node {
   needRegionOwner("dyn()");
   const owner = currentOwner;
   const start = document.createComment("dyn");
@@ -528,7 +521,7 @@ function lisIndices(seq: number[]): Set<number> {
 
 /** Keyed list: reuses rows by key, reorders with minimal moves (LIS). */
 export function each<T, K>(
-  items: Behavior<T[]>,
+  items: Wire<T[]>,
   key: (item: T) => K,
   render: (item: T) => Child,
 ): Node {
@@ -639,7 +632,7 @@ export function use<T>(ctx: Context<T>): T {
 // A behavior that only emits updates when its value actually changes.
 // The dedup memory is seeded with the current value, so re-emitting the
 // initial value does not trigger a rebuild.
-function distinctB<T>(b: Behavior<T>): Behavior<T> {
+function distinctB<T>(b: Wire<T>): Wire<T> {
   const out = new Stream<T>(b.updates.rank + 1);
   let prev = b.sampleNoTrans();
   b.updates.listen_(out, (t, a) => {
@@ -648,12 +641,12 @@ function distinctB<T>(b: Behavior<T>): Behavior<T> {
       out.send_(t, a);
     }
   });
-  return new Behavior<T>(() => b.sampleNoTrans(), out);
+  return new Wire<T>(() => b.sampleNoTrans(), out);
 }
 
 /** Conditional region driven by a boolean behavior (no rebuild on same value). */
 export function when(
-  cond: Behavior<boolean>,
+  cond: Wire<boolean>,
   thenRender: () => Child,
   elseRender?: () => Child,
 ): Node {
@@ -664,9 +657,9 @@ export function when(
 
 /** Two-way binding props for a text input. Spread onto an `<input>`. */
 export function bindInput(
-  value: Behavior<string>,
+  value: Wire<string>,
   set: (v: string) => void,
-): { value: Behavior<string>; onInput: (e: globalThis.Event) => void } {
+): { value: Wire<string>; onInput: (e: globalThis.Event) => void } {
   return {
     value,
     onInput: (e: globalThis.Event) => set((e.target as HTMLInputElement).value),
@@ -709,9 +702,9 @@ export function mount(container: Node, view: () => Node): () => void {
  * Registered against the current owner: it stops automatically on unmount.
  */
 export function animationFrames(): Stream<number> {
-  const [ticks, fire] = newStream<number>();
+  const ticks = stream<number>();
   let raf = requestAnimationFrame(function loop(t) {
-    fire(t);
+    ticks.fire(t);
     raf = requestAnimationFrame(loop);
   });
   onCleanup(() => cancelAnimationFrame(raf));
@@ -750,7 +743,7 @@ function asRender<T>(children: unknown): (value: T) => Child {
  * ```
  */
 export function Show<T>(props: {
-  when: Behavior<T>;
+  when: Wire<T>;
   children: (value: NonNullable<T>) => Child;
   fallback?: () => Child;
 }): Node {
@@ -772,7 +765,7 @@ export function Show<T>(props: {
  * ```
  */
 export function Each<T, K = T>(props: {
-  each: Behavior<T[]>;
+  each: Wire<T[]>;
   by?: (item: T) => K;
   children: (item: T) => Child;
 }): Node {
@@ -789,7 +782,7 @@ export function Each<T, K = T>(props: {
  * ```
  */
 export function Dynamic<T>(props: {
-  value: Behavior<T>;
+  value: Wire<T>;
   children: (value: T) => Child;
 }): Node {
   return dyn(props.value, asRender<T>(props.children));
@@ -831,8 +824,8 @@ export function Catch(props: {
   children: Child | (() => Child);
   fallback: (error: unknown, reset: () => void) => Child;
 }): Node {
-  const [failure, setFailure] = newBehavior<{ error: unknown } | null>(null);
-  const reset = () => setFailure(null);
+  const failure = wire<{ error: unknown } | null>(null);
+  const reset = () => failure.set(null);
   const build = asRender<void>(props.children);
   return dyn(failure, (f) => {
     if (f) return props.fallback(f.error, reset);
@@ -841,13 +834,13 @@ export function Catch(props: {
     if (currentOwner) {
       (currentOwner.contexts ??= new Map()).set(
         ERROR_HANDLER,
-        (error: unknown) => setFailure({ error }),
+        (error: unknown) => failure.set({ error }),
       );
     }
     try {
       return build();
     } catch (error) {
-      setFailure({ error }); // level-triggered dyn re-renders with the fallback
+      failure.set({ error }); // level-triggered dyn re-renders with the fallback
       return null;
     }
   });

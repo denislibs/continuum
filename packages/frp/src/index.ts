@@ -460,15 +460,16 @@ export class Stream<A> {
     return out;
   }
 
-  /** Sample a behavior at the instant of each occurrence (sees pre-moment value). */
-  snapshot<B, C>(b: Behavior<B>, f: (a: A, b: B) => C): Stream<C> {
-    const out = new Stream<C>(this.rank + 1);
-    out.source(this, (t, a) => out.send_(t, f(a, b.sampleNoTrans())));
-    return out;
+  /**
+   * @deprecated Use `wire.at(stream, (value, event) => …)` — same semantics,
+   * data first. Removed in 1.0.
+   */
+  snapshot<B, C>(b: Wire<B>, f: (a: A, b: B) => C): Stream<C> {
+    return b.at(this, (value, event: A) => f(event, value));
   }
 
   /** Step function: hold the last occurrence, committing at the moment boundary. */
-  hold(init: A): Behavior<A> {
+  hold(init: A): Wire<A> {
     const self = this;
     let value = init;
     // Staging is keyed by transaction identity, so an aborted (dropped)
@@ -489,7 +490,7 @@ export class Stream<A> {
       stagedVal = a; // last write wins within a moment
       updates.send_(t, a);
     });
-    const b = new Behavior<A>(() => value, updates);
+    const b = new Wire<A>(() => value, updates);
     // The wrapper is the liveness sentinel: while anybody can sample it, it
     // is reachable; once collected, the chain may be torn down (unless the
     // updates stream is independently observed). The held closure must
@@ -530,7 +531,7 @@ export class Stream<A> {
   }
 
   /** Fold occurrences into a behavior. */
-  accum<B>(init: B, f: (a: A, acc: B) => B): Behavior<B> {
+  accum<B>(init: B, f: (a: A, acc: B) => B): Wire<B> {
     return this.accumE(init, f).hold(init);
   }
 
@@ -548,8 +549,8 @@ export class Stream<A> {
     return out;
   }
 
-  /** Pass occurrences only while the behavior is true. */
-  gate(b: Behavior<boolean>): Stream<A> {
+  /** Pass occurrences only while the wire is true. */
+  when(b: Wire<boolean>): Stream<A> {
     const out = new Stream<A>(this.rank + 1);
     out.source(this, (t, a) => {
       if (b.sampleNoTrans()) out.send_(t, a);
@@ -557,9 +558,19 @@ export class Stream<A> {
     return out;
   }
 
+  /** @deprecated Renamed to `when` — same semantics. Removed in 1.0. */
+  gate(b: Wire<boolean>): Stream<A> {
+    return this.when(b);
+  }
+
   /** Left-biased merge: on simultaneous occurrences the left wins. */
-  orElse(other: Stream<A>): Stream<A> {
+  or(other: Stream<A>): Stream<A> {
     return Stream.merge(this, other, (l) => l);
+  }
+
+  /** @deprecated Renamed to `or` — same semantics. Removed in 1.0. */
+  orElse(other: Stream<A>): Stream<A> {
+    return this.or(other);
   }
 
   /** Merge two events; simultaneous occurrences coalesce once via `combine`. */
@@ -638,14 +649,14 @@ export class Stream<A> {
 }
 
 // ---------------------------------------------------------------------------
-// Behavior<A> — a value across time (pull) + discrete `updates` (push).
+// Wire<A> — a value across time (pull) + discrete `updates` (push).
 // ---------------------------------------------------------------------------
 
 /**
  * A value across time (pull) with discrete change notifications (push).
  * Denotationally `Time → A`: it always has a value — `sample()` never misses.
  */
-export class Behavior<A> {
+export class Wire<A> {
   constructor(
     /** Pull the current value without opening a transaction. */
     public sampleNoTrans: () => A,
@@ -658,8 +669,23 @@ export class Behavior<A> {
   }
 
   /** Pointwise transform (continuous-safe: recomputed on each sample). */
-  map<B>(f: (a: A) => B): Behavior<B> {
-    return new Behavior<B>(() => f(this.sampleNoTrans()), this.updates.map(f));
+  map<B>(f: (a: A) => B): Wire<B> {
+    return new Wire<B>(() => f(this.sampleNoTrans()), this.updates.map(f));
+  }
+
+  /**
+   * Sample this wire at each occurrence of `e`: `draft.at(submits)` is the
+   * stream of the wire's values as of those moments (pre-moment, with exact
+   * simultaneity semantics). An optional combiner receives `(value, event)`.
+   */
+  at<B>(e: Stream<B>): Stream<A>;
+  at<B, C>(e: Stream<B>, f: (value: A, event: B) => C): Stream<C>;
+  at<B, C>(e: Stream<B>, f?: (value: A, event: B) => C): Stream<A | C> {
+    const out = new Stream<A | C>(e.rank + 1);
+    out.source(e, (t, b: B) =>
+      out.send_(t, f ? f(this.sampleNoTrans(), b) : this.sampleNoTrans()),
+    );
+    return out;
   }
 
   /** Deliver the current value immediately, then every change. */
@@ -692,17 +718,20 @@ export class Behavior<A> {
 
   // --- static combinators -----------------------------------------------
 
-  /** Applicative with coalescing: apply a behavior-of-function to a value. */
-  static apply<A, B>(bf: Behavior<(a: A) => B>, ba: Behavior<A>): Behavior<B> {
-    return Behavior.lift2((f, a) => f(a), bf, ba);
+  /** @deprecated Use `combine(bf, ba, (f, a) => f(a))`. Removed in 1.0. */
+  static apply<A, B>(bf: Wire<(a: A) => B>, ba: Wire<A>): Wire<B> {
+    return Wire.lift2((f, a) => f(a), bf, ba);
   }
 
-  /** Combine two behaviors pointwise; simultaneous updates coalesce once. */
+  /**
+   * @internal The two-input join every `combine` reduces to. Public under the
+   * deprecated `lift2` name until 1.0 — prefer `combine(a, b, f)`.
+   */
   static lift2<A, B, C>(
     f: (a: A, b: B) => C,
-    ba: Behavior<A>,
-    bb: Behavior<B>,
-  ): Behavior<C> {
+    ba: Wire<A>,
+    bb: Wire<B>,
+  ): Wire<C> {
     const rank = Math.max(ba.updates.rank, bb.updates.rank) + 1;
     const out = new Stream<C>(rank);
     let va = ba.sampleNoTrans();
@@ -734,34 +763,30 @@ export class Behavior<A> {
       vb = bb.sampleNoTrans();
       scheduledTx = null;
     };
-    return new Behavior<C>(
-      () => f(ba.sampleNoTrans(), bb.sampleNoTrans()),
-      out,
-    );
+    return new Wire<C>(() => f(ba.sampleNoTrans(), bb.sampleNoTrans()), out);
   }
 
-  /** Combine three behaviors pointwise. */
+  /** @deprecated Use `combine(a, b, c, f)`. Removed in 1.0. */
   static lift3<A, B, C, D>(
     f: (a: A, b: B, c: C) => D,
-    ba: Behavior<A>,
-    bb: Behavior<B>,
-    bc: Behavior<C>,
-  ): Behavior<D> {
-    const partial = Behavior.lift2(
-      (a: A, b: B) => (c: C) => f(a, b, c),
-      ba,
-      bb,
-    );
-    return Behavior.lift2((g, c) => g(c), partial, bc);
+    ba: Wire<A>,
+    bb: Wire<B>,
+    bc: Wire<C>,
+  ): Wire<D> {
+    const partial = Wire.lift2((a: A, b: B) => (c: C) => f(a, b, c), ba, bb);
+    return Wire.lift2((g, c) => g(c), partial, bc);
   }
 
   /** Continuous behavior: sampled fresh on each read; no discrete updates. */
-  static fromPoll<A>(poll: () => A): Behavior<A> {
-    return new Behavior<A>(poll, new Stream<A>(0));
+  static fromPoll<A>(poll: () => A): Wire<A> {
+    return new Wire<A>(poll, new Stream<A>(0));
   }
 
-  /** Follow the behavior currently selected by an outer behavior. */
-  static switchB<A>(bb: Behavior<Behavior<A>>): Behavior<A> {
+  /**
+   * @internal The wire-of-wires switch behind `flatten`. Public under the
+   * deprecated `switchB` name until 1.0 — prefer `flatten(w)`.
+   */
+  static switchB<A>(bb: Wire<Wire<A>>): Wire<A> {
     let current = bb.sampleNoTrans();
     const out = new Stream<A>(current.updates.rank + 1);
     let innerUn = out.subscribe(current.updates, (t, a) => out.send_(t, a));
@@ -782,13 +807,16 @@ export class Behavior<A> {
       });
     });
     out.onDispose(() => innerUn());
-    const b = new Behavior<A>(() => bb.sampleNoTrans().sampleNoTrans(), out);
+    const b = new Wire<A>(() => bb.sampleNoTrans().sampleNoTrans(), out);
     REAPER?.register(b, reapVia(new WeakRef(out)));
     return b;
   }
 
-  /** Follow the event currently selected by a behavior. */
-  static switchE<A>(be: Behavior<Stream<A>>): Stream<A> {
+  /**
+   * @internal The wire-of-streams switch behind `flatten`. Public under the
+   * deprecated `switchE` name until 1.0 — prefer `flatten(w)`.
+   */
+  static switchE<A>(be: Wire<Stream<A>>): Stream<A> {
     let current = be.sampleNoTrans();
     const out = new Stream<A>(current.rank + 1);
     let innerUn = out.subscribe(current, (t, a) => out.send_(t, a));
@@ -865,7 +893,7 @@ export function newStream<A>(): [Stream<A>, (a: A) => void] {
 export function newBehavior<A>(
   init: A,
   eq: (prev: A, next: A) => boolean = Object.is,
-): [Behavior<A>, (a: A) => void] {
+): [Wire<A>, (a: A) => void] {
   const e = new Stream<A>(0);
   // once=false: repeated `set` within one moment is last-write-wins (hold
   // stages exactly that), unlike a stream's fire.
@@ -897,9 +925,105 @@ export function batch<A>(f: () => A): A {
   return Transaction.run(() => f());
 }
 
+// ---------------------------------------------------------------------------
+// The declarative surface (REFACTOR-PLAN phase 1): data first, names as
+// intents. The theory-flavored forms above stay as deprecated aliases
+// until 1.0.
+// ---------------------------------------------------------------------------
+
+/** A source wire: a cell you read like any wire and write via `.set`. */
+export interface WireSource<A> extends Wire<A> {
+  /** Set the current value; equal values (by the cell's `eq`) are a no-op. */
+  set(a: A): void;
+}
+
+/** A source stream: occurrences enter the network via `.fire`. */
+export interface StreamSource<A> extends Stream<A> {
+  /** Fire one occurrence; each fire outside `batch` opens a fresh moment. */
+  fire(a: A): void;
+}
+
+/**
+ * A source cell: the everyday way to create state. Reads like any wire
+ * (`sample`, `map`, JSX binding), writes via `.set` — setting an equal value
+ * (by `eq`, default `Object.is`) is a no-op.
+ */
+export function wire<A>(
+  init: A,
+  eq: (prev: A, next: A) => boolean = Object.is,
+): WireSource<A> {
+  const [b, set] = newBehavior(init, eq);
+  return Object.assign(b, { set });
+}
+
+/** A source stream plus its `fire`, as one value. */
+export function stream<A>(): StreamSource<A> {
+  const [e, fire] = newStream<A>();
+  return Object.assign(e, { fire });
+}
+
+/**
+ * Combine wires pointwise — the join of the graph. Data first, the combiner
+ * last; simultaneous updates coalesce into ONE recompute per moment
+ * (glitch-free, see FRP-MODEL §3).
+ */
+export function combine<A, B, R>(
+  a: Wire<A>,
+  b: Wire<B>,
+  f: (a: A, b: B) => R,
+): Wire<R>;
+export function combine<A, B, C, R>(
+  a: Wire<A>,
+  b: Wire<B>,
+  c: Wire<C>,
+  f: (a: A, b: B, c: C) => R,
+): Wire<R>;
+export function combine<A, B, C, D, R>(
+  a: Wire<A>,
+  b: Wire<B>,
+  c: Wire<C>,
+  d: Wire<D>,
+  f: (a: A, b: B, c: C, d: D) => R,
+): Wire<R>;
+export function combine<A, B, C, D, E, R>(
+  a: Wire<A>,
+  b: Wire<B>,
+  c: Wire<C>,
+  d: Wire<D>,
+  e: Wire<E>,
+  f: (a: A, b: B, c: C, d: D, e: E) => R,
+): Wire<R>;
+export function combine(...args: unknown[]): Wire<unknown> {
+  const f = args[args.length - 1] as (...xs: unknown[]) => unknown;
+  const ws = args.slice(0, -1) as Array<Wire<unknown>>;
+  if (ws.length === 2) return Wire.lift2(f, ws[0], ws[1]);
+  // Wider joins fold through pair nodes; coalescing keeps it one recompute
+  // per moment regardless of arity.
+  let acc: Wire<unknown[]> = Wire.lift2((x, y) => [x, y], ws[0], ws[1]);
+  for (let i = 2; i < ws.length; i++) {
+    acc = Wire.lift2((xs, y) => [...(xs as unknown[]), y], acc, ws[i]);
+  }
+  return acc.map((xs) => f(...xs));
+}
+
+/**
+ * Follow the wire (or stream) currently selected by an outer wire —
+ * `Wire<Wire<A>> → Wire<A>` and `Wire<Stream<A>> → Stream<A>` under one
+ * name. The switch commits at the moment boundary (see FRP-MODEL §6).
+ */
+export function flatten<A>(w: Wire<Wire<A>>): Wire<A>;
+export function flatten<A>(w: Wire<Stream<A>>): Stream<A>;
+export function flatten<A>(
+  w: Wire<Wire<A>> | Wire<Stream<A>>,
+): Wire<A> | Stream<A> {
+  return w.sampleNoTrans() instanceof Wire
+    ? Wire.switchB(w as Wire<Wire<A>>)
+    : Wire.switchE(w as Wire<Stream<A>>);
+}
+
 /** The behavior that is `v` at every moment (applicative `pure`). */
-export function constant<A>(v: A): Behavior<A> {
-  return new Behavior<A>(() => v, new Stream<A>(0));
+export function constant<A>(v: A): Wire<A> {
+  return new Wire<A>(() => v, new Stream<A>(0));
 }
 
 /** The event with no occurrences (identity of `merge`). */
@@ -908,8 +1032,8 @@ export function never<A>(): Stream<A> {
 }
 
 /** Continuous wall-clock behavior (milliseconds), sampled on demand. */
-export function time(): Behavior<number> {
-  return Behavior.fromPoll(() => Date.now());
+export function time(): Wire<number> {
+  return Wire.fromPoll(() => Date.now());
 }
 
 // ---------------------------------------------------------------------------
@@ -970,9 +1094,11 @@ export function perform<A, B>(
 export { integral, derivative, warp } from "./continuous.js";
 
 // ---------------------------------------------------------------------------
-// Deprecated aliases (the Sodium rename: an "event" reads as ONE occurrence,
-// this type is the whole stream of them — and it collided with DOM's Event).
-// Removed in 1.0.
+// Deprecated aliases. Two renames, same playbook, removed in 1.0:
+//  - Event → Stream (an "event" reads as ONE occurrence, the type is the
+//    whole stream of them — and it collided with DOM's Event);
+//  - Behavior → Wire (theory jargon nobody outside FRP literature reads;
+//    a wire is a live value you plug things into).
 // ---------------------------------------------------------------------------
 
 /** @deprecated Renamed to `Stream` — same class, new name. Removed in 1.0. */
@@ -981,3 +1107,7 @@ export const Event = Stream;
 export type Event<A> = Stream<A>;
 /** @deprecated Renamed to `newStream`. Removed in 1.0. */
 export const newEvent = newStream;
+/** @deprecated Renamed to `Wire` — same class, new name. Removed in 1.0. */
+export const Behavior = Wire;
+/** @deprecated Renamed to `Wire`. Removed in 1.0. */
+export type Behavior<A> = Wire<A>;
