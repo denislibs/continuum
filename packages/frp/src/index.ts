@@ -187,6 +187,10 @@ function reapVia(w: WeakRef<Stream<any>>): () => void {
   };
 }
 
+// The in-flight wake wave (see Stream.wake): non-null while a wake loop
+// drains, so nested wakes enqueue instead of recursing.
+let wakeQueue: Stream<any>[] | null = null;
+
 // A rank beyond any realistic static graph depth. Reaching it means the live
 // topology is cyclic through time (see the error in `ensureBiggerThan`).
 const RANK_LIMIT = 1 << 16;
@@ -203,6 +207,8 @@ export class Stream<A> {
   // preserved (observers stay FIFO). Every subscription passes a fresh
   // closure, so Set's dedup never bites.
   private listeners = new Set<Handler<A>>();
+  /** Cached delivery snapshot of `listeners`; invalidated on mutation. */
+  private snap: Handler<A>[] | null = null;
   /**
    * Downstream nodes, used to keep ranks topologically sorted. Refcounted:
    * an entry is dropped when its last subscription unlistens, so a
@@ -288,16 +294,17 @@ export class Stream<A> {
   /** @internal Register an in-graph subscriber. Returns an unsubscribe handle. */
   listen_(target: Stream<any> | null, h: Handler<A>): Unlisten {
     if (this.disposed) {
-      // Loud beats silent-dead: a derivation auto-disposes when its last
-      // listener leaves (see `listen`), so it cannot be re-used afterwards.
+      // The only paths to `disposed` are an explicit dispose() and the
+      // reaper (an unreachable stateful behavior) — say so.
       throw new Error(
-        "Continuum: this derived event/behavior was disposed after its last " +
-          "listener unsubscribed. Create derivations (map/filter/hold/…) " +
-          "inside the scope that uses them instead of sharing one across " +
-          "mounts.",
+        "Continuum: this node was disposed — by an explicit dispose() or " +
+          "reaped after its behavior became unreachable — and cannot be " +
+          "re-subscribed. Create derivations inside the scope that uses " +
+          "them.",
       );
     }
     this.listeners.add(h);
+    this.snap = null;
     if (this.listeners.size === 1) this.wake();
     if (target) {
       this.targets.set(target, (this.targets.get(target) ?? 0) + 1);
@@ -310,6 +317,7 @@ export class Stream<A> {
       if (done) return;
       done = true;
       this.listeners.delete(h);
+      this.snap = null;
       if (target) {
         const n = this.targets.get(target);
         if (n !== undefined) {
@@ -323,10 +331,12 @@ export class Stream<A> {
 
   /** @internal Push an occurrence to every current subscriber. */
   send_(t: Transaction, a: A): void {
-    // Snapshot: a listener added during delivery must NOT see this
-    // occurrence, one removed during delivery still does (see the
-    // bookkeeping tests).
-    const ls = [...this.listeners];
+    // Delivery iterates a snapshot: a listener added during delivery must
+    // NOT see this occurrence, one removed during delivery still does (see
+    // the bookkeeping tests). The snapshot is CACHED between mutations —
+    // fan-out sources fire far more often than they churn listeners, so
+    // steady-state delivery allocates nothing.
+    const ls = (this.snap ??= [...this.listeners]);
     for (const h of ls) h(t, a);
   }
 
@@ -343,9 +353,34 @@ export class Stream<A> {
 
   private wake(): void {
     if (this.live || !this.srcs) return;
-    this.onWake?.(); // reseed caches from current values first
-    this.live = []; // set before attaching: source() during wake appends
-    for (const s of this.srcs) this.live.push(s.i.listen_(this, s.h));
+    // Iterative wave: listen_ re-enters wake for each colder input, and a
+    // cold chain can be arbitrarily deep — the module-level queue flattens
+    // the recursion (same reasoning as the iterative ensureBiggerThan).
+    if (wakeQueue) {
+      wakeQueue.push(this);
+      return;
+    }
+    wakeQueue = [this];
+    try {
+      while (wakeQueue.length > 0) {
+        const n = wakeQueue.pop()!;
+        if (n.live || !n.srcs) continue;
+        if (n.onWake) {
+          // Reseed from COMMITTED values. A wake inside a moment (a switch
+          // rewire runs in the last phase) may precede pending hold
+          // commits — scheduling the reseed as a fresh `last` batch runs
+          // it after every commit of this moment, and still before any
+          // observer can open the next one.
+          const t = Transaction.current;
+          if (t) t.last(n.onWake);
+          else n.onWake();
+        }
+        n.live = []; // set before attaching: source() during wake appends
+        for (const s of n.srcs) n.live.push(s.i.listen_(n, s.h));
+      }
+    } finally {
+      wakeQueue = null;
+    }
   }
 
   private sleep(): void {
@@ -401,6 +436,7 @@ export class Stream<A> {
     this.cleanups = [];
     for (const c of cs) c();
     this.listeners.clear();
+    this.snap = null;
     this.targets.clear();
   }
 

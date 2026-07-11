@@ -3,7 +3,13 @@
 // the last one. Stateful nodes (hold/accum/once/distinct) stay eager: their
 // value depends on the full history and must not miss occurrences.
 import { describe, test, expect } from "vitest";
-import { newStream, newBehavior, Behavior, Stream } from "@continuum-js/frp";
+import {
+  newStream,
+  newBehavior,
+  batch,
+  Behavior,
+  Stream,
+} from "@continuum-js/frp";
 
 describe("lazy activation — pure derivations", () => {
   test("a chain nobody listens to never runs its callbacks", () => {
@@ -188,5 +194,48 @@ describe("lazy activation — lift caches reseed on wake", () => {
     sum.listen((v) => seen.push(v)); // wake
     setN(4);
     expect(seen).toEqual([15, 24]); // 6+9 then 8+16 — never a mixed state
+  });
+});
+
+describe("lazy activation — wake robustness", () => {
+  test("waking a very deep cold chain does not overflow the call stack", () => {
+    const [src] = newStream<number>();
+    let node: Stream<number> = src;
+    for (let i = 0; i < 50_000; i++) node = node.map((x) => x);
+    // the wake wave used to recurse once per node; now it is a worklist.
+    // (DELIVERY through a linear chain stays recursive by design — real
+    // graphs are nowhere near this deep, and RANK_LIMIT bounds them anyway.)
+    expect(() => node.listen(() => {})).not.toThrow();
+  });
+
+  test("a lift2 woken by a last-phase rewire reseeds from COMMITTED values", () => {
+    // the input hold's commit is scheduled AFTER the switch rewire (its
+    // rank is higher), so an eager reseed would read the pre-moment value
+    const [raw, setRaw] = newBehavior(1);
+    const derived = raw.map((x) => x);
+    const [other, setOther] = newBehavior(100);
+    const cold = Behavior.lift2((a, b) => a + b, derived, other);
+
+    const [dummy] = newStream<number>();
+    const [sel, setSel] = newBehavior<Stream<number>>(dummy);
+    const out = Behavior.switchE(sel);
+    const seen: number[] = [];
+    out.listen((v) => seen.push(v));
+
+    batch(() => {
+      setSel(cold.updates); // rewire scheduled first
+      setRaw(50); // commit scheduled after the rewire
+    });
+    setOther(1000); // flush must combine with the committed raw (50)
+    expect(seen).toEqual([1050]);
+  });
+
+  test("waking over an explicitly disposed input names the real cause", () => {
+    const [src] = newStream<number>();
+    const m = src.map((x) => x);
+    const un = m.listen(() => {});
+    un();
+    src.dispose();
+    expect(() => m.listen(() => {})).toThrow(/dispose\(\)|reaped/);
   });
 });

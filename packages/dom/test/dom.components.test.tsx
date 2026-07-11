@@ -1,5 +1,14 @@
 import { describe, test, expect } from "vitest";
-import { mount, Show, Each, Dynamic, Portal } from "@continuum-js/dom";
+import {
+  mount,
+  Show,
+  Each,
+  Dynamic,
+  Portal,
+  dyn,
+  each,
+  portal,
+} from "@continuum-js/dom";
 import { newBehavior } from "@continuum-js/frp";
 
 describe("<Show>", () => {
@@ -88,5 +97,22 @@ describe("<Portal>", () => {
     expect(container.textContent).toBe("");
     unmount();
     expect(target.textContent).toBe("");
+  });
+});
+
+describe("dynamic regions demand an owner — with a teaching error", () => {
+  test("dyn/each/portal outside any owner explain themselves", () => {
+    const [b] = newBehavior(0);
+    expect(() => dyn(b, (v) => String(v))).toThrow(/needs an owner/);
+    expect(() =>
+      each(
+        b.map((v) => [v]),
+        (x) => x,
+        (x) => String(x),
+      ),
+    ).toThrow(/needs an owner/);
+    expect(() => portal(document.createElement("div"), "hi")).toThrow(
+      /needs an owner/,
+    );
   });
 });
