@@ -1,12 +1,98 @@
 // Continuum — FRP core (frp).
-// Classic FRP (Behaviors + Events), discrete branch (Sodium style):
+// Classic FRP (Wires + Streams), discrete branch (Sodium style):
 // transactions, rank-ordered propagation, `hold` delay at the moment boundary.
+//
+// The two laws (FRP-MODEL §12): values are formulas (demand-driven, sleep
+// without listeners); state and effects belong to a Scope (lifetime declared
+// in code, not guessed by the engine).
 
 /** Handle returned by `listen`: call it to unsubscribe. */
 export type Unlisten = () => void;
 
 // A subscriber inside the graph: receives the enclosing transaction + value.
 type Handler<A> = (t: Transaction, a: A) => void;
+
+// ---------------------------------------------------------------------------
+// Scope — ownership for state and effects.
+// ---------------------------------------------------------------------------
+
+/**
+ * An owner for state and effects. Everything registered in a scope is torn
+ * down when it disposes: children first (reverse creation order), then this
+ * scope's own cleanups (also reverse). Stateful derivations (`hold`,
+ * `accum`) and effects (`perform`) attach to the ambient scope; the dom
+ * package builds its component owners on top of this class, so inside a
+ * component everything just works.
+ */
+export class Scope {
+  /** @internal Teardowns to run on dispose (reverse order). */
+  cleanups: Array<() => void> = [];
+  /** @internal Child scopes (disposed before this one, reverse order). */
+  children: Scope[] = [];
+  /** @internal */
+  parent: Scope | null;
+  /** True once `dispose()` has run. */
+  disposed = false;
+
+  /** Attach to `parent`; defaults to the ambient scope. */
+  constructor(parent: Scope | null = currentScope) {
+    this.parent = parent;
+    if (parent) parent.children.push(this);
+  }
+
+  /** Register a teardown to run when this scope disposes. */
+  onDispose(fn: () => void): void {
+    this.cleanups.push(fn);
+  }
+
+  /** Tear down children, then own cleanups; detach from the parent. Idempotent. */
+  dispose(): void {
+    if (this.disposed) return;
+    this.disposed = true;
+    for (let i = this.children.length - 1; i >= 0; i--) {
+      this.children[i].dispose();
+    }
+    this.children.length = 0;
+    for (let i = this.cleanups.length - 1; i >= 0; i--) {
+      this.cleanups[i]();
+    }
+    this.cleanups.length = 0;
+    if (this.parent) {
+      const siblings = this.parent.children;
+      const idx = siblings.indexOf(this);
+      if (idx >= 0) siblings.splice(idx, 1);
+      this.parent = null;
+    }
+  }
+}
+
+let currentScope: Scope | null = null;
+
+/** The ambient scope, if any (set by `root`/`runInScope` and dom components). */
+export function getScope(): Scope | null {
+  return currentScope;
+}
+
+/** Run `fn` with `scope` as the ambient owner; restores the previous one. */
+export function runInScope<T>(scope: Scope | null, fn: () => T): T {
+  const prev = currentScope;
+  currentScope = scope;
+  try {
+    return fn();
+  } finally {
+    currentScope = prev;
+  }
+}
+
+/**
+ * A root scope for state that outlives any component — module-level counters,
+ * app-wide processes. `fn` receives the dispose handle; state declared inside
+ * lives until it is called.
+ */
+export function root<T>(fn: (dispose: () => void) => T): T {
+  const scope = new Scope(null);
+  return runInScope(scope, () => fn(() => scope.dispose()));
+}
 
 // ---------------------------------------------------------------------------
 // Transaction — one logical instant of time.

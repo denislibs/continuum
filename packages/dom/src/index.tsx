@@ -2,91 +2,67 @@
 // Fine-grained rendering over the frp core: bindings, dynamic regions,
 // keyed lists, an ownership tree for lifecycle, and context.
 
-import { Wire, Stream, wire, stream } from "@continuum-js/frp";
+import {
+  Wire,
+  Stream,
+  wire,
+  stream,
+  Scope,
+  getScope,
+  runInScope,
+} from "@continuum-js/frp";
 import type { Unlisten } from "@continuum-js/frp";
 
 // ---------------------------------------------------------------------------
 // Ownership tree (§9) — lifecycle, not dependency tracking.
+//
+// The tree itself lives in the core (`Scope` from frp): the ambient owner IS
+// the core's ambient scope, so frp state (`hold`/`accum`) created during a
+// component build attaches to the component automatically. This class only
+// adds what is dom-specific: onMount queues and context values.
 // ---------------------------------------------------------------------------
 
-interface Owner {
-  cleanups: Array<() => void>;
+class Owner extends Scope {
   // Lazily allocated, like `contexts` — most owners never use `onMount`.
-  mounts: Array<() => void> | null;
-  mounted: boolean;
-  children: Owner[];
-  parent: Owner | null;
+  mounts: Array<() => void> | null = null;
+  mounted = false;
   // Lazily allocated — most owners never carry context, so we skip the Map
   // until `provide` writes one (hot path when building many rows).
-  contexts: Map<symbol, unknown> | null;
-  disposed: boolean;
-}
+  contexts: Map<symbol, unknown> | null = null;
 
-let currentOwner: Owner | null = null;
-
-function createOwner(parent: Owner | null): Owner {
-  const owner: Owner = {
-    cleanups: [],
-    mounts: null,
-    mounted: false,
-    children: [],
-    parent,
-    contexts: null,
-    disposed: false,
-  };
-  if (parent) parent.children.push(owner);
-  return owner;
-}
-
-function disposeOwner(owner: Owner): void {
-  if (owner.disposed) return;
-  owner.disposed = true;
-  // children first (reverse creation order), then this owner's cleanups.
-  for (let i = owner.children.length - 1; i >= 0; i--) {
-    disposeOwner(owner.children[i]);
-  }
-  owner.children.length = 0;
-  for (let i = owner.cleanups.length - 1; i >= 0; i--) {
-    owner.cleanups[i]();
-  }
-  owner.cleanups.length = 0;
-  owner.mounts = null; // never mounted → its onMount callbacks never run
-  // detach from parent
-  if (owner.parent) {
-    const siblings = owner.parent.children;
-    const idx = siblings.indexOf(owner);
-    if (idx >= 0) siblings.splice(idx, 1);
-    owner.parent = null;
+  dispose(): void {
+    if (this.disposed) return;
+    super.dispose();
+    this.mounts = null; // never mounted → its onMount callbacks never run
   }
 }
 
-function runUnder<T>(owner: Owner | null, fn: () => T): T {
-  const prev = currentOwner;
-  currentOwner = owner;
-  try {
-    return fn();
-  } finally {
-    currentOwner = prev;
-  }
+// The ambient owner, when the ambient scope is a dom one. Building under a
+// plain frp scope (a bare `root()` from the core) still attaches cleanups —
+// only dom-specific features (onMount, context) need a real Owner.
+function currentOwner(): Owner | null {
+  const s = getScope();
+  return s instanceof Owner ? s : null;
 }
 
 /** Root owner (a mount point). `fn` receives its dispose handle. */
 export function root<T>(fn: (dispose: () => void) => T): T {
-  const owner = createOwner(null);
-  return runUnder(owner, () => fn(() => disposeOwner(owner)));
+  const owner = new Owner(null);
+  return runInScope(owner, () => fn(() => owner.dispose()));
 }
 
 /** Child owner under the current one. Returns its value and dispose handle. */
 export function scope<T>(fn: () => T): { value: T; dispose: () => void } {
-  const owner = createOwner(currentOwner);
-  const value = runUnder(owner, fn);
-  return { value, dispose: () => disposeOwner(owner) };
+  const owner = new Owner(getScope());
+  const value = runInScope(owner, fn);
+  return { value, dispose: () => owner.dispose() };
 }
 
 // Lifecycle registrations need an owner; silently dropping them (the old
 // behavior) meant cleanups that never ran. Loud beats silent-dead.
-function needOwner(what: string): Owner {
-  if (!currentOwner) {
+function needScope(what: string): Scope {
+  const s = getScope();
+  if (!s) {
     throw new Error(
       what +
         " was called outside a component/scope — there is no owner to " +
@@ -94,12 +70,12 @@ function needOwner(what: string): Owner {
         "component build (or inside root()/scope()).",
     );
   }
-  return currentOwner;
+  return s;
 }
 
 /** Register a cleanup in the current owner. Throws outside any owner. */
 export function onCleanup(fn: () => void): void {
-  needOwner("onCleanup()").cleanups.push(fn);
+  needScope("onCleanup()").onDispose(fn);
 }
 
 // Run the subtree's pending onMount callbacks: child scopes first, then this
@@ -108,14 +84,15 @@ export function onCleanup(fn: () => void): void {
 // UNDER their owner, so the documented composable anatomy — onCleanup (and
 // provide/use) inside onMount — attaches to the mounting scope. Without this,
 // regions inserted by dyn/each flushed ownerless and the lifecycle guard threw.
-function flushMounts(owner: Owner): void {
-  if (owner.disposed) return;
-  for (const child of owner.children) flushMounts(child);
-  owner.mounted = true;
-  const mounts = owner.mounts;
+function flushMounts(scope: Scope): void {
+  if (scope.disposed) return;
+  for (const child of scope.children) flushMounts(child);
+  if (!(scope instanceof Owner)) return;
+  scope.mounted = true;
+  const mounts = scope.mounts;
   if (mounts) {
-    owner.mounts = null;
-    runUnder(owner, () => {
+    scope.mounts = null;
+    runInScope(scope, () => {
       for (let i = mounts.length - 1; i >= 0; i--) mounts[i]();
     });
   }
@@ -128,7 +105,14 @@ function flushMounts(owner: Owner): void {
  * third-party libraries that need a live element. No-op outside any owner.
  */
 export function onMount(fn: () => void): void {
-  const owner = needOwner("onMount()");
+  needScope("onMount()");
+  const owner = currentOwner();
+  if (!owner) {
+    throw new Error(
+      "onMount() needs a dom owner (a component, mount(), or dom's root()) — " +
+        "a bare frp scope has no mount lifecycle.",
+    );
+  }
   (owner.mounts ??= []).push(fn);
 }
 
@@ -136,7 +120,7 @@ export function onMount(fn: () => void): void {
 // NOT guarded: JSX built outside any owner (an unowned static fragment) has
 // always been allowed — its bindings just live forever.
 function bind(un: Unlisten): void {
-  if (currentOwner) currentOwner.cleanups.push(un);
+  getScope()?.onDispose(un);
 }
 
 // ---------------------------------------------------------------------------
@@ -353,13 +337,13 @@ export function h(
 // A throw mid-build disposes the partial scope (its cleanups run) before
 // propagating — no half-built ownership survives.
 function buildScoped(
-  owner: Owner | null,
+  owner: Scope | null,
   build: () => Child,
 ): { nodes: Node[]; dispose: () => void; flush: () => void } {
-  const scopeOwner = createOwner(owner);
+  const scopeOwner = new Owner(owner);
   let nodes: Node[];
   try {
-    nodes = runUnder(scopeOwner, () => {
+    nodes = runInScope(scopeOwner, () => {
       const built = build();
       // Fast path: a single element/text node (the common row/component case)
       // needs no fragment or NodeList copy.
@@ -374,12 +358,12 @@ function buildScoped(
       return Array.from(frag.childNodes);
     });
   } catch (err) {
-    disposeOwner(scopeOwner);
+    scopeOwner.dispose();
     throw err;
   }
   return {
     nodes,
-    dispose: () => disposeOwner(scopeOwner),
+    dispose: () => scopeOwner.dispose(),
     flush: () => flushMounts(scopeOwner),
   };
 }
@@ -390,11 +374,13 @@ function buildScoped(
 const ERROR_HANDLER = Symbol("continuum.catch");
 
 function lookupErrorHandler(
-  owner: Owner | null,
+  scope: Scope | null,
 ): ((e: unknown) => void) | null {
-  for (let o = owner; o; o = o.parent) {
-    const h = o.contexts?.get(ERROR_HANDLER);
-    if (h) return h as (e: unknown) => void;
+  for (let s = scope; s; s = s.parent) {
+    if (s instanceof Owner) {
+      const h = s.contexts?.get(ERROR_HANDLER);
+      if (h) return h as (e: unknown) => void;
+    }
   }
   return null;
 }
@@ -404,7 +390,7 @@ function lookupErrorHandler(
 // replaced subtrees. Checked up front for a teaching error instead of an
 // internal onCleanup() throw.
 function needRegionOwner(what: string): void {
-  if (!currentOwner) {
+  if (!getScope()) {
     throw new Error(
       `Continuum: ${what} needs an owner — build it inside a component, ` +
         "mount(), or root().",
@@ -415,7 +401,7 @@ function needRegionOwner(what: string): void {
 /** Conditional / switching subtree: rebuilds on each change of `b`. */
 export function dyn<T>(b: Wire<T>, render: (v: T) => Child): Node {
   needRegionOwner("dyn()");
-  const owner = currentOwner;
+  const owner = getScope();
   const start = document.createComment("dyn");
   const end = document.createComment("/dyn");
   const frag = document.createDocumentFragment();
@@ -478,7 +464,7 @@ export function dyn<T>(b: Wire<T>, render: (v: T) => Child): Node {
     for (const n of current.nodes) parent.insertBefore(n, end);
     // During the initial build the whole tree flushes at mount; afterwards
     // each freshly inserted subtree flushes here.
-    if (!owner || owner.mounted) current.flush();
+    if (!(owner instanceof Owner) || owner.mounted) current.flush();
   };
 
   bind(b.listen(update));
@@ -526,7 +512,7 @@ export function each<T, K>(
   render: (item: T) => Child,
 ): Node {
   needRegionOwner("each()");
-  const owner = currentOwner;
+  const owner = getScope();
   const start = document.createComment("each");
   const end = document.createComment("/each");
   const frag = document.createDocumentFragment();
@@ -582,7 +568,8 @@ export function each<T, K>(
     if (active instanceof HTMLElement && active.isConnected) active.focus();
 
     rows = next;
-    if (!owner || owner.mounted) for (const f of freshFlushes) f();
+    if (!(owner instanceof Owner) || owner.mounted)
+      for (const f of freshFlushes) f();
   };
 
   bind(items.listen(update));
@@ -609,15 +596,22 @@ export function createContext<T>(defaultValue: T): Context<T> {
 
 /** Write a context value into the current owner. Throws outside any owner. */
 export function provide<T>(ctx: Context<T>, value: T): void {
-  const owner = needOwner("provide()");
+  needScope("provide()");
+  const owner = currentOwner();
+  if (!owner) {
+    throw new Error(
+      "provide() needs a dom owner (a component, mount(), or dom's root()) — " +
+        "a bare frp scope carries no context.",
+    );
+  }
   (owner.contexts ??= new Map()).set(ctx.id, value);
 }
 
 /** Read the nearest provided value up the owner tree, else the default. */
 export function use<T>(ctx: Context<T>): T {
-  let o = currentOwner;
+  let o: Scope | null = getScope();
   while (o) {
-    if (o.contexts && o.contexts.has(ctx.id)) {
+    if (o instanceof Owner && o.contexts && o.contexts.has(ctx.id)) {
       return o.contexts.get(ctx.id) as T;
     }
     o = o.parent;
@@ -669,7 +663,7 @@ export function bindInput(
 /** Render `child` into another node, cleaning up on dispose. */
 export function portal(target: Node, child: Child): Node {
   needRegionOwner("portal()");
-  const built = buildScoped(currentOwner, () => child);
+  const built = buildScoped(getScope(), () => child);
   for (const n of built.nodes) target.appendChild(n);
   onCleanup(() => {
     built.dispose();
@@ -687,7 +681,8 @@ export function mount(container: Node, view: () => Node): () => void {
     onCleanup(() => {
       for (const n of nodes) if (n.parentNode) n.parentNode.removeChild(n);
     });
-    if (currentOwner) flushMounts(currentOwner);
+    const s = getScope();
+    if (s) flushMounts(s);
     return () => dispose();
   });
 }
@@ -831,10 +826,10 @@ export function Catch(props: {
     if (f) return props.fallback(f.error, reset);
     // Handler for nested regions lives on the children's scope only — a
     // throw inside `fallback` must escalate to the boundary above, not loop.
-    if (currentOwner) {
-      (currentOwner.contexts ??= new Map()).set(
-        ERROR_HANDLER,
-        (error: unknown) => failure.set({ error }),
+    const owner = currentOwner();
+    if (owner) {
+      (owner.contexts ??= new Map()).set(ERROR_HANDLER, (error: unknown) =>
+        failure.set({ error }),
       );
     }
     try {
