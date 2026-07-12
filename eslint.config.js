@@ -54,18 +54,23 @@ export default tseslint.config(
     // evaluate(), so browser globals are legitimate there.
     files: [
       "scripts/**/*.mjs",
-      "benchmark/bench.mjs",
-      "benchmark/mem.mjs",
-      "benchmark/heap.mjs",
+      "benchmark/*.mjs",
       "packages/create-continuum/**/*.mjs",
     ],
     languageOptions: {
       globals: {
         process: "readonly",
         console: "readonly",
+        global: "readonly",
         document: "readonly",
+        window: "readonly",
         performance: "readonly",
+        PerformanceObserver: "readonly",
         requestAnimationFrame: "readonly",
+        cancelAnimationFrame: "readonly",
+        setTimeout: "readonly",
+        setInterval: "readonly",
+        clearInterval: "readonly",
       },
     },
   },

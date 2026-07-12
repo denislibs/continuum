@@ -8,45 +8,13 @@
 // Same caveat as bench.mjs: numbers are comparable only on the same machine,
 // ideally within one session.
 
-import { build, preview } from "vite";
-import path from "node:path";
-import { fileURLToPath } from "node:url";
+import { launch, VARIANT } from "./harness.mjs";
 
-const root = path.dirname(fileURLToPath(import.meta.url));
-const VARIANT = process.env.BENCH_APP ?? "continuum";
 const STATE = process.env.SNAP_STATE ?? "10k"; // 10k | clear
 const TOP = Number(process.env.SNAP_TOP ?? 25);
 
-async function buildConfig() {
-  const noMin = { minify: false };
-  if (VARIANT === "continuum") return { root, logLevel: "warn", build: noMin };
-  const vroot = path.join(root, "variants", VARIANT);
-  const cfg = {
-    root: vroot,
-    configFile: false,
-    logLevel: "warn",
-    build: noMin,
-  };
-  if (VARIANT === "solid") {
-    const solid = (await import("vite-plugin-solid")).default;
-    cfg.plugins = [solid()];
-  }
-  return cfg;
-}
-
 async function main() {
-  const { chromium } = await import("playwright");
-  console.log(`Building production bundle (${VARIANT}, unminified)...`);
-  const cfg = await buildConfig();
-  await build(cfg);
-  const server = await preview({ ...cfg, preview: { port: 0 } });
-  const url =
-    server.resolvedUrls?.local?.[0] ??
-    `http://localhost:${server.httpServer.address().port}/`;
-
-  const browser = await chromium.launch();
-  const page = await browser.newPage();
-  const cdp = await page.context().newCDPSession(page);
+  const { page, cdp, url, close } = await launch({ minify: false });
   await cdp.send("HeapProfiler.enable");
 
   await page.goto(url);
@@ -100,8 +68,7 @@ async function main() {
   console.log(`\n${VARIANT} / ${STATE} — self-size by constructor:\n`);
   console.table(rows);
 
-  await browser.close();
-  server.httpServer.close();
+  await close();
 }
 
 main().catch((err) => {
