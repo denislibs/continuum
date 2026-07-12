@@ -177,6 +177,7 @@ export default defineConfig({
       themeConfig: {
         nav: [
           { text: "Learn", link: "/overview" },
+          { text: "Playground", link: "/playground" },
           { text: "From React", link: "/from-react" },
         ],
         sidebar: sidebar("", en),
@@ -195,6 +196,7 @@ export default defineConfig({
       themeConfig: {
         nav: [
           { text: "Учиться", link: "/ru/overview" },
+          { text: "Песочница", link: "/ru/playground" },
           { text: "Из React", link: "/ru/from-react" },
         ],
         sidebar: sidebar("/ru", ru),

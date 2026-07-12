@@ -1,0 +1,7 @@
+/* Theme customizations layered on VitePress defaults. Kept minimal in
+   phase 1; the landing redesign (phase 5) builds on this file. */
+:root {
+  --vp-c-brand-1: #3b82f6;
+  --vp-c-brand-2: #2563eb;
+  --vp-c-brand-3: #60a5fa;
+}
