@@ -5,6 +5,7 @@ import { Counter } from "./counter";
 describe("Counter (end-to-end DOM -> Stream -> Wire -> DOM)", () => {
   test("clicking patches exactly the bound text node", () => {
     const container = document.createElement("div");
+    document.body.appendChild(container);
     mount(container, () => <Counter />);
     const btn = container.querySelector("button")!;
     const textNode = btn.lastChild; // the {count} binding

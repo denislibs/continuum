@@ -16,6 +16,10 @@ export default defineConfig({
         replacement: r("../packages/dom/src/jsx-runtime.ts"),
       },
       {
+        find: "@continuum-js/dom/compiled",
+        replacement: r("../packages/dom/src/compiled.ts"),
+      },
+      {
         find: "@continuum-js/dom",
         replacement: r("../packages/dom/src/index.tsx"),
       },

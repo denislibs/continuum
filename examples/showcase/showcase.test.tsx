@@ -11,6 +11,7 @@ afterEach(() => {
 describe("Showcase", () => {
   test("<Dynamic> switches the tab panel", () => {
     const container = document.createElement("div");
+    document.body.appendChild(container);
     unmount = mount(container, () => <Showcase />);
     expect(container.querySelector(".panel")!.textContent).toContain(
       "Welcome home",
@@ -21,6 +22,7 @@ describe("Showcase", () => {
 
   test("<Show> + <Portal> open/close a modal in document.body", () => {
     const container = document.createElement("div");
+    document.body.appendChild(container);
     unmount = mount(container, () => <Showcase />);
     expect(document.body.querySelector(".modal")).toBeNull();
 
@@ -34,6 +36,7 @@ describe("Showcase", () => {
 
   test("unmount tears down a portalled modal", () => {
     const container = document.createElement("div");
+    document.body.appendChild(container);
     unmount = mount(container, () => <Showcase />);
     container.querySelector<HTMLButtonElement>(".open")!.click();
     expect(document.body.querySelector(".modal")).not.toBeNull();

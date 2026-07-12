@@ -20,6 +20,7 @@ describe("UserSearch", () => {
     };
 
     const container = document.createElement("div");
+    document.body.appendChild(container);
     mount(container, () => <UserSearch search={search} />);
     const input = container.querySelector("input")!;
 
@@ -54,6 +55,7 @@ describe("UserSearch", () => {
     vi.useFakeTimers();
     const search = () => Promise.resolve<User[]>([]);
     const container = document.createElement("div");
+    document.body.appendChild(container);
     mount(container, () => <UserSearch search={search} />);
     const input = container.querySelector("input")!;
 

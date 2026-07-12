@@ -5,6 +5,7 @@ import { TodoApp } from "./todo";
 describe("TodoApp", () => {
   test("adds items through the network and reconciles the list", () => {
     const container = document.createElement("div");
+    document.body.appendChild(container);
     mount(container, () => <TodoApp />);
     const input = container.querySelector("input")!;
     const form = container.querySelector("form")!;

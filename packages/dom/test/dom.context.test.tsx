@@ -102,10 +102,12 @@ describe("bindInput", () => {
   test("two-way binds a text input", () => {
     const [text, setText] = newBehavior("hi");
     const input = (<input {...bindInput(text, setText)} />) as HTMLInputElement;
+    document.body.appendChild(input); // delegated events need a connected tree
     expect(input.value).toBe("hi");
     input.value = "world";
     input.dispatchEvent(new window.Event("input", { bubbles: true }));
     expect(text.sample()).toBe("world");
+    input.remove();
   });
 });
 

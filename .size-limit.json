@@ -7,7 +7,7 @@
   {
     "name": "@continuum-js/dom (incl. frp)",
     "path": "packages/dom/src/index.tsx",
-    "limit": "5.65 kB"
+    "limit": "5.95 kB"
   },
   {
     "name": "@continuum-js/std (incl. frp)",
@@ -17,6 +17,11 @@
   {
     "name": "@continuum-js/router (incl. frp+dom+std)",
     "path": "packages/router/src/index.ts",
-    "limit": "5.5 kB"
+    "limit": "5.75 kB"
+  },
+  {
+    "name": "@continuum-js/dom/compiled (incl. dom+frp)",
+    "path": "packages/dom/src/compiled.ts",
+    "limit": "3.3 kB"
   }
 ]

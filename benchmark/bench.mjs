@@ -14,6 +14,33 @@ import { fileURLToPath } from "node:url";
 
 const root = path.dirname(fileURLToPath(import.meta.url));
 
+// BENCH_APP=continuum (default) | solid | vanilla — same harness, same
+// selectors, different implementation under test.
+const VARIANT = process.env.BENCH_APP ?? "continuum";
+async function buildConfig() {
+  if (VARIANT === "continuum") return { root, logLevel: "warn" };
+  const vroot = path.join(root, "variants", VARIANT);
+  const cfg = { root: vroot, configFile: false, logLevel: "warn" };
+  if (VARIANT === "solid") {
+    const solid = (await import("vite-plugin-solid")).default;
+    cfg.plugins = [solid()];
+  }
+  if (VARIANT === "compiled") {
+    // the Continuum app + our JSX compiler
+    const continuum = (await import("../packages/vite-plugin/dist/index.js"))
+      .default;
+    const base = (await import("./vite.config.ts")).default;
+    return {
+      ...base,
+      root,
+      configFile: false,
+      logLevel: "warn",
+      plugins: [continuum(), ...(base.plugins ?? [])],
+    };
+  }
+  return cfg;
+}
+
 const REPEAT = Number(process.env.BENCH_REPEAT ?? 10);
 const WARMUP = Number(process.env.BENCH_WARMUP ?? 3);
 
@@ -23,17 +50,22 @@ const median = (xs) => {
   return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2;
 };
 
-// Click `sel` in-page and return the time until the next painted frame.
+// Click `sel` in-page; returns { paint, script }. `paint` is click → next
+// painted frame (vsync-quantized: for sub-frame ops it measures the phase of
+// the vsync clock, not the framework — see BASELINES.md). `script` is the
+// synchronous JS time of the click handler — the honest number for
+// interactive ops that fit in a frame.
 async function measureClick(page, sel) {
   return page.evaluate(async (s) => {
     const el = document.querySelector(s);
     if (!el) throw new Error(`missing element: ${s}`);
     const start = performance.now();
     el.click();
+    const script = performance.now() - start;
     await new Promise((r) =>
       requestAnimationFrame(() => requestAnimationFrame(() => r())),
     );
-    return performance.now() - start;
+    return { paint: performance.now() - start, script };
   }, sel);
 }
 
@@ -101,9 +133,10 @@ async function main() {
     process.exit(1);
   }
 
-  console.log("Building production bundle...");
-  await build({ root, logLevel: "warn" });
-  const server = await preview({ root, preview: { port: 0 } });
+  console.log(`Building production bundle (${VARIANT})...`);
+  const cfg = await buildConfig();
+  await build(cfg);
+  const server = await preview({ ...cfg, preview: { port: 0 } });
   const url =
     server.resolvedUrls?.local?.[0] ??
     `http://localhost:${server.httpServer.address().port}/`;
@@ -132,8 +165,11 @@ async function main() {
       const dur = await measureClick(page, c.action);
       if (i >= WARMUP) times.push(dur);
     }
-    const med = median(times);
-    results.push({ operation: c.name, "median ms": Number(med.toFixed(2)) });
+    results.push({
+      operation: c.name,
+      "script ms": Number(median(times.map((t) => t.script)).toFixed(2)),
+      "paint ms": Number(median(times.map((t) => t.paint)).toFixed(2)),
+    });
   }
 
   await browser.close();
