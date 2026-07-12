@@ -40,9 +40,10 @@ export default function App() {
     {
       id: "set",
       title: "Change it",
-      task: `A state holds its current value (read it with \`.sample()\`) and you can
-replace it with \`.set(next)\`. Nothing re-renders — only the bound text node
-is patched.
+      task: `To change a state from the previous value, use \`.update(prev => next)\` —
+it hands you the current value and takes the new one. (There's also
+\`.set(value)\` for replacing with a fresh value outright.) Nothing re-renders —
+only the bound text node is patched.
 
 **Goal:** clicking the button should increase the count.`,
       starter: `import { state } from '@continuum-js/frp';
@@ -50,7 +51,7 @@ is patched.
 export default function App() {
   const count = state(0);
   return (
-    <button onClick={() => { /* set count to count + 1 */ }}>
+    <button onClick={() => { /* count.update(n => n + 1) */ }}>
       clicked {count} times
     </button>
   );
@@ -60,12 +61,12 @@ export default function App() {
 export default function App() {
   const count = state(0);
   return (
-    <button onClick={() => count.set(count.sample() + 1)}>
+    <button onClick={() => count.update((n) => n + 1)}>
       clicked {count} times
     </button>
   );
 }`,
-      hint: "count.set(count.sample() + 1)",
+      hint: "count.update((n) => n + 1)",
       check: ({ render, click, App }) => {
         const { container } = render(App);
         const btn = container.querySelector("button")!;

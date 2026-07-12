@@ -6,5 +6,5 @@ sidebar: false
 ---
 
 <ClientOnly>
-  <Tutorial track="patterns" />
+  <Tutorial track="patterns" lang="ru" />
 </ClientOnly>

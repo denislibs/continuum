@@ -14,10 +14,55 @@ import { findTrack, tracks as allTracks } from "./tracks";
 import { markComplete, isComplete, trackPercent } from "./progress";
 import { renderTask } from "./md";
 import { burst } from "./confetti";
+import type { EditorHandle } from "../playground/monaco";
+import { tracks as ruTracks, ui as ruUi } from "./ru";
 
-const props = withDefaults(defineProps<{ track?: string }>(), {
-  track: "basics",
-});
+const props = withDefaults(
+  defineProps<{ track?: string; lang?: "en" | "ru" }>(),
+  { track: "basics", lang: "en" },
+);
+const ru = props.lang === "ru";
+
+// English UI labels; ru overrides come from ./ru.
+const L = ru
+  ? ruUi
+  : {
+      run: "Run",
+      check: "Check",
+      checking: "Checking…",
+      preview: "Preview",
+      next: "Next →",
+      hint: "Hint",
+      showSolution: "Show solution",
+      passed: "Passed! 🎉",
+      notYet: "Not yet",
+      mastered: "mastered!",
+      masteredNote: "You finished every step. Nice work.",
+      shareBadge: "Share your badge",
+      copied: "Copied ✓",
+      runThenTab: "// Run, then open this tab",
+    };
+
+function trackTitle(id: string, fallback: string): string {
+  return (ru && ruTracks[id]?.title) || fallback;
+}
+function stepTitle(): string {
+  return (
+    (ru && ruTracks[track!.id]?.steps[step.value.id]?.title) || step.value.title
+  );
+}
+function stepTaskHtml(): string {
+  const t = ru && ruTracks[track!.id]?.steps[step.value.id]?.task;
+  return renderTask(t || step.value.task);
+}
+function stepHint(): string | undefined {
+  return (
+    (ru && ruTracks[track!.id]?.steps[step.value.id]?.hint) || step.value.hint
+  );
+}
+function stepTitleById(id: string, fallback: string): string {
+  return (ru && ruTracks[track!.id]?.steps[id]?.title) || fallback;
+}
 
 const track = findTrack(props.track);
 const base = import.meta.env.BASE_URL;
@@ -32,8 +77,10 @@ const step = computed(() => track!.steps[stepIndex.value]);
 const total = computed(() => track!.steps.length);
 
 const editorHost = ref<HTMLElement | null>(null);
+const outputHost = ref<HTMLElement | null>(null);
 const iframe = ref<HTMLIFrameElement | null>(null);
-const view = shallowRef<import("@codemirror/view").EditorView | null>(null);
+const editor = shallowRef<EditorHandle | null>(null);
+const output = shallowRef<EditorHandle | null>(null);
 
 const logs = ref<{ level: string; text: string }[]>([]);
 const tab = ref<"preview" | "compiled" | "js">("preview");
@@ -61,14 +108,11 @@ let iframeReady = false;
 let pendingRun = false;
 
 function currentSource(): string {
-  return view.value ? view.value.state.doc.toString() : step.value.starter;
+  return editor.value ? editor.value.getValue() : step.value.starter;
 }
 
 function setEditor(code: string) {
-  if (!view.value) return;
-  view.value.dispatch({
-    changes: { from: 0, to: view.value.state.doc.length, insert: code },
-  });
+  editor.value?.setValue(code);
 }
 
 function run() {
@@ -111,17 +155,28 @@ function check() {
   );
 }
 
+function syncOutput() {
+  if (!output.value) return;
+  output.value.setValue(
+    tab.value === "compiled" ? compiledOut.value : jsOut.value,
+  );
+  output.value.layout();
+}
+
 function refreshOutputs() {
   const src = currentSource();
   const c = compileToTemplates(src);
   compiledOut.value = c.error ? `// ${c.error}` : (c.code ?? "");
   const j = transpile(src);
   jsOut.value = j.error ? `// ${j.error}` : (j.code ?? "");
+  syncOutput();
 }
 
 watch(tab, (t) => {
-  if (t === "compiled" && !compiledOut.value) refreshOutputs();
-  if (t === "js" && !jsOut.value) refreshOutputs();
+  if (t !== "preview") {
+    if (!compiledOut.value && !jsOut.value) refreshOutputs();
+    else syncOutput();
+  }
 });
 
 function onMessage(e: MessageEvent) {
@@ -158,7 +213,10 @@ function onSolved() {
 }
 
 async function shareBadge() {
-  const text = `I completed the “${track!.title}” track in the Continuum tutorial 🎖️`;
+  const title = trackTitle(track!.id, track!.title);
+  const text = ru
+    ? `Я прошёл трек «${title}» в тренажёре Continuum 🎖️`
+    : `I completed the “${title}” track in the Continuum tutorial 🎖️`;
   const url = `${location.origin}${location.pathname}`;
   try {
     await navigator.clipboard.writeText(`${text}\n${url}`);
@@ -191,28 +249,12 @@ function showSolution() {
 }
 
 onMounted(async () => {
-  const [
-    { EditorView, keymap },
-    { basicSetup },
-    { javascript },
-    { oneDark },
-    { indentWithTab },
-  ] = await Promise.all([
-    import("@codemirror/view"),
-    import("codemirror"),
-    import("@codemirror/lang-javascript"),
-    import("@codemirror/theme-one-dark"),
-    import("@codemirror/commands"),
-  ]);
-  view.value = new EditorView({
-    doc: step.value.starter,
-    parent: editorHost.value!,
-    extensions: [
-      basicSetup,
-      keymap.of([indentWithTab]),
-      javascript({ jsx: true, typescript: true }),
-      oneDark,
-    ],
+  const { createEditor } = await import("../playground/monaco");
+  editor.value = createEditor(editorHost.value!, { value: step.value.starter });
+  output.value = createEditor(outputHost.value!, {
+    value: "",
+    readOnly: true,
+    language: "javascript",
   });
 
   const res = await fetch(
@@ -230,7 +272,8 @@ onMounted(async () => {
 
 onBeforeUnmount(() => {
   window.removeEventListener("message", onMessage);
-  view.value?.destroy();
+  editor.value?.dispose();
+  output.value?.dispose();
 });
 </script>
 
@@ -244,11 +287,13 @@ onBeforeUnmount(() => {
           :href="trackLink(t.id)"
           class="cn-tut__tracklink"
           :class="{ 'cn-tut__tracklink--on': t.id === track.id }"
-          >{{ t.title }}</a
+          >{{ trackTitle(t.id, t.title) }}</a
         >
       </nav>
       <div class="cn-tut__crumbs">
-        <span class="cn-tut__track">{{ track.title }}</span>
+        <span class="cn-tut__track">{{
+          trackTitle(track.id, track.title)
+        }}</span>
         <span class="cn-tut__count">{{ stepIndex + 1 }} / {{ total }}</span>
       </div>
       <div class="cn-tut__bar">
@@ -265,59 +310,63 @@ onBeforeUnmount(() => {
           @click="goto(i)"
         >
           <span class="cn-tut__tick">{{ done(s.id) ? "✓" : i + 1 }}</span>
-          {{ s.title }}
+          {{ stepTitleById(s.id, s.title) }}
         </li>
       </ol>
       <div v-if="trackDone" class="cn-tut__badge">
         <div class="cn-tut__medal">🎖️</div>
-        <strong>{{ track.title }} mastered!</strong>
-        <p>You finished every step. Nice work.</p>
+        <strong
+          >{{ trackTitle(track.id, track.title) }} {{ L.mastered }}</strong
+        >
+        <p>{{ L.masteredNote }}</p>
         <button @click="shareBadge">
-          {{ badgeCopied ? "Copied ✓" : "Share your badge" }}
+          {{ badgeCopied ? L.copied : L.shareBadge }}
         </button>
       </div>
 
-      <h2>{{ step.title }}</h2>
-      <div class="cn-tut__prose" v-html="renderTask(step.task)"></div>
+      <h2>{{ stepTitle() }}</h2>
+      <div class="cn-tut__prose" v-html="stepTaskHtml()"></div>
       <div class="cn-tut__nudges">
-        <button v-if="step.hint && !hintShown" @click="hintShown = true">
-          Hint
+        <button v-if="stepHint() && !hintShown" @click="hintShown = true">
+          {{ L.hint }}
         </button>
-        <p v-if="hintShown && step.hint" class="cn-tut__hint">
-          {{ step.hint }}
+        <p v-if="hintShown && stepHint()" class="cn-tut__hint">
+          {{ stepHint() }}
         </p>
         <button v-if="!solutionShown" @click="showSolution">
-          Show solution
+          {{ L.showSolution }}
         </button>
       </div>
     </aside>
 
     <section class="cn-tut__work">
       <div class="cn-tut__actions">
-        <button class="cn-tut__btn cn-tut__btn--run" @click="run">▶ Run</button>
+        <button class="cn-tut__btn cn-tut__btn--run" @click="run">
+          ▶ {{ L.run }}
+        </button>
         <button
           class="cn-tut__btn cn-tut__btn--check"
           @click="check"
           :disabled="checkState === 'checking'"
         >
-          {{ checkState === "checking" ? "Checking…" : "Check ✓" }}
+          {{ checkState === "checking" ? L.checking : L.check + " ✓" }}
         </button>
         <span
           v-if="checkState === 'pass'"
           class="cn-tut__verdict cn-tut__verdict--pass"
-          >Passed! 🎉</span
+          >{{ L.passed }}</span
         >
         <span
           v-else-if="checkState === 'fail'"
           class="cn-tut__verdict cn-tut__verdict--fail"
-          >Not yet{{ checkMsg ? ": " + checkMsg : "" }}</span
+          >{{ L.notYet }}{{ checkMsg ? ": " + checkMsg : "" }}</span
         >
         <button
           v-if="checkState === 'pass' && stepIndex < total - 1"
           class="cn-tut__btn cn-tut__btn--next"
           @click="goto(stepIndex + 1)"
         >
-          Next →
+          {{ L.next }}
         </button>
       </div>
       <div class="cn-tut__panes">
@@ -325,7 +374,7 @@ onBeforeUnmount(() => {
         <div class="cn-tut__right">
           <div class="cn-tut__tabs">
             <button :class="{ on: tab === 'preview' }" @click="tab = 'preview'">
-              Preview
+              {{ L.preview }}
             </button>
             <button
               :class="{ on: tab === 'compiled' }"
@@ -353,14 +402,11 @@ onBeforeUnmount(() => {
               </div>
             </div>
           </div>
-          <pre
-            v-show="tab === 'compiled'"
+          <div
             class="cn-tut__out"
-          ><code>{{ compiledOut || "// Run, then open this tab" }}</code></pre>
-          <pre
-            v-show="tab === 'js'"
-            class="cn-tut__out"
-          ><code>{{ jsOut || "// Run, then open this tab" }}</code></pre>
+            v-show="tab !== 'preview'"
+            ref="outputHost"
+          ></div>
         </div>
       </div>
     </section>
@@ -585,13 +631,9 @@ onBeforeUnmount(() => {
   min-height: 0;
 }
 .cn-tut__editor {
-  overflow: auto;
+  overflow: hidden;
   border-right: 1px solid var(--vp-c-divider);
   min-height: 0;
-}
-.cn-tut__editor :deep(.cm-editor) {
-  height: 100%;
-  font-size: 13px;
 }
 .cn-tut__right {
   display: flex;
@@ -646,14 +688,9 @@ onBeforeUnmount(() => {
   color: var(--vp-c-danger-1);
 }
 .cn-tut__out {
-  flex: 1;
-  margin: 0;
-  padding: 12px 14px;
-  overflow: auto;
+  flex: 1 1 auto;
   min-height: 0;
-  font-family: var(--vp-font-family-mono);
-  font-size: 12px;
-  line-height: 1.5;
+  overflow: hidden;
 }
 @media (max-width: 860px) {
   .cn-tut {
