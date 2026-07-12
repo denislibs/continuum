@@ -9,6 +9,8 @@ import type { Theme } from "vitepress";
 import { defineAsyncComponent, watch, nextTick } from "vue";
 import { useRoute } from "vitepress";
 import { attachRunButtons } from "./runButtons";
+import BenchBars from "./BenchBars.vue";
+import CodeCompare from "./CodeCompare.vue";
 import "./custom.css";
 
 export default {
@@ -22,6 +24,8 @@ export default {
       "Tutorial",
       defineAsyncComponent(() => import("./tutorial/Tutorial.vue")),
     );
+    app.component("BenchBars", BenchBars);
+    app.component("CodeCompare", CodeCompare);
   },
   setup() {
     const route = useRoute();
