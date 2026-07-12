@@ -2,26 +2,26 @@
   {
     "name": "@continuum-js/frp",
     "path": "packages/frp/src/index.ts",
-    "limit": "3.9 kB"
+    "limit": "3.95 kB"
   },
   {
     "name": "@continuum-js/dom (incl. frp)",
     "path": "packages/dom/src/index.tsx",
-    "limit": "6.3 kB"
+    "limit": "6.4 kB"
   },
   {
     "name": "@continuum-js/std (incl. frp)",
     "path": "packages/std/src/index.ts",
-    "limit": "3.5 kB"
+    "limit": "3.55 kB"
   },
   {
     "name": "@continuum-js/router (incl. frp+dom+std)",
     "path": "packages/router/src/index.ts",
-    "limit": "6.05 kB"
+    "limit": "6.15 kB"
   },
   {
     "name": "@continuum-js/dom/compiled (incl. dom+frp)",
     "path": "packages/dom/src/compiled.ts",
-    "limit": "3.5 kB"
+    "limit": "3.6 kB"
   }
 ]

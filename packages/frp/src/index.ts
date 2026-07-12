@@ -425,7 +425,7 @@ export class Stream<A> {
       if (!n.obs) continue;
       for (const e of n.obs) {
         const t = e.t;
-        if (t === null) continue;
+        if (t === null || t === POST) continue;
         if (onPath.has(t))
           throw new Error("Continuum: dependency cycle detected");
         // duplicate edges to one target just revisit an already-high rank
@@ -456,7 +456,7 @@ export class Stream<A> {
     if (obs.length === 1) this.wake();
     // keep the target strictly above this source (handles dynamic
     // subscriptions from flatten onto deeper events).
-    if (target) target.ensureBiggerThan(this.rank);
+    if (target !== null && target !== POST) target.ensureBiggerThan(this.rank);
     return rec;
   }
 
@@ -482,7 +482,12 @@ export class Stream<A> {
     // fan-out sources fire far more often than they churn listeners, so
     // steady-state delivery allocates nothing.
     const ls = (this.snap ??= this.obs ? [...this.obs] : EMPTY_SNAP);
-    for (const e of ls) e.h(t, a);
+    for (const e of ls) {
+      // leaf observers (POST edges) carry the user callback — schedule it
+      // for the observer phase without a per-listen wrapper closure
+      if (e.t === POST) t.post(e.h as unknown as (a: A) => void, a);
+      else e.h(t, a);
+    }
   }
 
   /** @internal Register a lazy input (see `srcs`). */
@@ -531,15 +536,22 @@ export class Stream<A> {
   }
 
   private sleep(): void {
-    if (!this.live || (this.flags & 2) !== 0 || (this.obs?.length ?? 0) > 0)
-      return;
+    if ((this.flags & 2) !== 0 || (this.obs?.length ?? 0) > 0) return;
     const live = this.live;
-    this.live = null;
-    // inputs lose a listener -> they may sleep too
-    for (let i = 0; i < live.length; i += 2) {
-      (live[i] as Stream<any>).unlisten_(live[i + 1] as Edge<any>);
+    if (live) {
+      this.live = null;
+      // inputs lose a listener -> they may sleep too
+      for (let i = 0; i < live.length; i += 2) {
+        (live[i] as Stream<any>).unlisten_(live[i + 1] as Edge<any>);
+      }
+      this.onSleep?.();
+    } else if (this.srcs === null) {
+      // A LEAF (source node) losing its last observer: report via onSleep so
+      // owners of ephemeral leaf cells (selector) can evict them. A recipe
+      // node that never woke has nothing to tear down and keeps its onSleep
+      // for the live teardown above.
+      this.onSleep?.();
     }
-    this.onSleep?.();
   }
 
   /** @internal Subscribe this node to `input` (rank-tracked). */
@@ -792,7 +804,8 @@ export class Stream<A> {
     // No dispose-cascade here (it used to guess liveness from listener
     // counts and guessed wrong): pure derivations sleep on their own, and
     // stateful ones live exactly as long as their owning scope.
-    return this.listen_(null, (t, a) => t.post(h, a));
+    const rec = this.attach_(POST, h as unknown as Handler<A>);
+    return () => this.unlisten_(rec);
   }
 
   /**
@@ -805,6 +818,13 @@ export class Stream<A> {
     return this;
   }
 }
+
+// Sentinel target marking a LEAF OBSERVER edge: its handler is the user
+// callback `(a) => void`, and `send_` posts it to the observer phase
+// directly. This kills the `(t, a) => t.post(h, a)` wrapper closure every
+// `listen()` used to allocate. Rank machinery skips the sentinel.
+// (Below the class: `new Stream` needs the declaration evaluated.)
+const POST = new Stream<any>(0);
 
 // ---------------------------------------------------------------------------
 // Wire<A> — a value across time (pull) + discrete `updates` (push).
@@ -1134,22 +1154,30 @@ export function newStream<A>(): [Stream<A>, (a: A) => void] {
 // used by processes (`wire().on()`); `set` is the public entry that opens a
 // moment.
 
-// A source cell as a class: prototype methods instead of a closure pack —
-// a cell used to cost ~7 allocations (profiled hot in selector()/wire()),
-// now Stream + Wire + this record + one sampleNoTrans closure.
-class Cell<A> {
-  updates: Stream<A>;
-  w: Wire<A>;
-  private value: A;
-  private eq: (prev: A, next: A) => boolean;
+// The shared pull for every cell: one function object for ALL cells instead
+// of a `() => this.value` closure per cell. Assigned as the wire's
+// `sampleNoTrans` own property and only ever called method-style
+// (`w.sampleNoTrans()`), so `this` is the cell.
+function cellSample<A>(this: Cell<A>): A {
+  return this.value;
+}
+
+// A source cell fused INTO its wire: one object carries the committed value,
+// the staging slot and the whole Wire surface. Round 4 cut the cell from ~7
+// allocations to 4 (Cell + Wire + Stream + pull closure); this round fuses
+// the first two and shares the pull — a cell is now Stream + this object.
+class Cell<A> extends Wire<A> {
+  /** @internal The committed value (read by `cellSample`). */
+  value: A;
+  /** @internal */
+  protected eq: (prev: A, next: A) => boolean;
   private stagedTx: Transaction | null = null;
   private staged!: A;
 
   constructor(init: A, eq: (prev: A, next: A) => boolean) {
+    super(cellSample as unknown as () => A, new Stream<A>(0));
     this.value = init;
     this.eq = eq;
-    const updates = (this.updates = new Stream<A>(0));
-    this.w = new Wire<A>(() => this.value, updates);
   }
 
   /** Staged value if this moment already wrote one, else the committed one. */
@@ -1180,7 +1208,9 @@ class Cell<A> {
   // already wrote (4 → 5 → 4 in one batch must commit 4), else the
   // committed one. Staging dies with an aborted moment, so the skip can
   // never be poisoned by a throw (law 2) — no side variable to desync.
-  set(a: A): void {
+  // Named `write` (not `set`) so SourceCell's detachable `set` field can
+  // delegate here without shadowing itself.
+  write(a: A): void {
     const t0 = Transaction.current;
     if (this.eq(this.pending(t0), a)) return;
     if (t0?.pureZone) {
@@ -1195,8 +1225,8 @@ class Cell<A> {
   // Read-modify-write over the PENDING value: several updates inside one
   // batch compose (set(sample() + 1) would read the stale pre-moment value
   // twice — that is the hold delay working as documented).
-  update(f: (state: A) => A): void {
-    this.set(f(this.pending(Transaction.current)));
+  modify(f: (state: A) => A): void {
+    this.write(f(this.pending(Transaction.current)));
   }
 }
 
@@ -1217,7 +1247,7 @@ export function newBehavior<A>(
   eq: (prev: A, next: A) => boolean = Object.is,
 ): [Wire<A>, (a: A) => void] {
   const c = new Cell(init, eq);
-  return [c.w, (a: A) => c.set(a)];
+  return [c, (a: A) => c.write(a)];
 }
 
 /**
@@ -1229,6 +1259,27 @@ export function newBehavior<A>(
  */
 export function batch<A>(f: () => A): A {
   return Transaction.run(() => f());
+}
+
+/** @internal Opaque observer handle (an edge record) for `observe_`. */
+export type ObserverHandle = { readonly __continuumEdge: unique symbol };
+
+/**
+ * @internal Closure-free observer subscription for the dom renderer: like
+ * `listen`, but returns the edge record instead of an unlisten closure. The
+ * renderer stores flat (stream, handle) pairs on its owners — two array
+ * slots where `listen` costs two closures per binding.
+ */
+export function observe_<A>(e: Stream<A>, h: (a: A) => void): ObserverHandle {
+  return e.attach_(
+    POST,
+    h as unknown as Handler<A>,
+  ) as unknown as ObserverHandle;
+}
+
+/** @internal Detach a subscription made with `observe_`. */
+export function unobserve_(e: Stream<unknown>, handle: ObserverHandle): void {
+  e.unlisten_(handle as unknown as Edge<any>);
 }
 
 // ---------------------------------------------------------------------------
@@ -1270,27 +1321,32 @@ export interface StreamSource<A> extends Stream<A> {
  * (`sample`, `map`, JSX binding), writes via `.set` — setting an equal value
  * (by `eq`, default `Object.is`) is a no-op.
  */
+// The public source cell behind `wire()`. `set`/`update` are per-instance
+// arrows because the examples pass them detached (`bindInput(draft,
+// draft.set)`); everything else lives on the prototype. The old shape was
+// `Object.assign` onto a plain Wire — three closures plus a hidden-class
+// fork on the hottest read path.
+class SourceCell<A> extends Cell<A> implements WireSource<A> {
+  set: (a: A) => void = (a) => this.write(a);
+  update: (f: (state: A) => A) => void = (f) => this.modify(f);
+
+  on<E>(e: Stream<E>, f: (state: A, event: E) => A): this {
+    const scope = requireScope("wire(...).on(...)", "wire(0).on(e, f)");
+    const un = e.listen_(this.updates, (t, ev) => {
+      const next = f(this.pending(t), ev);
+      if (this.eq(this.pending(t), next)) return;
+      this.stage(t, next);
+    });
+    scope.onDispose(un);
+    return this;
+  }
+}
+
 export function wire<A>(
   init: A,
   eq: (prev: A, next: A) => boolean = Object.is,
 ): WireSource<A> {
-  const c = new Cell(init, eq);
-  const on = <E>(e: Stream<E>, f: (state: A, event: E) => A) => {
-    const scope = requireScope("wire(...).on(...)", "wire(0).on(e, f)");
-    const un = e.listen_(c.updates, (t, ev) => {
-      const next = f(c.pending(t), ev);
-      if (eq(c.pending(t), next)) return;
-      c.stage(t, next);
-    });
-    scope.onDispose(un);
-    return src;
-  };
-  const src: WireSource<A> = Object.assign(c.w, {
-    set: (a: A) => c.set(a),
-    update: (f: (state: A) => A) => c.update(f),
-    on,
-  });
-  return src;
+  return new SourceCell(init, eq);
 }
 
 /**
@@ -1302,7 +1358,10 @@ export function wire<A>(
  * `selector(selected)` yields `(key) => Wire<boolean>`; the value form
  * `selector(selected, on, off)` yields ready-to-bind values
  * (`class={cls(row.id)}`). The watching process belongs to the ambient
- * scope; requested cells live until the scope disposes.
+ * scope. A key's cell lives while anything listens to it and is evicted
+ * once the last listener detaches (10k cleared rows must not be retained);
+ * re-requesting the key hands out a fresh cell seeded from the current
+ * selection.
  */
 export function selector<K>(w: Wire<K>): (key: K) => Wire<boolean>;
 export function selector<K, V>(w: Wire<K>, on: V, off: V): (key: K) => Wire<V>;
@@ -1331,9 +1390,14 @@ export function selector<K, V>(
     let c = cells.get(key);
     if (!c) {
       c = new Cell<boolean | V>(key === current ? onVal : offVal, Object.is);
+      // Evict once the last listener detaches: 10k cleared rows must not
+      // stay in the Map forever. A re-requested cell reseeds from `current`.
+      c.updates.onSleep = () => {
+        cells.delete(key);
+      };
       cells.set(key, c);
     }
-    return c.w;
+    return c;
   };
 }
 
