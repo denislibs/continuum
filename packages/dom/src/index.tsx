@@ -86,7 +86,7 @@ export function onCleanup(fn: () => void): void {
 // regions inserted by dyn/each flushed ownerless and the lifecycle guard threw.
 function flushMounts(scope: Scope): void {
   if (scope.disposed) return;
-  for (const child of scope.children) flushMounts(child);
+  if (scope.children) for (const child of scope.children) flushMounts(child);
   if (!(scope instanceof Owner)) return;
   scope.mounted = true;
   const mounts = scope.mounts;
@@ -218,10 +218,6 @@ export function insertChild(
   anchor: Node | null = null,
 ): void {
   if (child == null || child === false || child === true) return;
-  if (Array.isArray(child)) {
-    for (const c of child) insertChild(parent, c, anchor);
-    return;
-  }
   if (child instanceof Wire) {
     // fine-grained: one text node bound to one behavior
     const text = document.createTextNode("");
@@ -231,6 +227,10 @@ export function insertChild(
   }
   if (child instanceof Node) {
     parent.insertBefore(child, anchor);
+    return;
+  }
+  if (Array.isArray(child)) {
+    for (const c of child) insertChild(parent, c, anchor);
     return;
   }
   parent.insertBefore(document.createTextNode(String(child)), anchor);
@@ -301,6 +301,9 @@ function setProp(el: Element, key: string, value: unknown): void {
 // delegated handlers fire only for trees connected to the document.
 // ---------------------------------------------------------------------------
 
+// type -> element property key, precomputed ("$$" + evt concat per call
+// showed up in create-10k profiles)
+const DELEGATED_KEY = new Map<string, string>();
 const DELEGATED = new Set([
   "beforeinput",
   "click",
@@ -322,6 +325,8 @@ const DELEGATED = new Set([
 ]);
 
 // Per-document set of event types with an installed root listener.
+for (const t of DELEGATED) DELEGATED_KEY.set(t, "$$" + t);
+
 const delegatedTypes = new WeakMap<Document, Set<string>>();
 
 function delegatedDispatch(e: Event): void {
@@ -343,14 +348,22 @@ function delegatedDispatch(e: Event): void {
   }
 }
 
+let lastDoc: Document | null = null;
+let lastTypes: Set<string> | null = null;
+
 function ensureDelegated(doc: Document, type: string): void {
-  let types = delegatedTypes.get(doc);
-  if (!types) {
-    types = new Set();
-    delegatedTypes.set(doc, types);
+  let types = lastTypes;
+  if (doc !== lastDoc) {
+    types = delegatedTypes.get(doc) ?? null;
+    if (!types) {
+      types = new Set();
+      delegatedTypes.set(doc, types);
+    }
+    lastDoc = doc;
+    lastTypes = types;
   }
-  if (!types.has(type)) {
-    types.add(type);
+  if (!types!.has(type)) {
+    types!.add(type);
     doc.addEventListener(type, delegatedDispatch);
   }
 }
@@ -361,8 +374,9 @@ export function applyEvent(
   evt: string,
   handler: EventListener,
 ): void {
-  if (DELEGATED.has(evt)) {
-    (el as unknown as Record<string, unknown>)["$$" + evt] = handler;
+  const key = DELEGATED_KEY.get(evt);
+  if (key !== undefined) {
+    (el as unknown as Record<string, unknown>)[key] = handler;
     // template-content nodes live in an inert document (no window) until
     // adopted — the root listener belongs on the real one they'll join
     const doc = el.ownerDocument;
@@ -675,14 +689,30 @@ export function each<T, K>(
     const doc = parent.ownerDocument || document;
     const active = doc.activeElement;
     const keep = lisIndices(seq);
+    // Consecutive moved/fresh rows are batched into ONE DocumentFragment
+    // insertion per run — creating 10k rows used to cost 10k insertBefore
+    // calls into the live table (see benchmark/BASELINES.md).
     let anchor: Node = end;
+    let batch: DocumentFragment | null = null;
+    let batchAnchor: Node = end;
     for (let i = next.length - 1; i >= 0; i--) {
       const row = next[i];
       if (!keep.has(i)) {
-        for (const n of row.nodes) parent.insertBefore(n, anchor);
+        if (!batch) {
+          batch = document.createDocumentFragment();
+          batchAnchor = anchor;
+        }
+        // walking backwards: prepend to keep the row order
+        for (let j = row.nodes.length - 1; j >= 0; j--) {
+          batch.insertBefore(row.nodes[j], batch.firstChild);
+        }
+      } else if (batch) {
+        parent.insertBefore(batch, batchAnchor);
+        batch = null;
       }
       anchor = row.nodes[0] ?? anchor;
     }
+    if (batch) parent.insertBefore(batch, batchAnchor);
     // Re-focus ONLY if a move actually stole it: an unconditional focus()
     // forces a synchronous style/layout pass on every list update and used
     // to push swap/remove past the frame budget (see benchmark/BASELINES.md).
