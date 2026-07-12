@@ -25,11 +25,20 @@ function build(type: unknown, props: RuntimeProps | null): Node {
 
 /** Single/no static child. */
 export function jsx(type: unknown, props: RuntimeProps | null): Node {
+  if (typeof type === "function") {
+    // The automatic runtime already delivers children inside props — hand
+    // the object to the component as-is instead of destructuring and
+    // re-spreading it (3 allocations per component call on hot paths).
+    return (type as (p: RuntimeProps) => Node)(props ?? {});
+  }
   return build(type, props);
 }
 
 /** Multiple static children (children is an array). */
 export function jsxs(type: unknown, props: RuntimeProps | null): Node {
+  if (typeof type === "function") {
+    return (type as (p: RuntimeProps) => Node)(props ?? {});
+  }
   return build(type, props);
 }
 

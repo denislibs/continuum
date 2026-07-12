@@ -25,10 +25,10 @@ type Handler<A> = (t: Transaction, a: A) => void;
  * component everything just works.
  */
 export class Scope {
-  /** @internal Teardowns to run on dispose (reverse order). */
-  cleanups: Array<() => void> = [];
-  /** @internal Child scopes (disposed before this one, reverse order). */
-  children: Scope[] = [];
+  /** @internal Teardowns to run on dispose (reverse order); lazy. */
+  cleanups: Array<() => void> | null = null;
+  /** @internal Child scopes (disposed first, reverse order); lazy. */
+  children: Scope[] | null = null;
   /** @internal */
   parent: Scope | null;
   /** True once `dispose()` has run. */
@@ -37,30 +37,36 @@ export class Scope {
   /** Attach to `parent`; defaults to the ambient scope. */
   constructor(parent: Scope | null = currentScope) {
     this.parent = parent;
-    if (parent) parent.children.push(this);
+    if (parent) (parent.children ??= []).push(this);
   }
 
   /** Register a teardown to run when this scope disposes. */
   onDispose(fn: () => void): void {
-    this.cleanups.push(fn);
+    (this.cleanups ??= []).push(fn);
   }
 
   /** Tear down children, then own cleanups; detach from the parent. Idempotent. */
   dispose(): void {
     if (this.disposed) return;
     this.disposed = true;
-    for (let i = this.children.length - 1; i >= 0; i--) {
-      this.children[i].dispose();
+    if (this.children) {
+      for (let i = this.children.length - 1; i >= 0; i--) {
+        this.children[i].dispose();
+      }
+      this.children.length = 0;
     }
-    this.children.length = 0;
-    for (let i = this.cleanups.length - 1; i >= 0; i--) {
-      this.cleanups[i]();
+    if (this.cleanups) {
+      for (let i = this.cleanups.length - 1; i >= 0; i--) {
+        this.cleanups[i]();
+      }
+      this.cleanups.length = 0;
     }
-    this.cleanups.length = 0;
     if (this.parent) {
       const siblings = this.parent.children;
-      const idx = siblings.indexOf(this);
-      if (idx >= 0) siblings.splice(idx, 1);
+      if (siblings) {
+        const idx = siblings.indexOf(this);
+        if (idx >= 0) siblings.splice(idx, 1);
+      }
       this.parent = null;
     }
   }
@@ -272,6 +278,9 @@ function requireScope(what: string, example: string): Scope {
 // drains, so nested wakes enqueue instead of recursing.
 let wakeQueue: Stream<any>[] | null = null;
 
+// Shared frozen snapshot for listener-less delivery (send_ to nobody).
+const EMPTY_SNAP: Handler<unknown>[] = [];
+
 // A rank beyond any realistic static graph depth. Reaching it means the live
 // topology is cyclic through time (see the error in `ensureBiggerThan`).
 const RANK_LIMIT = 1 << 16;
@@ -287,7 +296,7 @@ export class Stream<A> {
   // one source used to be O(n²) with indexOf+splice. Insertion order is
   // preserved (observers stay FIFO). Every subscription passes a fresh
   // closure, so Set's dedup never bites.
-  private listeners = new Set<Handler<A>>();
+  private listeners: Set<Handler<A>> | null = null;
   /** Cached delivery snapshot of `listeners`; invalidated on mutation. */
   private snap: Handler<A>[] | null = null;
   /**
@@ -295,9 +304,9 @@ export class Stream<A> {
    * an entry is dropped when its last subscription unlistens, so a
    * long-lived source doesn't accumulate dead targets across churn.
    */
-  private targets = new Map<Stream<any>, number>();
+  private targets: Map<Stream<any>, number> | null = null;
   /** Teardown handles for this node's own subscriptions to its inputs. */
-  private cleanups: Array<() => void> = [];
+  private cleanups: Array<() => void> | null = null;
   /**
    * Recipe inputs of a demand-activated (pure) node: subscribed on the
    * first listener, torn down after the last one. Stateful nodes
@@ -366,6 +375,7 @@ export class Stream<A> {
       }
       onPath.add(n);
       n.rank = l + 1;
+      if (!n.targets) continue;
       for (const t of n.targets.keys()) {
         if (onPath.has(t))
           throw new Error("Continuum: dependency cycle detected");
@@ -384,11 +394,12 @@ export class Stream<A> {
           "scope that uses them.",
       );
     }
-    this.listeners.add(h);
+    (this.listeners ??= new Set()).add(h);
     this.snap = null;
     if (this.listeners.size === 1) this.wake();
     if (target) {
-      this.targets.set(target, (this.targets.get(target) ?? 0) + 1);
+      const targets = (this.targets ??= new Map());
+      targets.set(target, (targets.get(target) ?? 0) + 1);
       // keep the target strictly above this source (handles dynamic
       // subscriptions from switchB/switchE onto deeper events).
       target.ensureBiggerThan(this.rank);
@@ -397,9 +408,9 @@ export class Stream<A> {
     return () => {
       if (done) return;
       done = true;
-      this.listeners.delete(h);
+      this.listeners?.delete(h);
       this.snap = null;
-      if (target) {
+      if (target && this.targets) {
         const n = this.targets.get(target);
         if (n !== undefined) {
           if (n <= 1) this.targets.delete(target);
@@ -417,7 +428,9 @@ export class Stream<A> {
     // the bookkeeping tests). The snapshot is CACHED between mutations —
     // fan-out sources fire far more often than they churn listeners, so
     // steady-state delivery allocates nothing.
-    const ls = (this.snap ??= [...this.listeners]);
+    const ls = (this.snap ??= this.listeners
+      ? [...this.listeners]
+      : (EMPTY_SNAP as Handler<A>[]));
     for (const h of ls) h(t, a);
   }
 
@@ -460,7 +473,7 @@ export class Stream<A> {
   }
 
   private sleep(): void {
-    if (!this.live || this.pinned || this.listeners.size > 0) return;
+    if (!this.live || this.pinned || (this.listeners?.size ?? 0) > 0) return;
     const l = this.live;
     this.live = null;
     for (const un of l) un(); // inputs lose a listener -> they may sleep too
@@ -474,12 +487,12 @@ export class Stream<A> {
 
   /** @internal Subscribe to `input` and register the teardown for `dispose()`. */
   consume<X>(input: Stream<X>, h: Handler<X>): void {
-    this.cleanups.push(this.subscribe(input, h));
+    (this.cleanups ??= []).push(this.subscribe(input, h));
   }
 
   /** @internal Register an extra teardown to run on `dispose()`. */
   onDispose(fn: () => void): void {
-    this.cleanups.push(fn);
+    (this.cleanups ??= []).push(fn);
   }
 
   /**
@@ -497,11 +510,11 @@ export class Stream<A> {
     }
     this.srcs = null;
     const cs = this.cleanups;
-    this.cleanups = [];
-    for (const c of cs) c();
-    this.listeners.clear();
+    this.cleanups = null;
+    if (cs) for (const c of cs) c();
+    this.listeners = null;
     this.snap = null;
-    this.targets.clear();
+    this.targets = null;
   }
 
   // --- combinators -------------------------------------------------------
