@@ -23,7 +23,15 @@ import { join, resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
-const PACKAGES = ["frp", "dom", "std", "test", "router", "eslint-plugin"];
+const PACKAGES = [
+  "frp",
+  "dom",
+  "std",
+  "test",
+  "router",
+  "eslint-plugin",
+  "vite-plugin",
+];
 
 function run(cmd, args, cwd) {
   execFileSync(cmd, args, { cwd, stdio: "inherit" });
@@ -195,6 +203,8 @@ cliPkg.dependencies["@continuum-js/frp"] = `file:${tarballs.frp}`;
 cliPkg.dependencies["@continuum-js/dom"] = `file:${tarballs.dom}`;
 cliPkg.devDependencies["@continuum-js/eslint-plugin"] =
   `file:${tarballs["eslint-plugin"]}`;
+cliPkg.devDependencies["@continuum-js/vite-plugin"] =
+  `file:${tarballs["vite-plugin"]}`;
 writeFileSync(cliPkgPath, JSON.stringify(cliPkg, null, 2));
 
 run("npm", ["install", "--no-audit", "--no-fund"], cliApp);

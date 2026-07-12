@@ -11,6 +11,9 @@ parsed once per call site, so creating a subtree becomes a single
 `cloneNode(true)` plus bindings for the dynamic holes — the technique behind
 Solid's numbers.
 
+Projects scaffolded with `npm create continuum-js@latest` get the plugin
+**out of the box** — nothing to do. To add it to an existing app:
+
 ```bash
 npm i -D @continuum-js/vite-plugin
 ```
@@ -36,9 +39,9 @@ What it buys (js-framework-benchmark table, script time, same machine):
 creating 1k rows ~1.5× faster, appending 1k ~1.6× faster, creating 10k
 ~1.5× faster; update operations were already fine without it.
 
-When to bother: apps that create thousands of DOM nodes at once. A typical
-form-and-dashboard app won't feel the difference — skip the plugin and keep
-the zero-config toolchain.
+When to remove it: never required — deleting the plugin line keeps the
+exact same app running through the runtime factory (useful for esbuild-only
+setups or when debugging generated output).
 
 ---
 
