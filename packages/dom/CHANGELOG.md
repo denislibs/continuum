@@ -1,5 +1,27 @@
 # @continuum-js/dom
 
+## 1.0.0
+
+### Major Changes
+
+- 2a57a2c: Continuum 1.0: the API freeze. One name per concept — every deprecated alias accumulated by the three renames and the polish rounds is removed. Semantics, transactional guarantees and performance are exactly those of 0.19.
+
+  **Removed** (see the [migration guide](https://denislibs.github.io/continuum/migration-1.0) and `scripts/codemod-1.0.mjs`, which rewrites the mechanical part automatically):
+
+  - `Wire`/`wire`/`WireSource`, `Behavior`, `Event`/`newEvent` → `State`/`state`/`StateSource`, `Stream`/`newStream`
+  - `newBehavior(init)` tuple → `state(init)` (one value with `.set`)
+  - `e.snapshot(b, f)` → `b.at(e, (value, event) => …)`
+  - `e.gate(b)` → `e.when(b)`; `ea.orElse(eb)` → `ea.or(eb)`
+  - `Wire.apply`/`lift2`/`lift3` → `combine(...)`; `Wire.switchB`/`switchE` → `flatten(w)`
+  - std: `distinctB` → `dedupe`
+
+  Also in this release: English-first package READMEs (Russian moved to README.ru.md), the docs repositioned around what makes Continuum different (change as data: command streams, transactional updates, race-free async), and size budgets tightened after the alias removal (dom+frp: 6.3 kB brotli).
+
+### Patch Changes
+
+- Updated dependencies [2a57a2c]
+  - @continuum-js/frp@1.0.0
+
 ## 0.19.0
 
 ### Minor Changes
