@@ -5,10 +5,10 @@ import { compileToTemplates } from "./compile";
 import { buildRunnerHtml } from "./runner";
 import { encodeCode, decodeCode } from "./share";
 
-const props = withDefaults(
-  defineProps<{ code?: string; height?: string }>(),
-  { code: "", height: "360px" },
-);
+const props = withDefaults(defineProps<{ code?: string; height?: string }>(), {
+  code: "",
+  height: "360px",
+});
 
 const editorHost = ref<HTMLElement | null>(null);
 const iframe = ref<HTMLIFrameElement | null>(null);
@@ -116,14 +116,19 @@ onMounted(async () => {
     if (decoded) initial = decoded;
   }
 
-  const [{ EditorView, keymap }, { basicSetup }, { javascript }, { oneDark }, { indentWithTab }] =
-    await Promise.all([
-      import("@codemirror/view"),
-      import("codemirror"),
-      import("@codemirror/lang-javascript"),
-      import("@codemirror/theme-one-dark"),
-      import("@codemirror/commands"),
-    ]);
+  const [
+    { EditorView, keymap },
+    { basicSetup },
+    { javascript },
+    { oneDark },
+    { indentWithTab },
+  ] = await Promise.all([
+    import("@codemirror/view"),
+    import("codemirror"),
+    import("@codemirror/lang-javascript"),
+    import("@codemirror/theme-one-dark"),
+    import("@codemirror/commands"),
+  ]);
 
   view.value = new EditorView({
     doc: initial,
@@ -176,17 +181,23 @@ onBeforeUnmount(() => {
             class="cn-play__tab"
             :class="{ 'cn-play__tab--on': tab === 'preview' }"
             @click="tab = 'preview'"
-          >Preview</button>
+          >
+            Preview
+          </button>
           <button
             class="cn-play__tab"
             :class="{ 'cn-play__tab--on': tab === 'compiled' }"
             @click="tab = 'compiled'"
-          >Compiled</button>
+          >
+            Compiled
+          </button>
           <button
             class="cn-play__tab"
             :class="{ 'cn-play__tab--on': tab === 'js' }"
             @click="tab = 'js'"
-          >JS</button>
+          >
+            JS
+          </button>
         </div>
         <div class="cn-play__preview" v-show="tab === 'preview'">
           <iframe
@@ -200,7 +211,9 @@ onBeforeUnmount(() => {
               :key="i"
               class="cn-play__log"
               :class="`cn-play__log--${l.level}`"
-            >{{ l.text }}</div>
+            >
+              {{ l.text }}
+            </div>
           </div>
         </div>
         <pre

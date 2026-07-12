@@ -1,5 +1,12 @@
 <script setup lang="ts">
-import { ref, shallowRef, computed, watch, onMounted, onBeforeUnmount } from "vue";
+import {
+  ref,
+  shallowRef,
+  computed,
+  watch,
+  onMounted,
+  onBeforeUnmount,
+} from "vue";
 import { transpile } from "../playground/transpile";
 import { compileToTemplates } from "../playground/compile";
 import { buildRunnerHtml } from "../playground/runner";
@@ -71,7 +78,10 @@ function run() {
     pendingRun = true;
     return;
   }
-  iframe.value?.contentWindow?.postMessage({ type: "run", code: out.code }, "*");
+  iframe.value?.contentWindow?.postMessage(
+    { type: "run", code: out.code },
+    "*",
+  );
 }
 
 function check() {
@@ -84,7 +94,12 @@ function check() {
   checkState.value = "checking";
   checkMsg.value = "";
   iframe.value?.contentWindow?.postMessage(
-    { type: "check", code: out.code, checkSrc: step.value.check.toString(), id: step.value.id },
+    {
+      type: "check",
+      code: out.code,
+      checkSrc: step.value.check.toString(),
+      id: step.value.id,
+    },
     "*",
   );
 }
@@ -169,14 +184,19 @@ function showSolution() {
 }
 
 onMounted(async () => {
-  const [{ EditorView, keymap }, { basicSetup }, { javascript }, { oneDark }, { indentWithTab }] =
-    await Promise.all([
-      import("@codemirror/view"),
-      import("codemirror"),
-      import("@codemirror/lang-javascript"),
-      import("@codemirror/theme-one-dark"),
-      import("@codemirror/commands"),
-    ]);
+  const [
+    { EditorView, keymap },
+    { basicSetup },
+    { javascript },
+    { oneDark },
+    { indentWithTab },
+  ] = await Promise.all([
+    import("@codemirror/view"),
+    import("codemirror"),
+    import("@codemirror/lang-javascript"),
+    import("@codemirror/theme-one-dark"),
+    import("@codemirror/commands"),
+  ]);
   view.value = new EditorView({
     doc: step.value.starter,
     parent: editorHost.value!,
@@ -246,8 +266,12 @@ onBeforeUnmount(() => {
         <button v-if="step.hint && !hintShown" @click="hintShown = true">
           Hint
         </button>
-        <p v-if="hintShown && step.hint" class="cn-tut__hint">{{ step.hint }}</p>
-        <button v-if="!solutionShown" @click="showSolution">Show solution</button>
+        <p v-if="hintShown && step.hint" class="cn-tut__hint">
+          {{ step.hint }}
+        </p>
+        <button v-if="!solutionShown" @click="showSolution">
+          Show solution
+        </button>
       </div>
     </aside>
 
@@ -264,24 +288,37 @@ onBeforeUnmount(() => {
         <span
           v-if="checkState === 'pass'"
           class="cn-tut__verdict cn-tut__verdict--pass"
-        >Passed! 🎉</span>
+          >Passed! 🎉</span
+        >
         <span
           v-else-if="checkState === 'fail'"
           class="cn-tut__verdict cn-tut__verdict--fail"
-        >Not yet{{ checkMsg ? ": " + checkMsg : "" }}</span>
+          >Not yet{{ checkMsg ? ": " + checkMsg : "" }}</span
+        >
         <button
           v-if="checkState === 'pass' && stepIndex < total - 1"
           class="cn-tut__btn cn-tut__btn--next"
           @click="goto(stepIndex + 1)"
-        >Next →</button>
+        >
+          Next →
+        </button>
       </div>
       <div class="cn-tut__panes">
         <div class="cn-tut__editor" ref="editorHost"></div>
         <div class="cn-tut__right">
           <div class="cn-tut__tabs">
-            <button :class="{ on: tab === 'preview' }" @click="tab = 'preview'">Preview</button>
-            <button :class="{ on: tab === 'compiled' }" @click="tab = 'compiled'">Compiled</button>
-            <button :class="{ on: tab === 'js' }" @click="tab = 'js'">JS</button>
+            <button :class="{ on: tab === 'preview' }" @click="tab = 'preview'">
+              Preview
+            </button>
+            <button
+              :class="{ on: tab === 'compiled' }"
+              @click="tab = 'compiled'"
+            >
+              Compiled
+            </button>
+            <button :class="{ on: tab === 'js' }" @click="tab = 'js'">
+              JS
+            </button>
           </div>
           <div class="cn-tut__preview" v-show="tab === 'preview'">
             <iframe
@@ -294,11 +331,19 @@ onBeforeUnmount(() => {
                 v-for="(l, i) in logs"
                 :key="i"
                 :class="`cn-tut__log cn-tut__log--${l.level}`"
-              >{{ l.text }}</div>
+              >
+                {{ l.text }}
+              </div>
             </div>
           </div>
-          <pre v-show="tab === 'compiled'" class="cn-tut__out"><code>{{ compiledOut || "// Run, then open this tab" }}</code></pre>
-          <pre v-show="tab === 'js'" class="cn-tut__out"><code>{{ jsOut || "// Run, then open this tab" }}</code></pre>
+          <pre
+            v-show="tab === 'compiled'"
+            class="cn-tut__out"
+          ><code>{{ compiledOut || "// Run, then open this tab" }}</code></pre>
+          <pre
+            v-show="tab === 'js'"
+            class="cn-tut__out"
+          ><code>{{ jsOut || "// Run, then open this tab" }}</code></pre>
         </div>
       </div>
     </section>
@@ -386,7 +431,11 @@ onBeforeUnmount(() => {
   padding: 16px;
   margin-bottom: 16px;
   border-radius: 10px;
-  background: linear-gradient(135deg, var(--vp-c-brand-soft), var(--vp-c-default-soft));
+  background: linear-gradient(
+    135deg,
+    var(--vp-c-brand-soft),
+    var(--vp-c-default-soft)
+  );
   border: 1px solid var(--vp-c-brand-1);
 }
 .cn-tut__medal {
