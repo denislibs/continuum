@@ -50,9 +50,26 @@ that re-renders and diffs, several times slower than Solid-class frameworks on
 the same table (see [js-framework-benchmark](https://krausest.github.io/js-framework-benchmark/))
 and ~8× the download.
 
+### Engine cost, per operation
+
+The transactional guarantees are essentially free. Measured in isolated Node
+processes (`npm run bench:core`, `@continuum-js/frp`):
+
+| Operation                    | Time    | Garbage |
+| ---------------------------- | ------- | ------- |
+| read a state (`.sample()`)   | 0.5 ns  | 0 B     |
+| update a state (`.set()`)    | ~35 ns  | ~1 B    |
+| fire a stream occurrence     | ~23 ns  | ~2 B    |
+| batch of 5 coalesced updates | ~295 ns | ~6 B    |
+
+A state update runs a full transaction — coalescing, rank-ordered propagation,
+the `hold` boundary — in ~35 nanoseconds and allocates about **one byte** of
+garbage. Reading is a plain field access.
+
 ::: tip Reproduce it yourself
-`npm run bench` (speed), `npm run bench:mem` (memory), `npm run size` (bytes) —
-one machine, one harness, all frameworks through the same Playwright timing.
+`npm run bench` (speed), `npm run bench:mem` (memory), `npm run bench:core`
+(engine ns/op), `npm run size` (bytes) — one machine, one harness, all
+frameworks through the same timing.
 :::
 
 And Continuum gives you something neither offers: **change itself is a value**
