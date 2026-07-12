@@ -67,6 +67,7 @@ describe("bindInput accepts a source wire alone", () => {
   test("one-argument form writes through the wire's own setter", () => {
     const text = wire("a");
     const el = document.createElement("div");
+    document.body.appendChild(el); // delegated events need a connected tree
     const unmount = mount(el, () => h("input", { ...bindInput(text) }));
     const input = el.firstChild as HTMLInputElement;
     expect(input.value).toBe("a");
@@ -74,5 +75,6 @@ describe("bindInput accepts a source wire alone", () => {
     input.dispatchEvent(new Event("input", { bubbles: true }));
     expect(text.sample()).toBe("ab");
     unmount();
+    el.remove();
   });
 });

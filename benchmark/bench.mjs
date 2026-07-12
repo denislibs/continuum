@@ -37,17 +37,22 @@ const median = (xs) => {
   return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2;
 };
 
-// Click `sel` in-page and return the time until the next painted frame.
+// Click `sel` in-page; returns { paint, script }. `paint` is click → next
+// painted frame (vsync-quantized: for sub-frame ops it measures the phase of
+// the vsync clock, not the framework — see BASELINES.md). `script` is the
+// synchronous JS time of the click handler — the honest number for
+// interactive ops that fit in a frame.
 async function measureClick(page, sel) {
   return page.evaluate(async (s) => {
     const el = document.querySelector(s);
     if (!el) throw new Error(`missing element: ${s}`);
     const start = performance.now();
     el.click();
+    const script = performance.now() - start;
     await new Promise((r) =>
       requestAnimationFrame(() => requestAnimationFrame(() => r())),
     );
-    return performance.now() - start;
+    return { paint: performance.now() - start, script };
   }, sel);
 }
 
@@ -147,8 +152,11 @@ async function main() {
       const dur = await measureClick(page, c.action);
       if (i >= WARMUP) times.push(dur);
     }
-    const med = median(times);
-    results.push({ operation: c.name, "median ms": Number(med.toFixed(2)) });
+    results.push({
+      operation: c.name,
+      "script ms": Number(median(times.map((t) => t.script)).toFixed(2)),
+      "paint ms": Number(median(times.map((t) => t.paint)).toFixed(2)),
+    });
   }
 
   await browser.close();

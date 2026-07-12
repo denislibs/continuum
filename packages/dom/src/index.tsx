@@ -283,6 +283,68 @@ function setProp(el: Element, key: string, value: unknown): void {
   el.setAttribute(key, String(value));
 }
 
+// ---------------------------------------------------------------------------
+// Event delegation (PERF-PLAN phase 1). Bubbling events register ONE
+// document-level listener per type; the handler lives on the element as a
+// `$$type` property and dies with the node — zero per-element
+// addEventListener and zero cleanup closures. Contract (same as Solid):
+// delegated handlers fire only for trees connected to the document.
+// ---------------------------------------------------------------------------
+
+const DELEGATED = new Set([
+  "beforeinput",
+  "click",
+  "dblclick",
+  "contextmenu",
+  "focusin",
+  "focusout",
+  "input",
+  "change",
+  "keydown",
+  "keyup",
+  "mousedown",
+  "mouseup",
+  "pointerdown",
+  "pointerup",
+  "touchstart",
+  "touchend",
+  "touchmove",
+]);
+
+// Per-document set of event types with an installed root listener.
+const delegatedTypes = new WeakMap<Document, Set<string>>();
+
+function delegatedDispatch(e: Event): void {
+  const key = "$$" + e.type;
+  let node = e.target as Node | null;
+  while (node) {
+    const h = (node as unknown as Record<string, unknown>)[key] as
+      EventListener | undefined;
+    if (h) {
+      // handlers expect currentTarget = the element carrying the handler
+      Object.defineProperty(e, "currentTarget", {
+        configurable: true,
+        value: node,
+      });
+      h.call(node, e);
+      if (e.cancelBubble) return; // stopPropagation() halts the walk
+    }
+    node = node.parentNode;
+  }
+}
+
+function ensureDelegated(doc: Document, type: string): void {
+  let types = delegatedTypes.get(doc);
+  if (!types) {
+    types = new Set();
+    delegatedTypes.set(doc, types);
+  }
+  if (!types.has(type)) {
+    types.add(type);
+    doc.addEventListener(type, delegatedDispatch);
+  }
+}
+
 function applyProps(el: Element, props: Record<string, unknown>): void {
   for (const key in props) {
     if (key === "children") continue;
@@ -294,8 +356,14 @@ function applyProps(el: Element, props: Record<string, unknown>): void {
     if (key.length > 2 && key.startsWith("on")) {
       const evt = key.slice(2).toLowerCase();
       const handler = value as EventListener;
-      el.addEventListener(evt, handler);
-      bind(() => el.removeEventListener(evt, handler));
+      if (DELEGATED.has(evt)) {
+        (el as unknown as Record<string, unknown>)["$$" + evt] = handler;
+        ensureDelegated(el.ownerDocument ?? document, evt);
+      } else {
+        // non-bubbling (focus/blur/scroll/…): a direct listener as before
+        el.addEventListener(evt, handler);
+        bind(() => el.removeEventListener(evt, handler));
+      }
       continue;
     }
     if (value instanceof Wire) {
@@ -579,7 +647,8 @@ export function each<T, K>(
     }
 
     // reorder with minimal moves; preserve focus across moves
-    const active = (parent.ownerDocument || document).activeElement;
+    const doc = parent.ownerDocument || document;
+    const active = doc.activeElement;
     const keep = lisIndices(seq);
     let anchor: Node = end;
     for (let i = next.length - 1; i >= 0; i--) {
@@ -589,7 +658,16 @@ export function each<T, K>(
       }
       anchor = row.nodes[0] ?? anchor;
     }
-    if (active instanceof HTMLElement && active.isConnected) active.focus();
+    // Re-focus ONLY if a move actually stole it: an unconditional focus()
+    // forces a synchronous style/layout pass on every list update and used
+    // to push swap/remove past the frame budget (see benchmark/BASELINES.md).
+    if (
+      active instanceof HTMLElement &&
+      doc.activeElement !== active &&
+      active.isConnected
+    ) {
+      active.focus();
+    }
 
     rows = next;
     if (!(owner instanceof Owner) || owner.mounted)

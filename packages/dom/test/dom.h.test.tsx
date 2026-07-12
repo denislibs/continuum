@@ -90,19 +90,23 @@ describe("h — events", () => {
     const btn = (
       <button onClick={() => fired++}>x</button>
     ) as HTMLButtonElement;
+    document.body.appendChild(btn); // delegated events need a connected tree
     btn.click();
     btn.click();
     expect(fired).toBe(2);
+    btn.remove();
   });
 
   test("passing an frp `fire` routes DOM events into the network", () => {
     const [clicks, fire] = newStream<MouseEvent>();
     const count = root(() => clicks.accum(0, (_e, n) => n + 1));
     const btn = (<button onClick={fire}>{count}</button>) as HTMLButtonElement;
+    document.body.appendChild(btn); // delegated events need a connected tree
     expect(btn.textContent).toBe("0");
     btn.click();
     btn.click();
     expect(btn.textContent).toBe("2");
+    btn.remove();
   });
 });
 
