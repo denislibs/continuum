@@ -27,14 +27,19 @@ import type { Unlisten, WireSource, ObserverHandle } from "@continuum-js/frp";
 class Owner extends Scope {
   // Lazily allocated, like `contexts` — most owners never use `onMount`.
   mounts: Array<() => void> | null = null;
-  mounted = false;
   // Lazily allocated — most owners never carry context, so we skip the Map
   // until `provide` writes one (hot path when building many rows).
   contexts: Map<symbol, unknown> | null = null;
-  /** Top-level nodes of a scoped build (see buildScoped). */
-  nodes: Node[] | null = null;
+  /** Top-level nodes of a scoped build: the single-node fast path stores
+   * the node itself — no array for the common one-element row. */
+  nodes: Node | Node[] | null = null;
   // Wire bindings as flat (updates, edge-handle) pairs — see bindWire.
   subs: unknown[] | null = null;
+
+  /** Whether this subtree's onMount callbacks have run (bit 2 of Scope.flags). */
+  get mounted(): boolean {
+    return (this.flags & 2) !== 0;
+  }
 
   dispose(): void {
     if (this.disposed) return;
@@ -106,7 +111,7 @@ function flushMounts(scope: Scope): void {
   if (scope.disposed) return;
   if (scope.children) for (const child of scope.children) flushMounts(child);
   if (!(scope instanceof Owner)) return;
-  scope.mounted = true;
+  scope.flags |= 2; // mounted
   const mounts = scope.mounts;
   if (mounts) {
     scope.mounts = null;
@@ -509,34 +514,50 @@ export function h(
 // Dynamic regions (§7)
 // ---------------------------------------------------------------------------
 
-// Build `child` into a fragment under a fresh scope of `owner`. Returns the
-// fragment's top-level nodes, the scope's dispose handle, and a `flush` that
-// runs the scope's pending onMount callbacks (call it after insertion).
+// Build `child` under `into` (a fresh, empty owner — each() passes its
+// keyed subclass). The built top-level nodes land on `into.nodes`.
 // A throw mid-build disposes the partial scope (its cleanups run) before
 // propagating — no half-built ownership survives.
-function buildScoped(owner: Scope | null, build: () => Child): Owner {
-  const scopeOwner = new Owner(owner);
+function buildScoped(into: Owner, build: () => Child): Owner {
   try {
-    scopeOwner.nodes = runInScope(scopeOwner, () => {
+    into.nodes = runInScope(into, () => {
       const built = build();
-      // Fast path: a single element/text node (the common row/component case)
-      // needs no fragment or NodeList copy.
+      // Fast path: a single element/text node (the common row/component
+      // case) is stored as-is — no fragment, no NodeList copy, no array.
       if (
         built instanceof Node &&
         built.nodeType !== 11 /* DocumentFragment */
       ) {
-        return [built];
+        return built;
       }
       const frag = document.createDocumentFragment();
       appendChild(frag, built);
       return Array.from(frag.childNodes);
     });
   } catch (err) {
-    scopeOwner.dispose();
+    into.dispose();
     throw err;
   }
   // the Owner IS the handle: no {nodes, dispose, flush} record + 2 closures
-  return scopeOwner;
+  return into;
+}
+
+// The two shapes of Owner.nodes, walked without allocating.
+function insertNodes(parent: Node, ns: Node | Node[], ref: Node | null): void {
+  if (Array.isArray(ns)) for (const n of ns) parent.insertBefore(n, ref);
+  else parent.insertBefore(ns, ref);
+}
+
+function removeNodes(ns: Node | Node[]): void {
+  if (Array.isArray(ns)) {
+    for (const n of ns) if (n.parentNode) n.parentNode.removeChild(n);
+  } else if (ns.parentNode) {
+    ns.parentNode.removeChild(ns);
+  }
+}
+
+function firstNode(ns: Node | Node[]): Node | null {
+  return Array.isArray(ns) ? (ns[0] ?? null) : ns;
 }
 
 // Error-boundary channel over the ownership tree. `Catch` registers a
@@ -612,7 +633,7 @@ export function dyn<T>(b: Wire<T>, render: (v: T) => Child): Node {
     }
     let built: Owner;
     try {
-      built = buildScoped(owner, () => render(v));
+      built = buildScoped(new Owner(owner), () => render(v));
     } catch (err) {
       // Route to the nearest error boundary; without one, keep the old
       // behavior (the error propagates out of the transaction).
@@ -628,8 +649,7 @@ export function dyn<T>(b: Wire<T>, render: (v: T) => Child): Node {
       return;
     }
     current = built;
-    const parent = end.parentNode!;
-    for (const n of current.nodes!) parent.insertBefore(n, end);
+    insertNodes(end.parentNode!, current.nodes!, end);
     // During the initial build the whole tree flushes at mount; afterwards
     // each freshly inserted subtree flushes here.
     if (!(owner instanceof Owner) || owner.mounted) current.flush();
@@ -640,9 +660,14 @@ export function dyn<T>(b: Wire<T>, render: (v: T) => Child): Node {
   return frag;
 }
 
-interface Row<K> {
+// A list row IS its owner plus the reuse key — the {key, owner} wrapper
+// record per row was pure overhead (10k of them at 10k rows).
+class EachOwner<K> extends Owner {
   key: K;
-  o: Owner; // nodes live on the owner; dispose/flush are its methods
+  constructor(parent: Scope | null, key: K) {
+    super(parent);
+    this.key = key;
+  }
 }
 
 /** Longest strictly-increasing subsequence; returns the set of kept indices. */
@@ -686,7 +711,7 @@ export function each<T, K>(
   frag.appendChild(start);
   frag.appendChild(end);
 
-  let rows: Array<Row<K>> = [];
+  let rows: Array<EachOwner<K>> = [];
 
   const update = (list: T[]) => {
     const parent = end.parentNode!;
@@ -694,7 +719,7 @@ export function each<T, K>(
     rows.forEach((r, i) => oldIndex.set(r.key, i));
 
     const seen = new Set<K>();
-    const next: Array<Row<K>> = [];
+    const next: Array<EachOwner<K>> = [];
     const seq: number[] = [];
     const freshFlushes: Owner[] = [];
     for (const item of list) {
@@ -706,8 +731,9 @@ export function each<T, K>(
         next.push(rows[prevIdx]); // reuse: no re-render
         seq.push(prevIdx);
       } else {
-        const built = buildScoped(owner, () => render(item));
-        next.push({ key: k, o: built });
+        const built = new EachOwner(owner, k);
+        buildScoped(built, () => render(item));
+        next.push(built);
         seq.push(-1);
         freshFlushes.push(built);
       }
@@ -716,9 +742,8 @@ export function each<T, K>(
     // dispose rows whose key disappeared
     for (const r of rows) {
       if (!seen.has(r.key)) {
-        r.o.dispose();
-        const nodes = r.o.nodes!;
-        for (const n of nodes) if (n.parentNode) n.parentNode.removeChild(n);
+        r.dispose();
+        removeNodes(r.nodes!);
       }
     }
 
@@ -740,15 +765,19 @@ export function each<T, K>(
           batchAnchor = anchor;
         }
         // walking backwards: prepend to keep the row order
-        const nodes = row.o.nodes!;
-        for (let j = nodes.length - 1; j >= 0; j--) {
-          batch.insertBefore(nodes[j], batch.firstChild);
+        const nodes = row.nodes!;
+        if (Array.isArray(nodes)) {
+          for (let j = nodes.length - 1; j >= 0; j--) {
+            batch.insertBefore(nodes[j], batch.firstChild);
+          }
+        } else {
+          batch.insertBefore(nodes, batch.firstChild);
         }
       } else if (batch) {
         parent.insertBefore(batch, batchAnchor);
         batch = null;
       }
-      anchor = row.o.nodes![0] ?? anchor;
+      anchor = firstNode(row.nodes!) ?? anchor;
     }
     if (batch) parent.insertBefore(batch, batchAnchor);
     // Re-focus ONLY if a move actually stole it: an unconditional focus()
@@ -769,7 +798,7 @@ export function each<T, K>(
 
   bindWire(items, update);
   onCleanup(() => {
-    for (const r of rows) r.o.dispose();
+    for (const r of rows) r.dispose();
   });
   return frag;
 }
@@ -826,18 +855,21 @@ function distinctB<T>(b: Wire<T>): Wire<T> {
   let prev = b.sampleNoTrans();
   let stagedTx: unknown = null;
   let staged: T;
+  // one commit closure per node, not per moment; commits at the boundary:
+  // an aborted moment must not swallow the next legitimate rebuild (its
+  // pair dies with the dropped queue), and a mid-moment wake resets
+  // stagedTx, disarming a queued commit
+  const commit = () => {
+    if (stagedTx !== null) {
+      prev = staged;
+      stagedTx = null;
+    }
+  };
   out.source(b.updates, (t, a) => {
     if (!Object.is(prev, a)) {
-      // commit the memory at the boundary: an aborted moment must not
-      // swallow the next legitimate rebuild
       if (stagedTx !== t) {
         stagedTx = t;
-        t.last(() => {
-          if (stagedTx === t) {
-            prev = staged;
-            stagedTx = null;
-          }
-        });
+        t.last(commit);
       }
       staged = a;
       out.send_(t, a);
@@ -888,11 +920,11 @@ export function bindInput(
 /** Render `child` into another node, cleaning up on dispose. */
 export function portal(target: Node, child: Child): Node {
   needRegionOwner("portal()");
-  const built = buildScoped(getScope(), () => child);
-  for (const n of built.nodes!) target.appendChild(n);
+  const built = buildScoped(new Owner(getScope()), () => child);
+  insertNodes(target, built.nodes!, null);
   onCleanup(() => {
     built.dispose();
-    for (const n of built.nodes!) if (n.parentNode) n.parentNode.removeChild(n);
+    removeNodes(built.nodes!);
   });
   return document.createComment("portal");
 }
