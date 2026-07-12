@@ -25,6 +25,19 @@ async function buildConfig() {
     const solid = (await import("vite-plugin-solid")).default;
     cfg.plugins = [solid()];
   }
+  if (VARIANT === "compiled") {
+    // the Continuum app + our JSX compiler
+    const continuum = (await import("../packages/vite-plugin/dist/index.js"))
+      .default;
+    const base = (await import("./vite.config.ts")).default;
+    return {
+      ...base,
+      root,
+      configFile: false,
+      logLevel: "warn",
+      plugins: [continuum(), ...(base.plugins ?? [])],
+    };
+  }
   return cfg;
 }
 

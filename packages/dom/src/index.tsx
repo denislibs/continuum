@@ -210,24 +210,34 @@ function toText(v: unknown): string {
   return v == null ? "" : String(v);
 }
 
-function appendChild(parent: Node, child: Child): void {
+/** @internal Insert `child` before `anchor` (or append) — the one child
+ * semantics shared by the JSX factory and the compiled-template runtime. */
+export function insertChild(
+  parent: Node,
+  child: Child,
+  anchor: Node | null = null,
+): void {
   if (child == null || child === false || child === true) return;
   if (Array.isArray(child)) {
-    for (const c of child) appendChild(parent, c);
+    for (const c of child) insertChild(parent, c, anchor);
     return;
   }
   if (child instanceof Wire) {
     // fine-grained: one text node bound to one behavior
     const text = document.createTextNode("");
     bind(child.listen((v) => (text.data = toText(v))));
-    parent.appendChild(text);
+    parent.insertBefore(text, anchor);
     return;
   }
   if (child instanceof Node) {
-    parent.appendChild(child);
+    parent.insertBefore(child, anchor);
     return;
   }
-  parent.appendChild(document.createTextNode(String(child)));
+  parent.insertBefore(document.createTextNode(String(child)), anchor);
+}
+
+function appendChild(parent: Node, child: Child): void {
+  insertChild(parent, child, null);
 }
 
 function applyRef(ref: unknown, el: Element): void {
@@ -345,44 +355,59 @@ function ensureDelegated(doc: Document, type: string): void {
   }
 }
 
+/** @internal Bind one event prop (delegated when the type bubbles). */
+export function applyEvent(
+  el: Element,
+  evt: string,
+  handler: EventListener,
+): void {
+  if (DELEGATED.has(evt)) {
+    (el as unknown as Record<string, unknown>)["$$" + evt] = handler;
+    // template-content nodes live in an inert document (no window) until
+    // adopted — the root listener belongs on the real one they'll join
+    const doc = el.ownerDocument;
+    ensureDelegated(doc && doc.defaultView ? doc : document, evt);
+  } else {
+    // non-bubbling (focus/blur/scroll/…): a direct listener as before
+    el.addEventListener(evt, handler);
+    bind(() => el.removeEventListener(evt, handler));
+  }
+}
+
+/** @internal Apply one prop: ref, event, wire binding or a plain value —
+ * the semantics shared by the JSX factory and the compiled runtime. */
+export function applyProp(el: Element, key: string, value: unknown): void {
+  if (key === "ref") {
+    applyRef(value, el);
+    return;
+  }
+  if (key.length > 2 && key.startsWith("on")) {
+    applyEvent(el, key.slice(2).toLowerCase(), value as EventListener);
+    return;
+  }
+  if (value instanceof Wire) {
+    if (key === "style") {
+      // Diff against the previous object: a key that disappears must be
+      // cleared, not left painted on the element.
+      let prevStyle: unknown;
+      bind(
+        value.listen((v) => {
+          setStyle(el, prevStyle, v);
+          prevStyle = v;
+        }),
+      );
+    } else {
+      bind(value.listen((v) => setProp(el, key, v)));
+    }
+    return;
+  }
+  setProp(el, key, value);
+}
+
 function applyProps(el: Element, props: Record<string, unknown>): void {
   for (const key in props) {
     if (key === "children") continue;
-    const value = props[key];
-    if (key === "ref") {
-      applyRef(value, el);
-      continue;
-    }
-    if (key.length > 2 && key.startsWith("on")) {
-      const evt = key.slice(2).toLowerCase();
-      const handler = value as EventListener;
-      if (DELEGATED.has(evt)) {
-        (el as unknown as Record<string, unknown>)["$$" + evt] = handler;
-        ensureDelegated(el.ownerDocument ?? document, evt);
-      } else {
-        // non-bubbling (focus/blur/scroll/…): a direct listener as before
-        el.addEventListener(evt, handler);
-        bind(() => el.removeEventListener(evt, handler));
-      }
-      continue;
-    }
-    if (value instanceof Wire) {
-      if (key === "style") {
-        // Diff against the previous object: a key that disappears must be
-        // cleared, not left painted on the element.
-        let prevStyle: unknown;
-        bind(
-          value.listen((v) => {
-            setStyle(el, prevStyle, v);
-            prevStyle = v;
-          }),
-        );
-      } else {
-        bind(value.listen((v) => setProp(el, key, v)));
-      }
-      continue;
-    }
-    setProp(el, key, value);
+    applyProp(el, key, props[key]);
   }
 }
 

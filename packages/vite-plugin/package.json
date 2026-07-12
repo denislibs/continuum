@@ -1,0 +1,43 @@
+{
+  "name": "@continuum-js/vite-plugin",
+  "version": "0.1.0",
+  "description": "Optional JSX compiler for Continuum — compiles ordinary JSX into cloned templates (Solid-class create performance). Without it the same JSX runs through the runtime factory unchanged.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/denislibs/continuum.git",
+    "directory": "packages/vite-plugin"
+  },
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist"
+  ],
+  "sideEffects": false,
+  "scripts": {
+    "build": "rm -rf dist && tsc -p tsconfig.build.json"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "dependencies": {
+    "@babel/core": "^7.26.0",
+    "@babel/plugin-syntax-jsx": "^7.25.0",
+    "@babel/plugin-syntax-typescript": "^7.25.0"
+  },
+  "peerDependencies": {
+    "vite": ">=5"
+  },
+  "devDependencies": {
+    "@types/babel__core": "^7.20.5"
+  }
+}
