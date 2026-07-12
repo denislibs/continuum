@@ -126,10 +126,9 @@ describe("long-run rank stability (§14 #6)", () => {
       un(); // cascade disposes `derived`
     }
     fire(1);
-    const targets = (
-      src as unknown as { targets: Map<unknown, unknown> | Set<unknown> }
-    ).targets;
-    expect(targets.size).toBeLessThanOrEqual(1);
+    // edge slots: the observer array must not accumulate dead edges
+    const obs = (src as unknown as { obs: unknown[] | null }).obs;
+    expect(obs?.length ?? 0).toBeLessThanOrEqual(1);
   });
 });
 

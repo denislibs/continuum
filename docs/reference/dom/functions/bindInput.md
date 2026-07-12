@@ -10,7 +10,7 @@
 
 > **bindInput**(`value`): `object`
 
-Defined in: [index.tsx:696](https://github.com/denislibs/continuum/blob/cd06cfd704b2e2e6c2e5200a78b1a8b9bff05997/packages/dom/src/index.tsx#L696)
+Defined in: [index.tsx:829](https://github.com/denislibs/continuum/blob/06378b217e7ab47a03a557199f3b883e3c7e30c6/packages/dom/src/index.tsx#L829)
 
 Two-way binding props for a text input. Spread onto an `<input>`.
 
@@ -46,7 +46,7 @@ Two-way binding props for a text input. Spread onto an `<input>`.
 
 > **bindInput**(`value`, `set`): `object`
 
-Defined in: [index.tsx:700](https://github.com/denislibs/continuum/blob/cd06cfd704b2e2e6c2e5200a78b1a8b9bff05997/packages/dom/src/index.tsx#L700)
+Defined in: [index.tsx:833](https://github.com/denislibs/continuum/blob/06378b217e7ab47a03a557199f3b883e3c7e30c6/packages/dom/src/index.tsx#L833)
 
 Two-way binding props for a text input. Spread onto an `<input>`.
 

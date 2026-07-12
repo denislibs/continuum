@@ -45,6 +45,7 @@
 - [perform](functions/perform.md)
 - [root](functions/root.md)
 - [runInScope](functions/runInScope.md)
+- [selector](functions/selector.md)
 - [stream](functions/stream.md)
 - [time](functions/time.md)
 - [warp](functions/warp.md)
