@@ -23,7 +23,9 @@ export default function Counter() {
 опубликованная сборка, те же байты, что вы получаете из npm. Меняйте код и
 жмите **Run**.
 
-<Playground height="380px" :code="counterCode" />
+<ClientOnly>
+  <Playground height="380px" :code="counterCode" />
+</ClientOnly>
 
 ::: tip
 Экспортируйте компонент как `default` — песочница его смонтирует. `console.log`

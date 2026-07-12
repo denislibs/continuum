@@ -6,6 +6,7 @@ import { buildRunnerHtml } from "../playground/runner";
 import { findTrack } from "./tracks";
 import { markComplete, isComplete, trackPercent } from "./progress";
 import { renderTask } from "./md";
+import { burst } from "./confetti";
 
 const props = withDefaults(defineProps<{ track?: string }>(), {
   track: "basics",
@@ -28,6 +29,7 @@ const checkState = ref<"idle" | "checking" | "pass" | "fail">("idle");
 const checkMsg = ref("");
 const solutionShown = ref(false);
 const hintShown = ref(false);
+const badgeCopied = ref(false);
 
 // Bump on any completion change so the progress bar / ticks recompute.
 const progressTick = ref(0);
@@ -39,6 +41,7 @@ function done(id: string): boolean {
   progressTick.value;
   return isComplete(track!.id, id);
 }
+const trackDone = computed(() => percent.value === 100);
 
 let iframeReady = false;
 let pendingRun = false;
@@ -125,8 +128,24 @@ function onMessage(e: MessageEvent) {
   }
 }
 
-// Hook for phase 4 (confetti); no-op for now.
-function onSolved() {}
+function onSolved() {
+  // Burst from the Check button so the celebration points at the action.
+  const btn = document.querySelector(".cn-tut__btn--check");
+  const r = btn?.getBoundingClientRect();
+  burst(r ? r.left + r.width / 2 : undefined, r ? r.top : undefined);
+}
+
+async function shareBadge() {
+  const text = `I completed the “${track!.title}” track in the Continuum tutorial 🎖️`;
+  const url = `${location.origin}${location.pathname}`;
+  try {
+    await navigator.clipboard.writeText(`${text}\n${url}`);
+    badgeCopied.value = true;
+    setTimeout(() => (badgeCopied.value = false), 1800);
+  } catch {
+    /* clipboard blocked */
+  }
+}
 
 function goto(i: number) {
   if (i < 0 || i >= total.value) return;
@@ -212,6 +231,15 @@ onBeforeUnmount(() => {
           {{ s.title }}
         </li>
       </ol>
+      <div v-if="trackDone" class="cn-tut__badge">
+        <div class="cn-tut__medal">🎖️</div>
+        <strong>{{ track.title }} mastered!</strong>
+        <p>You finished every step. Nice work.</p>
+        <button @click="shareBadge">
+          {{ badgeCopied ? "Copied ✓" : "Share your badge" }}
+        </button>
+      </div>
+
       <h2>{{ step.title }}</h2>
       <div class="cn-tut__prose" v-html="renderTask(step.task)"></div>
       <div class="cn-tut__nudges">
@@ -352,6 +380,36 @@ onBeforeUnmount(() => {
 .cn-tut__step--done .cn-tut__tick {
   background: var(--vp-c-brand-1);
   color: #fff;
+}
+.cn-tut__badge {
+  text-align: center;
+  padding: 16px;
+  margin-bottom: 16px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, var(--vp-c-brand-soft), var(--vp-c-default-soft));
+  border: 1px solid var(--vp-c-brand-1);
+}
+.cn-tut__medal {
+  font-size: 40px;
+  line-height: 1;
+}
+.cn-tut__badge strong {
+  display: block;
+  margin: 6px 0 2px;
+}
+.cn-tut__badge p {
+  font-size: 13px;
+  color: var(--vp-c-text-2);
+  margin: 0 0 10px;
+}
+.cn-tut__badge button {
+  font-size: 13px;
+  padding: 5px 14px;
+  border-radius: 6px;
+  border: 1px solid var(--vp-c-brand-1);
+  background: var(--vp-c-brand-1);
+  color: #fff;
+  cursor: pointer;
 }
 .cn-tut__prose {
   font-size: 14px;

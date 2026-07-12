@@ -22,7 +22,9 @@ export default function Counter() {
 Write Continuum, see it run. The framework here is the real published build —
 the same bytes you get from npm. Edit the code and hit **Run**.
 
-<Playground height="380px" :code="counterCode" />
+<ClientOnly>
+  <Playground height="380px" :code="counterCode" />
+</ClientOnly>
 
 ::: tip
 Export a component as `default` and the playground mounts it. Use `console.log`

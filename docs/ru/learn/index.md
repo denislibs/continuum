@@ -12,4 +12,6 @@ sidebar: false
 увидите, во что превращается ваш JSX: никаких ре-рендеров, только точечные
 обновления DOM.
 
-<Tutorial track="basics" />
+<ClientOnly>
+  <Tutorial track="basics" />
+</ClientOnly>
