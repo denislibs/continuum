@@ -129,7 +129,14 @@ export class Transaction {
   static current: Transaction | null = null;
   private static seqCounter = 0;
 
-  // Binary min-heap over `prioritized`, keyed by (rank, seq).
+  // Binary min-heap over `prioritized`, keyed by (rank, seq) — but the
+  // FIRST entry of a moment lives inline in three fields: most moments
+  // schedule exactly one prioritized action (a lone `set`), and paying a
+  // heap entry object + sift for it showed up in moment-throughput
+  // profiles. The heap only engages from the second entry on.
+  private p1a: ((t: Transaction) => void) | null = null;
+  private p1r = 0;
+  private p1s = 0;
   private heap: Entry[] = [];
   private lastQ: Array<() => void> = [];
   // flat (fn, arg) pairs — a closure per delivery per listener showed up
@@ -138,7 +145,19 @@ export class Transaction {
 
   // --- phase 1: prioritized work (rank order) ---
   prioritized(rank: number, action: (t: Transaction) => void): void {
-    this.heapPush({ rank, seq: Transaction.seqCounter++, action });
+    const seq = Transaction.seqCounter++;
+    if (this.p1a === null && this.heap.length === 0) {
+      this.p1a = action;
+      this.p1r = rank;
+      this.p1s = seq;
+      return;
+    }
+    if (this.p1a !== null) {
+      // spill the inline entry so heap ordering sees both
+      this.heapPush({ rank: this.p1r, seq: this.p1s, action: this.p1a });
+      this.p1a = null;
+    }
+    this.heapPush({ rank, seq, action });
   }
 
   // --- phase 2: end-of-moment commits (hold, switch) ---
@@ -216,10 +235,24 @@ export class Transaction {
 
   private drainLoop(): void {
     for (;;) {
-      let e = this.heapPop();
-      while (e !== undefined) {
+      for (;;) {
+        // the inline slot competes with the heap top by (rank, seq)
+        const a = this.p1a;
+        if (a !== null) {
+          const h = this.heap;
+          if (
+            h.length === 0 ||
+            this.p1r < h[0].rank ||
+            (this.p1r === h[0].rank && this.p1s < h[0].seq)
+          ) {
+            this.p1a = null;
+            a(this);
+            continue;
+          }
+        }
+        const e = this.heapPop();
+        if (e === undefined) break;
         e.action(this);
-        e = this.heapPop();
       }
       if (this.lastQ.length === 0) break;
       const ls = this.lastQ;
@@ -323,18 +356,21 @@ export class Stream<A> {
    * (hold/accum/once/distinct/switch) use `consume` instead — their value
    * depends on the full history and must not miss occurrences.
    */
-  private srcs: Array<{ i: Stream<any>; h: Handler<any> }> | null = null;
-  /** Live input attachments while awake (parallel arrays); null asleep. */
-  private liveS: Array<Stream<any>> | null = null;
-  private liveE: Array<Edge<any>> | null = null;
+  // flat [input0, handler0, input1, handler1, …] — no per-entry object
+  private srcs: unknown[] | null = null;
+  /** Live attachments while awake, interleaved [src, edge, …]; null asleep. */
+  private live: unknown[] | null = null;
   /** @internal Reseed hook run on wake, before inputs attach (lift caches). */
   onWake: (() => void) | null = null;
   /** @internal Extra teardown run on sleep/dispose (flatten's inner subscription). */
   onSleep: (() => void) | null = null;
+  // bit 1 — disposed, bit 2 — pinned (retain): two booleans in one slot
+  private flags = 0;
+
   /** True once `dispose()` has run. */
-  disposed = false;
-  /** Exempt from the listener-count cascade (see `retain`). */
-  private pinned = false;
+  get disposed(): boolean {
+    return (this.flags & 1) !== 0;
+  }
 
   constructor(rank = 0) {
     this.rank = rank;
@@ -406,7 +442,7 @@ export class Stream<A> {
 
   /** @internal Closure-free subscription: returns the edge record. */
   attach_(target: Stream<any> | null, h: Handler<A>): Edge<any> {
-    if (this.disposed) {
+    if ((this.flags & 1) !== 0) {
       throw new Error(
         "Continuum: this node was disposed — dispose() was called on it — " +
           "and cannot be re-subscribed. Create derivations inside the " +
@@ -451,15 +487,14 @@ export class Stream<A> {
 
   /** @internal Register a lazy input (see `srcs`). */
   source<X>(input: Stream<X>, h: Handler<X>): void {
-    (this.srcs ??= []).push({ i: input, h });
-    if (this.liveS) {
-      this.liveS.push(input);
-      this.liveE!.push(input.attach_(this, h));
+    (this.srcs ??= []).push(input, h);
+    if (this.live) {
+      this.live.push(input, input.attach_(this, h));
     }
   }
 
   private wake(): void {
-    if (this.liveS || !this.srcs) return;
+    if (this.live || !this.srcs) return;
     // Iterative wave: listen_ re-enters wake for each colder input, and a
     // cold chain can be arbitrarily deep — the module-level queue flattens
     // the recursion (same reasoning as the iterative ensureBiggerThan).
@@ -471,7 +506,7 @@ export class Stream<A> {
     try {
       while (wakeQueue.length > 0) {
         const n = wakeQueue.pop()!;
-        if (n.liveS || !n.srcs) continue;
+        if (n.live || !n.srcs) continue;
         if (n.onWake) {
           // Reseed from COMMITTED values. A wake inside a moment (a switch
           // rewire runs in the last phase) may precede pending hold
@@ -483,11 +518,11 @@ export class Stream<A> {
           else n.onWake();
         }
         // set before attaching: source() during wake appends
-        n.liveS = [];
-        n.liveE = [];
-        for (const s of n.srcs) {
-          n.liveS.push(s.i);
-          n.liveE.push(s.i.attach_(n, s.h));
+        const live: unknown[] = (n.live = []);
+        const srcs = n.srcs;
+        for (let i = 0; i < srcs.length; i += 2) {
+          const input = srcs[i] as Stream<any>;
+          live.push(input, input.attach_(n, srcs[i + 1] as Handler<any>));
         }
       }
     } finally {
@@ -496,13 +531,14 @@ export class Stream<A> {
   }
 
   private sleep(): void {
-    if (!this.liveS || this.pinned || (this.obs?.length ?? 0) > 0) return;
-    const ls = this.liveS;
-    const le = this.liveE!;
-    this.liveS = null;
-    this.liveE = null;
+    if (!this.live || (this.flags & 2) !== 0 || (this.obs?.length ?? 0) > 0)
+      return;
+    const live = this.live;
+    this.live = null;
     // inputs lose a listener -> they may sleep too
-    for (let i = 0; i < ls.length; i++) ls[i].unlisten_(le[i]);
+    for (let i = 0; i < live.length; i += 2) {
+      (live[i] as Stream<any>).unlisten_(live[i + 1] as Edge<any>);
+    }
     this.onSleep?.();
   }
 
@@ -527,14 +563,14 @@ export class Stream<A> {
    * through derived intermediates that become unused, but never to sources.
    */
   dispose(): void {
-    if (this.disposed) return;
-    this.disposed = true;
-    if (this.liveS) {
-      const ls = this.liveS;
-      const le = this.liveE!;
-      this.liveS = null;
-      this.liveE = null;
-      for (let i = 0; i < ls.length; i++) ls[i].unlisten_(le[i]);
+    if ((this.flags & 1) !== 0) return;
+    this.flags |= 1;
+    if (this.live) {
+      const live = this.live;
+      this.live = null;
+      for (let i = 0; i < live.length; i += 2) {
+        (live[i] as Stream<any>).unlisten_(live[i + 1] as Edge<any>);
+      }
       this.onSleep?.();
     }
     this.srcs = null;
@@ -633,9 +669,31 @@ export class Stream<A> {
     return out;
   }
 
-  /** Fold occurrences into a behavior. */
+  /**
+   * Fold occurrences into a behavior. Fused: one node and one edge instead
+   * of the accumE + hold pair — every counter in every app pays half.
+   */
   accum<B>(init: B, f: (a: A, acc: B) => B): Wire<B> {
-    return this.accumE(init, f).hold(init);
+    const scope = requireScope("accum()", "src.accum(init, f)");
+    const out = new Stream<B>(this.rank + 1);
+    let value = init;
+    let stagedTx: Transaction | null = null;
+    let staged: B;
+    const un = this.listen_(out, (t, a) => {
+      if (stagedTx !== t) {
+        stagedTx = t;
+        t.last(() => {
+          if (stagedTx === t) {
+            value = staged;
+            stagedTx = null;
+          }
+        });
+      }
+      staged = f(a, value); // folds over the committed (pre-moment) state
+      out.send_(t, staged);
+    });
+    scope.onDispose(un);
+    return new Wire<B>(() => value, out);
   }
 
   /**
@@ -743,7 +801,7 @@ export class Stream<A> {
    * listeners come and go). Never required for correctness.
    */
   retain(): this {
-    this.pinned = true;
+    this.flags |= 2;
     return this;
   }
 }
@@ -1075,70 +1133,71 @@ export function newStream<A>(): [Stream<A>, (a: A) => void] {
 // its own — a cell needs no owner). `stage` is the in-transaction writer
 // used by processes (`wire().on()`); `set` is the public entry that opens a
 // moment.
-interface Cell<A> {
-  w: Wire<A>;
-  updates: Stream<A>;
-  set: (a: A) => void;
-  update: (f: (state: A) => A) => void;
-  stage: (t: Transaction, a: A) => void;
-  /** Staged value if this moment already wrote one, else the committed one. */
-  pending: (t: Transaction) => A;
-}
 
-function makeCell<A>(init: A, eq: (prev: A, next: A) => boolean): Cell<A> {
-  const updates = new Stream<A>(0);
-  let value = init;
-  let stagedTx: Transaction | null = null;
-  let staged: A;
-  const pending = (t: Transaction) => (stagedTx === t ? staged : value);
-  const stage = (t: Transaction, a: A) => {
-    if (stagedTx !== t) {
-      stagedTx = t;
+// A source cell as a class: prototype methods instead of a closure pack —
+// a cell used to cost ~7 allocations (profiled hot in selector()/wire()),
+// now Stream + Wire + this record + one sampleNoTrans closure.
+class Cell<A> {
+  updates: Stream<A>;
+  w: Wire<A>;
+  private value: A;
+  private eq: (prev: A, next: A) => boolean;
+  private stagedTx: Transaction | null = null;
+  private staged!: A;
+
+  constructor(init: A, eq: (prev: A, next: A) => boolean) {
+    this.value = init;
+    this.eq = eq;
+    const updates = (this.updates = new Stream<A>(0));
+    this.w = new Wire<A>(() => this.value, updates);
+  }
+
+  /** Staged value if this moment already wrote one, else the committed one. */
+  pending(t: Transaction | null): A {
+    return t !== null && this.stagedTx === t ? this.staged : this.value;
+  }
+
+  stage(t: Transaction, a: A): void {
+    if (this.stagedTx !== t) {
+      this.stagedTx = t;
       t.last(() => {
-        if (stagedTx === t) {
-          value = staged;
-          stagedTx = null;
+        if (this.stagedTx === t) {
+          this.value = this.staged;
+          this.stagedTx = null;
         }
       });
       // ONE updates occurrence per moment — the final staged value.
       // Several sets in one batch coalesce; the intermediate values never
       // reach the graph (they are not values the cell ever held).
-      t.prioritized(updates.rank, (t2) => {
-        if (stagedTx === t2) updates.send_(t2, staged);
+      t.prioritized(this.updates.rank, (t2) => {
+        if (this.stagedTx === t2) this.updates.send_(t2, this.staged);
       });
     }
-    staged = a; // last write wins within a moment
-  };
+    this.staged = a; // last write wins within a moment
+  }
+
   // Skip against the PENDING value: the staged one if this very moment
   // already wrote (4 → 5 → 4 in one batch must commit 4), else the
   // committed one. Staging dies with an aborted moment, so the skip can
   // never be poisoned by a throw (law 2) — no side variable to desync.
-  const set = (a: A) => {
+  set(a: A): void {
     const t0 = Transaction.current;
-    if (eq(t0 && stagedTx === t0 ? staged : value, a)) return;
+    if (this.eq(this.pending(t0), a)) return;
     if (t0?.pureZone) {
       throw new Error(
         "Source fired inside a pure combinator (map/filter/at/accum). " +
           "Keep those callbacks pure — fire from a handler, `listen`, or `perform`.",
       );
     }
-    Transaction.run((t) => stage(t, a));
-  };
+    Transaction.run((t) => this.stage(t, a));
+  }
+
   // Read-modify-write over the PENDING value: several updates inside one
   // batch compose (set(sample() + 1) would read the stale pre-moment value
   // twice — that is the hold delay working as documented).
-  const update = (f: (state: A) => A) => {
-    const t0 = Transaction.current;
-    set(f(t0 && stagedTx === t0 ? staged : value));
-  };
-  return {
-    w: new Wire<A>(() => value, updates),
-    updates,
-    set,
-    update,
-    stage,
-    pending,
-  };
+  update(f: (state: A) => A): void {
+    this.set(f(this.pending(Transaction.current)));
+  }
 }
 
 /**
@@ -1157,8 +1216,8 @@ export function newBehavior<A>(
   init: A,
   eq: (prev: A, next: A) => boolean = Object.is,
 ): [Wire<A>, (a: A) => void] {
-  const c = makeCell(init, eq);
-  return [c.w, c.set];
+  const c = new Cell(init, eq);
+  return [c.w, (a: A) => c.set(a)];
 }
 
 /**
@@ -1215,7 +1274,7 @@ export function wire<A>(
   init: A,
   eq: (prev: A, next: A) => boolean = Object.is,
 ): WireSource<A> {
-  const c = makeCell(init, eq);
+  const c = new Cell(init, eq);
   const on = <E>(e: Stream<E>, f: (state: A, event: E) => A) => {
     const scope = requireScope("wire(...).on(...)", "wire(0).on(e, f)");
     const un = e.listen_(c.updates, (t, ev) => {
@@ -1227,8 +1286,8 @@ export function wire<A>(
     return src;
   };
   const src: WireSource<A> = Object.assign(c.w, {
-    set: c.set,
-    update: c.update,
+    set: (a: A) => c.set(a),
+    update: (f: (state: A) => A) => c.update(f),
     on,
   });
   return src;
@@ -1271,7 +1330,7 @@ export function selector<K, V>(
   return (key: K) => {
     let c = cells.get(key);
     if (!c) {
-      c = makeCell<boolean | V>(key === current ? onVal : offVal, Object.is);
+      c = new Cell<boolean | V>(key === current ? onVal : offVal, Object.is);
       cells.set(key, c);
     }
     return c.w;

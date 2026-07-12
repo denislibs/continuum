@@ -29,11 +29,18 @@ class Owner extends Scope {
   // Lazily allocated — most owners never carry context, so we skip the Map
   // until `provide` writes one (hot path when building many rows).
   contexts: Map<symbol, unknown> | null = null;
+  /** Top-level nodes of a scoped build (see buildScoped). */
+  nodes: Node[] | null = null;
 
   dispose(): void {
     if (this.disposed) return;
     super.dispose();
     this.mounts = null; // never mounted → its onMount callbacks never run
+  }
+
+  /** Run this subtree's pending onMount callbacks (post-insertion). */
+  flush(): void {
+    flushMounts(this);
   }
 }
 
@@ -231,6 +238,11 @@ export function insertChild(
   }
   if (Array.isArray(child)) {
     for (const c of child) insertChild(parent, c, anchor);
+    return;
+  }
+  // primitive into an empty parent: textContent is the fastest text write
+  if (anchor === null && parent.firstChild === null) {
+    parent.textContent = String(child);
     return;
   }
   parent.insertBefore(document.createTextNode(String(child)), anchor);
@@ -467,14 +479,10 @@ export function h(
 // runs the scope's pending onMount callbacks (call it after insertion).
 // A throw mid-build disposes the partial scope (its cleanups run) before
 // propagating — no half-built ownership survives.
-function buildScoped(
-  owner: Scope | null,
-  build: () => Child,
-): { nodes: Node[]; dispose: () => void; flush: () => void } {
+function buildScoped(owner: Scope | null, build: () => Child): Owner {
   const scopeOwner = new Owner(owner);
-  let nodes: Node[];
   try {
-    nodes = runInScope(scopeOwner, () => {
+    scopeOwner.nodes = runInScope(scopeOwner, () => {
       const built = build();
       // Fast path: a single element/text node (the common row/component case)
       // needs no fragment or NodeList copy.
@@ -492,11 +500,8 @@ function buildScoped(
     scopeOwner.dispose();
     throw err;
   }
-  return {
-    nodes,
-    dispose: () => scopeOwner.dispose(),
-    flush: () => flushMounts(scopeOwner),
-  };
+  // the Owner IS the handle: no {nodes, dispose, flush} record + 2 closures
+  return scopeOwner;
 }
 
 // Error-boundary channel over the ownership tree. `Catch` registers a
@@ -539,11 +544,7 @@ export function dyn<T>(b: Wire<T>, render: (v: T) => Child): Node {
   frag.appendChild(start);
   frag.appendChild(end);
 
-  let current: {
-    nodes: Node[];
-    dispose: () => void;
-    flush: () => void;
-  } | null = null;
+  let current: Owner | null = null;
   // Level-triggered: render the behavior's CURRENT value, not the delivered
   // occurrence. A listener that runs earlier in the post phase may re-enter
   // with a new moment (e.g. a router redirect); the stale queued delivery
@@ -574,7 +575,7 @@ export function dyn<T>(b: Wire<T>, render: (v: T) => Child): Node {
         n = next;
       }
     }
-    let built: { nodes: Node[]; dispose: () => void; flush: () => void };
+    let built: Owner;
     try {
       built = buildScoped(owner, () => render(v));
     } catch (err) {
@@ -583,7 +584,8 @@ export function dyn<T>(b: Wire<T>, render: (v: T) => Child): Node {
       const handler = lookupErrorHandler(owner);
       if (!handler) throw err;
       handler(err); // opens a new moment; the boundary re-renders itself
-      built = { nodes: [], dispose: () => {}, flush: () => {} };
+      built = new Owner(null);
+      built.nodes = [];
     }
     if (epoch !== myEpoch) {
       // A re-entrant update already rendered a newer value.
@@ -592,7 +594,7 @@ export function dyn<T>(b: Wire<T>, render: (v: T) => Child): Node {
     }
     current = built;
     const parent = end.parentNode!;
-    for (const n of current.nodes) parent.insertBefore(n, end);
+    for (const n of current.nodes!) parent.insertBefore(n, end);
     // During the initial build the whole tree flushes at mount; afterwards
     // each freshly inserted subtree flushes here.
     if (!(owner instanceof Owner) || owner.mounted) current.flush();
@@ -605,8 +607,7 @@ export function dyn<T>(b: Wire<T>, render: (v: T) => Child): Node {
 
 interface Row<K> {
   key: K;
-  nodes: Node[];
-  dispose: () => void;
+  o: Owner; // nodes live on the owner; dispose/flush are its methods
 }
 
 /** Longest strictly-increasing subsequence; returns the set of kept indices. */
@@ -660,7 +661,7 @@ export function each<T, K>(
     const seen = new Set<K>();
     const next: Array<Row<K>> = [];
     const seq: number[] = [];
-    const freshFlushes: Array<() => void> = [];
+    const freshFlushes: Owner[] = [];
     for (const item of list) {
       const k = key(item);
       if (seen.has(k)) continue; // duplicate keys: keep first
@@ -671,17 +672,18 @@ export function each<T, K>(
         seq.push(prevIdx);
       } else {
         const built = buildScoped(owner, () => render(item));
-        next.push({ key: k, nodes: built.nodes, dispose: built.dispose });
+        next.push({ key: k, o: built });
         seq.push(-1);
-        freshFlushes.push(built.flush);
+        freshFlushes.push(built);
       }
     }
 
     // dispose rows whose key disappeared
     for (const r of rows) {
       if (!seen.has(r.key)) {
-        r.dispose();
-        for (const n of r.nodes) if (n.parentNode) n.parentNode.removeChild(n);
+        r.o.dispose();
+        const nodes = r.o.nodes!;
+        for (const n of nodes) if (n.parentNode) n.parentNode.removeChild(n);
       }
     }
 
@@ -703,14 +705,15 @@ export function each<T, K>(
           batchAnchor = anchor;
         }
         // walking backwards: prepend to keep the row order
-        for (let j = row.nodes.length - 1; j >= 0; j--) {
-          batch.insertBefore(row.nodes[j], batch.firstChild);
+        const nodes = row.o.nodes!;
+        for (let j = nodes.length - 1; j >= 0; j--) {
+          batch.insertBefore(nodes[j], batch.firstChild);
         }
       } else if (batch) {
         parent.insertBefore(batch, batchAnchor);
         batch = null;
       }
-      anchor = row.nodes[0] ?? anchor;
+      anchor = row.o.nodes![0] ?? anchor;
     }
     if (batch) parent.insertBefore(batch, batchAnchor);
     // Re-focus ONLY if a move actually stole it: an unconditional focus()
@@ -726,12 +729,12 @@ export function each<T, K>(
 
     rows = next;
     if (!(owner instanceof Owner) || owner.mounted)
-      for (const f of freshFlushes) f();
+      for (const f of freshFlushes) f.flush();
   };
 
   bind(items.listen(update));
   onCleanup(() => {
-    for (const r of rows) r.dispose();
+    for (const r of rows) r.o.dispose();
   });
   return frag;
 }
@@ -851,10 +854,10 @@ export function bindInput(
 export function portal(target: Node, child: Child): Node {
   needRegionOwner("portal()");
   const built = buildScoped(getScope(), () => child);
-  for (const n of built.nodes) target.appendChild(n);
+  for (const n of built.nodes!) target.appendChild(n);
   onCleanup(() => {
     built.dispose();
-    for (const n of built.nodes) if (n.parentNode) n.parentNode.removeChild(n);
+    for (const n of built.nodes!) if (n.parentNode) n.parentNode.removeChild(n);
   });
   return document.createComment("portal");
 }
