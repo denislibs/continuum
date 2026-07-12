@@ -7,7 +7,8 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "bench": "node bench.mjs"
+    "bench": "node bench.mjs",
+    "bench:mem": "node mem.mjs"
   },
   "dependencies": {
     "@continuum-js/dom": "0.18.0",

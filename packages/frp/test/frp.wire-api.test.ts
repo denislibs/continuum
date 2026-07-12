@@ -44,6 +44,17 @@ describe("Wire — the type rename", () => {
     expect(seen).toEqual(["a", "c"]);
   });
 
+  test(".set/.update are standalone — safe to pass as handlers", () => {
+    // bindInput(draft, draft.set) in the examples relies on this: the
+    // setters must not lose their cell when detached from the wire.
+    const count = wire(0);
+    const { set, update } = count;
+    set(5);
+    expect(count.sample()).toBe(5);
+    update((n) => n + 1);
+    expect(count.sample()).toBe(6);
+  });
+
   test("stream() is a source with .fire", () => {
     const clicks = stream<number>();
     const seen: number[] = [];

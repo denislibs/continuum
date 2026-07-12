@@ -60,6 +60,42 @@ describe("selector", () => {
     });
   });
 
+  // Eviction: a cell nobody listens to must not be retained — 10k rows
+  // cleared used to leave 10k cells (≈2.9 MB) in the Map forever. A fresh
+  // request after eviction reseeds from the current selection, so the only
+  // observable trace is wire identity.
+  test("evicts a cell once its last listener detaches", () => {
+    root(() => {
+      const selected = wire<number | null>(null);
+      const isSel = selector(selected);
+      const w1 = isSel(1);
+      const un1 = w1.listen(() => {});
+      const un2 = w1.listen(() => {});
+      expect(isSel(1)).toBe(w1); // alive while listened
+      un1();
+      expect(isSel(1)).toBe(w1); // still one listener left
+      un2();
+      const w2 = isSel(1);
+      expect(w2).not.toBe(w1); // evicted → a fresh cell
+      expect(w2.sample()).toBe(false); // reseeded from the current selection
+      selected.set(1);
+      expect(isSel(1).sample()).toBe(true); // the fresh cell still flips
+    });
+  });
+
+  test("an evicted cell for the SELECTED key reseeds as true", () => {
+    root(() => {
+      const selected = wire(2);
+      const isSel = selector(selected);
+      const un = isSel(2).listen(() => {});
+      un(); // evict
+      expect(isSel(2).sample()).toBe(true); // key === current selection
+      selected.set(3);
+      expect(isSel(2).sample()).toBe(false);
+      expect(isSel(3).sample()).toBe(true);
+    });
+  });
+
   test("dies with its scope; outside a scope it teaches", () => {
     const selected = wire(1);
     expect(() => selector(selected)).toThrow(/scope|root\(\)/);

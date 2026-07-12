@@ -10,8 +10,10 @@ import {
   Scope,
   getScope,
   runInScope,
+  observe_,
+  unobserve_,
 } from "@continuum-js/frp";
-import type { Unlisten, WireSource } from "@continuum-js/frp";
+import type { Unlisten, WireSource, ObserverHandle } from "@continuum-js/frp";
 
 // ---------------------------------------------------------------------------
 // Ownership tree (§9) — lifecycle, not dependency tracking.
@@ -31,11 +33,20 @@ class Owner extends Scope {
   contexts: Map<symbol, unknown> | null = null;
   /** Top-level nodes of a scoped build (see buildScoped). */
   nodes: Node[] | null = null;
+  // Wire bindings as flat (updates, edge-handle) pairs — see bindWire.
+  subs: unknown[] | null = null;
 
   dispose(): void {
     if (this.disposed) return;
     super.dispose();
     this.mounts = null; // never mounted → its onMount callbacks never run
+    const subs = this.subs;
+    if (subs) {
+      this.subs = null;
+      for (let i = 0; i < subs.length; i += 2) {
+        unobserve_(subs[i] as Stream<unknown>, subs[i + 1] as ObserverHandle);
+      }
+    }
   }
 
   /** Run this subtree's pending onMount callbacks (post-insertion). */
@@ -128,6 +139,32 @@ export function onMount(fn: () => void): void {
 // always been allowed — its bindings just live forever.
 function bind(un: Unlisten): void {
   getScope()?.onDispose(un);
+}
+
+// Bind `h` to a wire — `w.listen(h)` semantics (current value now, then
+// every change) without the closure tax: the subscription is an edge record
+// stored as a flat (stream, handle) pair on the Owner. A binding used to
+// cost two closures plus a cleanups slot; it is now two array slots.
+function bindWire<T>(w: Wire<T>, h: (v: T) => void): void {
+  const handle = observe_(w.updates, h);
+  try {
+    h(w.sampleNoTrans());
+  } catch (err) {
+    unobserve_(w.updates, handle); // don't leak the subscription (see Wire.listen)
+    throw err;
+  }
+  const s = getScope();
+  if (s !== null && hasSubs(s)) (s.subs ??= []).push(w.updates, handle);
+  else if (s) s.onDispose(() => unobserve_(w.updates, handle));
+  // no scope: an unowned static fragment — the binding lives forever (as before)
+}
+
+// Duck-typed Owner check (only Owner declares `subs`): an `instanceof
+// Owner` inside bindWire would drag the whole Owner/Scope machinery into
+// the compiled-template bundle, which otherwise tree-shakes it away. The
+// guard mentions Owner as a TYPE only — erased at runtime.
+function hasSubs(s: Scope): s is Owner {
+  return (s as Owner).subs !== undefined;
 }
 
 // ---------------------------------------------------------------------------
@@ -228,7 +265,7 @@ export function insertChild(
   if (child instanceof Wire) {
     // fine-grained: one text node bound to one behavior
     const text = document.createTextNode("");
-    bind(child.listen((v) => (text.data = toText(v))));
+    bindWire(child, (v) => (text.data = toText(v)));
     parent.insertBefore(text, anchor);
     return;
   }
@@ -416,14 +453,12 @@ export function applyProp(el: Element, key: string, value: unknown): void {
       // Diff against the previous object: a key that disappears must be
       // cleared, not left painted on the element.
       let prevStyle: unknown;
-      bind(
-        value.listen((v) => {
-          setStyle(el, prevStyle, v);
-          prevStyle = v;
-        }),
-      );
+      bindWire(value, (v) => {
+        setStyle(el, prevStyle, v);
+        prevStyle = v;
+      });
     } else {
-      bind(value.listen((v) => setProp(el, key, v)));
+      bindWire(value, (v) => setProp(el, key, v));
     }
     return;
   }
@@ -600,7 +635,7 @@ export function dyn<T>(b: Wire<T>, render: (v: T) => Child): Node {
     if (!(owner instanceof Owner) || owner.mounted) current.flush();
   };
 
-  bind(b.listen(update));
+  bindWire(b, update);
   onCleanup(() => current?.dispose());
   return frag;
 }
@@ -732,7 +767,7 @@ export function each<T, K>(
       for (const f of freshFlushes) f.flush();
   };
 
-  bind(items.listen(update));
+  bindWire(items, update);
   onCleanup(() => {
     for (const r of rows) r.o.dispose();
   });

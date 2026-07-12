@@ -55,6 +55,7 @@ export default tseslint.config(
     files: [
       "scripts/**/*.mjs",
       "benchmark/bench.mjs",
+      "benchmark/mem.mjs",
       "packages/create-continuum/**/*.mjs",
     ],
     languageOptions: {
