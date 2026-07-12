@@ -1,6 +1,6 @@
 {
   "name": "@continuum-js/example-animation",
-  "version": "0.2.19",
+  "version": "0.2.20",
   "private": true,
   "type": "module",
   "scripts": {
@@ -9,8 +9,8 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@continuum-js/dom": "0.17.0",
-    "@continuum-js/frp": "0.17.0"
+    "@continuum-js/dom": "0.18.0",
+    "@continuum-js/frp": "0.18.0"
   },
   "devDependencies": {
     "vite": "^8.1.3"
