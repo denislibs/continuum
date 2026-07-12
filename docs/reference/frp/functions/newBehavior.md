@@ -8,7 +8,7 @@
 
 > **newBehavior**\<`A`\>(`init`, `eq?`): \[[`Wire`](../classes/Wire.md)\<`A`\>, (`a`) => `void`\]
 
-Defined in: [index.ts:1115](https://github.com/denislibs/continuum/blob/cd06cfd704b2e2e6c2e5200a78b1a8b9bff05997/packages/frp/src/index.ts#L1115)
+Defined in: [index.ts:1156](https://github.com/denislibs/continuum/blob/06378b217e7ab47a03a557199f3b883e3c7e30c6/packages/frp/src/index.ts#L1156)
 
 A source behavior plus its setter.
 

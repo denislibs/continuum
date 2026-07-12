@@ -38,6 +38,8 @@
 ## Functions
 
 - [animationFrames](functions/animationFrames.md)
+- [applyEvent](functions/applyEvent.md)
+- [applyProp](functions/applyProp.md)
 - [bindInput](functions/bindInput.md)
 - [Catch](functions/Catch.md)
 - [createContext](functions/createContext.md)
@@ -47,6 +49,7 @@
 - [Each](functions/Each-1.md)
 - [Fragment](functions/Fragment.md)
 - [h](functions/h.md)
+- [insertChild](functions/insertChild.md)
 - [mount](functions/mount.md)
 - [onCleanup](functions/onCleanup.md)
 - [onMount](functions/onMount.md)

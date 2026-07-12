@@ -12,6 +12,16 @@ export type Unlisten = () => void;
 // A subscriber inside the graph: receives the enclosing transaction + value.
 type Handler<A> = (t: Transaction, a: A) => void;
 
+// One graph edge: the handler, the receiving node (null for leaf observers —
+// rank propagation walks `t`), and this edge's index in the source's `obs`
+// array (kept current by swap-removal; -1 once removed). One small record
+// replaces what used to be a Set entry + a refcounted Map entry + a closure.
+interface Edge<A> {
+  h: Handler<A>;
+  t: Stream<any> | null;
+  i: number;
+}
+
 // ---------------------------------------------------------------------------
 // Scope — ownership for state and effects.
 // ---------------------------------------------------------------------------
@@ -122,7 +132,9 @@ export class Transaction {
   // Binary min-heap over `prioritized`, keyed by (rank, seq).
   private heap: Entry[] = [];
   private lastQ: Array<() => void> = [];
-  private postQ: Array<() => void> = [];
+  // flat (fn, arg) pairs — a closure per delivery per listener showed up
+  // in update-path profiles
+  private postQ: unknown[] = [];
 
   // --- phase 1: prioritized work (rank order) ---
   prioritized(rank: number, action: (t: Transaction) => void): void {
@@ -135,8 +147,8 @@ export class Transaction {
   }
 
   // --- phase 3: observer side effects, run after the moment closes ---
-  post(action: () => void): void {
-    this.postQ.push(action);
+  post<X>(fn: (x: X) => void, arg: X): void {
+    this.postQ.push(fn, arg);
   }
 
   private heapPush(e: Entry): void {
@@ -239,9 +251,9 @@ export class Transaction {
     t.postQ = [];
     let firstErr: unknown;
     let hasErr = false;
-    for (const p of posts) {
+    for (let i = 0; i < posts.length; i += 2) {
       try {
-        p();
+        (posts[i] as (x: unknown) => void)(posts[i + 1]);
       } catch (err) {
         if (!hasErr) {
           hasErr = true;
@@ -279,7 +291,7 @@ function requireScope(what: string, example: string): Scope {
 let wakeQueue: Stream<any>[] | null = null;
 
 // Shared frozen snapshot for listener-less delivery (send_ to nobody).
-const EMPTY_SNAP: Handler<unknown>[] = [];
+const EMPTY_SNAP: Array<Edge<any>> = [];
 
 // A rank beyond any realistic static graph depth. Reaching it means the live
 // topology is cyclic through time (see the error in `ensureBiggerThan`).
@@ -292,19 +304,17 @@ const RANK_LIMIT = 1 << 16;
 export class Stream<A> {
   /** @internal Topological height in the graph (propagation order). */
   rank: number;
-  // A Set keeps unlisten O(1) — mass teardown of thousands of bindings on
-  // one source used to be O(n²) with indexOf+splice. Insertion order is
-  // preserved (observers stay FIFO). Every subscription passes a fresh
-  // closure, so Set's dedup never bites.
-  private listeners: Set<Handler<A>> | null = null;
-  /** Cached delivery snapshot of `listeners`; invalidated on mutation. */
-  private snap: Handler<A>[] | null = null;
-  /**
-   * Downstream nodes, used to keep ranks topologically sorted. Refcounted:
-   * an entry is dropped when its last subscription unlistens, so a
-   * long-lived source doesn't accumulate dead targets across churn.
-   */
-  private targets: Map<Stream<any>, number> | null = null;
+  // Observer edges, slot-style: removal swaps with the last edge (O(1), no
+  // hashing). Rank propagation walks the same array via `Edge.t` — the old
+  // separate refcounted targets Map was this information duplicated.
+  // Relative delivery order of two surviving listeners may change after an
+  // unrelated removal (same as Solid's slots); effects still run in
+  // delivery order within a moment.
+  // typed `any` so Edge's contravariant handler slot does not make
+  // Stream invariant in A (Wire<string> must stay a Wire<unknown>)
+  private obs: Array<Edge<any>> | null = null;
+  /** Cached delivery snapshot of `obs`; invalidated on mutation. */
+  private snap: Array<Edge<any>> | null = null;
   /** Teardown handles for this node's own subscriptions to its inputs. */
   private cleanups: Array<() => void> | null = null;
   /**
@@ -314,8 +324,9 @@ export class Stream<A> {
    * depends on the full history and must not miss occurrences.
    */
   private srcs: Array<{ i: Stream<any>; h: Handler<any> }> | null = null;
-  /** Live unlistens while awake; null while asleep. */
-  private live: Unlisten[] | null = null;
+  /** Live input attachments while awake (parallel arrays); null asleep. */
+  private liveS: Array<Stream<any>> | null = null;
+  private liveE: Array<Edge<any>> | null = null;
   /** @internal Reseed hook run on wake, before inputs attach (lift caches). */
   onWake: (() => void) | null = null;
   /** @internal Extra teardown run on sleep/dispose (flatten's inner subscription). */
@@ -375,10 +386,13 @@ export class Stream<A> {
       }
       onPath.add(n);
       n.rank = l + 1;
-      if (!n.targets) continue;
-      for (const t of n.targets.keys()) {
+      if (!n.obs) continue;
+      for (const e of n.obs) {
+        const t = e.t;
+        if (t === null) continue;
         if (onPath.has(t))
           throw new Error("Continuum: dependency cycle detected");
+        // duplicate edges to one target just revisit an already-high rank
         stack.push({ n: t, l: n.rank });
       }
     }
@@ -386,39 +400,42 @@ export class Stream<A> {
 
   /** @internal Register an in-graph subscriber. Returns an unsubscribe handle. */
   listen_(target: Stream<any> | null, h: Handler<A>): Unlisten {
+    const rec = this.attach_(target, h);
+    return () => this.unlisten_(rec);
+  }
+
+  /** @internal Closure-free subscription: returns the edge record. */
+  attach_(target: Stream<any> | null, h: Handler<A>): Edge<any> {
     if (this.disposed) {
-      // The only path to `disposed` is an explicit dispose() — say so.
       throw new Error(
         "Continuum: this node was disposed — dispose() was called on it — " +
           "and cannot be re-subscribed. Create derivations inside the " +
           "scope that uses them.",
       );
     }
-    (this.listeners ??= new Set()).add(h);
+    const obs = (this.obs ??= []);
+    const rec: Edge<any> = { h, t: target, i: obs.length };
+    obs.push(rec);
     this.snap = null;
-    if (this.listeners.size === 1) this.wake();
-    if (target) {
-      const targets = (this.targets ??= new Map());
-      targets.set(target, (targets.get(target) ?? 0) + 1);
-      // keep the target strictly above this source (handles dynamic
-      // subscriptions from switchB/switchE onto deeper events).
-      target.ensureBiggerThan(this.rank);
+    if (obs.length === 1) this.wake();
+    // keep the target strictly above this source (handles dynamic
+    // subscriptions from flatten onto deeper events).
+    if (target) target.ensureBiggerThan(this.rank);
+    return rec;
+  }
+
+  /** @internal O(1) edge removal: swap with the last, fix its index. */
+  unlisten_(rec: Edge<any>): void {
+    const obs = this.obs;
+    if (!obs || rec.i < 0) return;
+    const last = obs.pop()!;
+    if (last !== rec) {
+      obs[rec.i] = last;
+      last.i = rec.i;
     }
-    let done = false;
-    return () => {
-      if (done) return;
-      done = true;
-      this.listeners?.delete(h);
-      this.snap = null;
-      if (target && this.targets) {
-        const n = this.targets.get(target);
-        if (n !== undefined) {
-          if (n <= 1) this.targets.delete(target);
-          else this.targets.set(target, n - 1);
-        }
-      }
-      this.sleep(); // no-op unless a lazy node just lost its last listener
-    };
+    rec.i = -1;
+    this.snap = null;
+    this.sleep(); // no-op unless a lazy node just lost its last listener
   }
 
   /** @internal Push an occurrence to every current subscriber. */
@@ -428,20 +445,21 @@ export class Stream<A> {
     // the bookkeeping tests). The snapshot is CACHED between mutations —
     // fan-out sources fire far more often than they churn listeners, so
     // steady-state delivery allocates nothing.
-    const ls = (this.snap ??= this.listeners
-      ? [...this.listeners]
-      : (EMPTY_SNAP as Handler<A>[]));
-    for (const h of ls) h(t, a);
+    const ls = (this.snap ??= this.obs ? [...this.obs] : EMPTY_SNAP);
+    for (const e of ls) e.h(t, a);
   }
 
   /** @internal Register a lazy input (see `srcs`). */
   source<X>(input: Stream<X>, h: Handler<X>): void {
     (this.srcs ??= []).push({ i: input, h });
-    if (this.live) this.live.push(input.listen_(this, h));
+    if (this.liveS) {
+      this.liveS.push(input);
+      this.liveE!.push(input.attach_(this, h));
+    }
   }
 
   private wake(): void {
-    if (this.live || !this.srcs) return;
+    if (this.liveS || !this.srcs) return;
     // Iterative wave: listen_ re-enters wake for each colder input, and a
     // cold chain can be arbitrarily deep — the module-level queue flattens
     // the recursion (same reasoning as the iterative ensureBiggerThan).
@@ -453,7 +471,7 @@ export class Stream<A> {
     try {
       while (wakeQueue.length > 0) {
         const n = wakeQueue.pop()!;
-        if (n.live || !n.srcs) continue;
+        if (n.liveS || !n.srcs) continue;
         if (n.onWake) {
           // Reseed from COMMITTED values. A wake inside a moment (a switch
           // rewire runs in the last phase) may precede pending hold
@@ -464,8 +482,13 @@ export class Stream<A> {
           if (t) t.last(n.onWake);
           else n.onWake();
         }
-        n.live = []; // set before attaching: source() during wake appends
-        for (const s of n.srcs) n.live.push(s.i.listen_(n, s.h));
+        // set before attaching: source() during wake appends
+        n.liveS = [];
+        n.liveE = [];
+        for (const s of n.srcs) {
+          n.liveS.push(s.i);
+          n.liveE.push(s.i.attach_(n, s.h));
+        }
       }
     } finally {
       wakeQueue = null;
@@ -473,10 +496,13 @@ export class Stream<A> {
   }
 
   private sleep(): void {
-    if (!this.live || this.pinned || (this.listeners?.size ?? 0) > 0) return;
-    const l = this.live;
-    this.live = null;
-    for (const un of l) un(); // inputs lose a listener -> they may sleep too
+    if (!this.liveS || this.pinned || (this.obs?.length ?? 0) > 0) return;
+    const ls = this.liveS;
+    const le = this.liveE!;
+    this.liveS = null;
+    this.liveE = null;
+    // inputs lose a listener -> they may sleep too
+    for (let i = 0; i < ls.length; i++) ls[i].unlisten_(le[i]);
     this.onSleep?.();
   }
 
@@ -503,18 +529,20 @@ export class Stream<A> {
   dispose(): void {
     if (this.disposed) return;
     this.disposed = true;
-    if (this.live) {
-      for (const un of this.live) un();
-      this.live = null;
+    if (this.liveS) {
+      const ls = this.liveS;
+      const le = this.liveE!;
+      this.liveS = null;
+      this.liveE = null;
+      for (let i = 0; i < ls.length; i++) ls[i].unlisten_(le[i]);
       this.onSleep?.();
     }
     this.srcs = null;
     const cs = this.cleanups;
     this.cleanups = null;
     if (cs) for (const c of cs) c();
-    this.listeners = null;
+    this.obs = null;
     this.snap = null;
-    this.targets = null;
   }
 
   // --- combinators -------------------------------------------------------
@@ -706,7 +734,7 @@ export class Stream<A> {
     // No dispose-cascade here (it used to guess liveness from listener
     // counts and guessed wrong): pure derivations sleep on their own, and
     // stateful ones live exactly as long as their owning scope.
-    return this.listen_(null, (t, a) => t.post(() => h(a)));
+    return this.listen_(null, (t, a) => t.post(h, a));
   }
 
   /**
@@ -1204,6 +1232,50 @@ export function wire<A>(
     on,
   });
   return src;
+}
+
+/**
+ * Keyed selection with O(2) updates. ONE process watches `w`; each key gets
+ * a tiny cell that flips only when the selection enters or leaves it —
+ * selecting a row in a 10k list updates two cells instead of recomputing
+ * 10k derivations. Both flips share the moment of the selection change.
+ *
+ * `selector(selected)` yields `(key) => Wire<boolean>`; the value form
+ * `selector(selected, on, off)` yields ready-to-bind values
+ * (`class={cls(row.id)}`). The watching process belongs to the ambient
+ * scope; requested cells live until the scope disposes.
+ */
+export function selector<K>(w: Wire<K>): (key: K) => Wire<boolean>;
+export function selector<K, V>(w: Wire<K>, on: V, off: V): (key: K) => Wire<V>;
+export function selector<K, V>(
+  w: Wire<K>,
+  on?: V,
+  off?: V,
+): (key: K) => Wire<boolean | V> {
+  const scope = requireScope("selector()", "selector(selected)");
+  const onVal = arguments.length >= 3 ? (on as V) : (true as boolean | V);
+  const offVal = arguments.length >= 3 ? (off as V) : (false as boolean | V);
+  const cells = new Map<K, Cell<boolean | V>>();
+  let current = w.sampleNoTrans();
+  const un = w.updates.listen_(null, (t, k) => {
+    const prev = cells.get(current);
+    if (prev) prev.stage(t, offVal);
+    const next = cells.get(k);
+    if (next) next.stage(t, onVal);
+    // `current` commits at the boundary like everything else (law 2)
+    t.last(() => {
+      current = k;
+    });
+  });
+  scope.onDispose(un);
+  return (key: K) => {
+    let c = cells.get(key);
+    if (!c) {
+      c = makeCell<boolean | V>(key === current ? onVal : offVal, Object.is);
+      cells.set(key, c);
+    }
+    return c.w;
+  };
 }
 
 /** A source stream plus its `fire`, as one value. */
