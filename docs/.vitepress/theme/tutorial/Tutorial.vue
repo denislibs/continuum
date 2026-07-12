@@ -10,7 +10,7 @@ import {
 import { transpile } from "../playground/transpile";
 import { compileToTemplates } from "../playground/compile";
 import { buildRunnerHtml } from "../playground/runner";
-import { findTrack } from "./tracks";
+import { findTrack, tracks as allTracks } from "./tracks";
 import { markComplete, isComplete, trackPercent } from "./progress";
 import { renderTask } from "./md";
 import { burst } from "./confetti";
@@ -20,6 +20,13 @@ const props = withDefaults(defineProps<{ track?: string }>(), {
 });
 
 const track = findTrack(props.track);
+const base = import.meta.env.BASE_URL;
+// Keep track links inside the current locale (/ru/learn/… under the ru tree).
+const localeSeg =
+  typeof location !== "undefined" && location.pathname.includes("/ru/")
+    ? "ru/"
+    : "";
+const trackLink = (id: string) => `${base}${localeSeg}learn/${id}`;
 const stepIndex = ref(0);
 const step = computed(() => track!.steps[stepIndex.value]);
 const total = computed(() => track!.steps.length);
@@ -230,6 +237,16 @@ onBeforeUnmount(() => {
 <template>
   <div class="cn-tut" v-if="track">
     <aside class="cn-tut__task">
+      <nav class="cn-tut__tracks">
+        <a
+          v-for="t in allTracks"
+          :key="t.id"
+          :href="trackLink(t.id)"
+          class="cn-tut__tracklink"
+          :class="{ 'cn-tut__tracklink--on': t.id === track.id }"
+          >{{ t.title }}</a
+        >
+      </nav>
       <div class="cn-tut__crumbs">
         <span class="cn-tut__track">{{ track.title }}</span>
         <span class="cn-tut__count">{{ stepIndex + 1 }} / {{ total }}</span>
@@ -351,20 +368,45 @@ onBeforeUnmount(() => {
 </template>
 
 <style scoped>
+/* Full-bleed, app-like: break out of the page container to the viewport and
+   fill the height under the nav — the Solid tutorial layout. */
 .cn-tut {
   display: grid;
-  grid-template-columns: 320px 1fr;
-  gap: 16px;
-  margin: 16px 0 32px;
-  align-items: start;
+  grid-template-columns: 360px 1fr;
+  width: 100vw;
+  margin-left: calc(50% - 50vw);
+  height: calc(100vh - var(--vp-nav-height, 64px));
+  align-items: stretch;
+  overflow: hidden;
 }
 .cn-tut__task {
-  border: 1px solid var(--vp-c-divider);
-  border-radius: 10px;
-  padding: 16px;
+  border-right: 1px solid var(--vp-c-divider);
+  padding: 20px 20px 32px;
   background: var(--vp-c-bg-alt);
-  position: sticky;
-  top: 80px;
+  overflow-y: auto;
+}
+.cn-tut__tracks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+.cn-tut__tracklink {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--vp-c-divider);
+  color: var(--vp-c-text-2) !important;
+  text-decoration: none !important;
+}
+.cn-tut__tracklink:hover {
+  border-color: var(--vp-c-brand-1);
+}
+.cn-tut__tracklink--on {
+  background: var(--vp-c-brand-1);
+  border-color: var(--vp-c-brand-1);
+  color: #fff !important;
 }
 .cn-tut__crumbs {
   display: flex;
@@ -488,17 +530,19 @@ onBeforeUnmount(() => {
   font-family: var(--vp-font-family-mono);
 }
 .cn-tut__work {
-  border: 1px solid var(--vp-c-divider);
-  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
   overflow: hidden;
   background: var(--vp-c-bg-alt);
+  min-width: 0;
 }
 .cn-tut__actions {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 8px 10px;
+  padding: 8px 12px;
   border-bottom: 1px solid var(--vp-c-divider);
+  flex: 0 0 auto;
 }
 .cn-tut__btn {
   font-size: 13px;
@@ -537,12 +581,13 @@ onBeforeUnmount(() => {
 .cn-tut__panes {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  min-height: 340px;
+  flex: 1 1 auto;
+  min-height: 0;
 }
 .cn-tut__editor {
   overflow: auto;
   border-right: 1px solid var(--vp-c-divider);
-  max-height: 70vh;
+  min-height: 0;
 }
 .cn-tut__editor :deep(.cm-editor) {
   height: 100%;
@@ -605,7 +650,7 @@ onBeforeUnmount(() => {
   margin: 0;
   padding: 12px 14px;
   overflow: auto;
-  max-height: 70vh;
+  min-height: 0;
   font-family: var(--vp-font-family-mono);
   font-size: 12px;
   line-height: 1.5;
@@ -613,9 +658,13 @@ onBeforeUnmount(() => {
 @media (max-width: 860px) {
   .cn-tut {
     grid-template-columns: 1fr;
+    height: auto;
+    overflow: visible;
   }
   .cn-tut__task {
-    position: static;
+    overflow-y: visible;
+    border-right: 0;
+    border-bottom: 1px solid var(--vp-c-divider);
   }
   .cn-tut__panes {
     grid-template-columns: 1fr;
@@ -623,6 +672,10 @@ onBeforeUnmount(() => {
   .cn-tut__editor {
     border-right: 0;
     border-bottom: 1px solid var(--vp-c-divider);
+    min-height: 320px;
+  }
+  .cn-tut__preview iframe {
+    min-height: 260px;
   }
 }
 </style>
