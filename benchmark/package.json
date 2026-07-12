@@ -1,6 +1,6 @@
 {
   "name": "@continuum-js/benchmark",
-  "version": "0.2.21",
+  "version": "0.2.22",
   "private": true,
   "type": "module",
   "scripts": {
@@ -15,8 +15,8 @@
     "bench:fps": "node fps.mjs"
   },
   "dependencies": {
-    "@continuum-js/dom": "0.18.1",
-    "@continuum-js/frp": "0.18.1"
+    "@continuum-js/dom": "0.18.2",
+    "@continuum-js/frp": "0.18.2"
   },
   "devDependencies": {
     "solid-js": "^1.9.14",
