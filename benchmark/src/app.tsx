@@ -1,4 +1,4 @@
-import { newBehavior, selector, type Behavior } from "@continuum-js/frp";
+import { state, selector, type State } from "@continuum-js/frp";
 import { Each } from "@continuum-js/dom";
 import { buildRows, swap, type Row } from "./data";
 
@@ -8,8 +8,10 @@ import { buildRows, swap, type Row } from "./data";
 // single text node without re-rendering the row.
 export function App() {
   let data: Row[] = [];
-  const [rows, setRows] = newBehavior<Row[]>(data);
-  const [selected, setSelected] = newBehavior<number | null>(null);
+  const rows = state<Row[]>(data);
+  const setRows = rows.set;
+  const selected = state<number | null>(null);
+  const setSelected = selected.set;
   // keyed selection: one watcher + a tiny cell per row — O(2) per click
   const rowClass = selector(selected, "danger", "");
 
@@ -98,7 +100,7 @@ export function App() {
 
 function TableRow(props: {
   row: Row;
-  rowClass: (id: number) => Behavior<string>;
+  rowClass: (id: number) => State<string>;
   onSelect: (id: number) => void;
   onRemove: (id: number) => void;
 }) {

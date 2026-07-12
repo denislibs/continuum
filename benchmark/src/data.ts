@@ -1,7 +1,7 @@
 // Row data + pure helpers for the js-framework-benchmark table.
 // The label vocabulary matches the official benchmark so results are comparable.
 
-import { newBehavior, type Behavior } from "@continuum-js/frp";
+import { state, type State } from "@continuum-js/frp";
 
 const ADJECTIVES = [
   "pretty",
@@ -62,7 +62,7 @@ const NOUNS = [
 /** A row: id plus a per-row `label` behavior, so an update patches one text node. */
 export interface Row {
   id: number;
-  label: Behavior<string>;
+  label: State<string>;
   setLabel: (s: string) => void;
 }
 
@@ -92,7 +92,8 @@ let idCounter = 1;
 export function buildRows(n: number, rnd: () => number = Math.random): Row[] {
   const rows: Row[] = new Array(n);
   for (let i = 0; i < n; i++) {
-    const [label, setLabel] = newBehavior(buildLabel(rnd));
+    const label = state(buildLabel(rnd));
+    const setLabel = label.set;
     rows[i] = { id: idCounter++, label, setLabel };
   }
   return rows;
