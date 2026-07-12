@@ -88,12 +88,30 @@ npm run build            # build dist/ (ESM + .d.ts) for all published packages
 npm run smoke            # publish contract: pack → npm i into a clean Vite app → tsc + vite build
 ```
 
-Size (brotli, with dependencies): `@continuum-js/frp` ≈ **2.1 kB**,
-`@continuum-js/dom` (incl. frp) ≈ **4.2 kB**, `@continuum-js/std` (incl. frp)
-≈ **2.4 kB**. Budgets live in [`.size-limit.json`](.size-limit.json);
-`npm run size` fails when exceeded. Performance measurement — see
-[`benchmark/`](benchmark) (`npm run bench`, needs
-`npx playwright install chromium`).
+### How it compares
+
+Solid-class speed and memory, in a fraction of the bytes. All measured on one
+machine through the same Playwright harness (`npm run bench`, `bench:mem`,
+`size`); Solid runs its own compiler, Continuum runs `@continuum-js/vite-plugin`.
+
+| gzipped, full counter app | Continuum  | Solid | React + ReactDOM |
+| ------------------------- | ---------- | ----- | ---------------- |
+| download                  | **5.6 kB** | ~7 kB | ~45 kB (~8×)     |
+
+| js-framework-benchmark, 10k rows | Continuum  | Solid   |
+| -------------------------------- | ---------- | ------- |
+| heap after GC                    | **9.7 MB** | 14.1 MB |
+| GC garbage on create             | **8.4 MB** | 13.8 MB |
+| select row (script ms)           | **0.10**   | 0.20    |
+| swap / remove / clear            | ~parity    | ~parity |
+| create 10k rows (script ms)      | 32.9       | 27.8    |
+
+**−32 % heap, ~40 % less garbage, faster interaction**, ~1.2× on bulk create,
+one-third the download. Package brotli sizes (with deps): `frp` **4.1 kB**,
+`dom` (incl. frp) **6.3 kB**, `std` **3.3 kB** — budgets in
+[`.size-limit.json`](.size-limit.json), `npm run size` fails when exceeded.
+React is a virtual-DOM re-render model: several times slower on the same table
+(see [js-framework-benchmark](https://krausest.github.io/js-framework-benchmark/)).
 
 ### A counter in 10 lines (`examples/counter`)
 

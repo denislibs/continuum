@@ -27,6 +27,25 @@ features:
     details: "A complete app — framework, state and your code — builds to 5.6 kB of gzipped JS; React + ReactDOM alone are ~8× that. Hard size budgets are enforced in CI."
 ---
 
+## Solid-class speed and memory — in a fraction of the bytes
+
+| gzipped, full counter app | Continuum     | Solid | React + ReactDOM |
+| ------------------------- | ------------- | ----- | ---------------- |
+| download                  | **5.6 kB** ✅ | ~7 kB | ~45 kB (~8×)     |
+
+| js-framework-benchmark, 10k rows | Continuum     | Solid   |
+| -------------------------------- | ------------- | ------- |
+| heap after GC                    | **9.7 MB** ✅ | 14.1 MB |
+| GC garbage on create             | **8.4 MB** ✅ | 13.8 MB |
+| select row (script ms)           | **0.10** ✅   | 0.20    |
+| create 10k rows (script ms)      | 32.9          | 27.8    |
+
+**−32 % memory, ~40 % less garbage, faster interaction** — and one third the
+download. Measured on one machine through the same Playwright harness
+(`npm run bench`, `bench:mem`, `size`); full table in the
+[overview](/overview#how-it-compares). React is a virtual-DOM re-render model —
+several times slower on the same table, and ~8× the bytes.
+
 ## Try it — right here
 
 <script setup>
