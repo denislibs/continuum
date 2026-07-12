@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { ref, shallowRef, onMounted, onBeforeUnmount } from "vue";
+import { ref, shallowRef, watch, onMounted, onBeforeUnmount } from "vue";
 import { transpile } from "./transpile";
+import { compileToTemplates } from "./compile";
 import { buildRunnerHtml } from "./runner";
 import { encodeCode, decodeCode } from "./share";
 
@@ -15,6 +16,24 @@ const logs = ref<{ level: string; text: string }[]>([]);
 const errored = ref(false);
 const status = ref<"loading" | "ready">("loading");
 const copied = ref(false);
+const tab = ref<"preview" | "compiled" | "js">("preview");
+const compiledOut = ref("");
+const jsOut = ref("");
+
+// Recompute the output panels only when their tab is open — the compiler and
+// transpiler both run @babel/standalone, no reason to pay for hidden tabs.
+watch(tab, (t) => {
+  if (t === "compiled" && !compiledOut.value) refreshOutputs();
+  if (t === "js" && !jsOut.value) refreshOutputs();
+});
+
+function refreshOutputs() {
+  const src = currentSource();
+  const c = compileToTemplates(src);
+  compiledOut.value = c.error ? `// ${c.error}` : (c.code ?? "");
+  const j = transpile(src);
+  jsOut.value = j.error ? `// ${j.error}` : (j.code ?? "");
+}
 
 const view = shallowRef<import("@codemirror/view").EditorView | null>(null);
 let iframeReady = false;
@@ -27,6 +46,10 @@ function currentSource(): string {
 async function run() {
   logs.value = [];
   errored.value = false;
+  // Outputs are stale after an edit; recompute the visible one, lazy-fill rest.
+  compiledOut.value = "";
+  jsOut.value = "";
+  if (tab.value !== "preview") refreshOutputs();
   const out = transpile(currentSource());
   if (out.error) {
     errored.value = true;
@@ -147,20 +170,47 @@ onBeforeUnmount(() => {
     </div>
     <div class="cn-play__panes">
       <div class="cn-play__editor" ref="editorHost"></div>
-      <div class="cn-play__preview">
-        <iframe
-          ref="iframe"
-          title="Playground preview"
-          sandbox="allow-scripts allow-same-origin allow-modals"
-        ></iframe>
-        <div class="cn-play__console" v-if="logs.length">
-          <div
-            v-for="(l, i) in logs"
-            :key="i"
-            class="cn-play__log"
-            :class="`cn-play__log--${l.level}`"
-          >{{ l.text }}</div>
+      <div class="cn-play__right">
+        <div class="cn-play__tabs">
+          <button
+            class="cn-play__tab"
+            :class="{ 'cn-play__tab--on': tab === 'preview' }"
+            @click="tab = 'preview'"
+          >Preview</button>
+          <button
+            class="cn-play__tab"
+            :class="{ 'cn-play__tab--on': tab === 'compiled' }"
+            @click="tab = 'compiled'"
+          >Compiled</button>
+          <button
+            class="cn-play__tab"
+            :class="{ 'cn-play__tab--on': tab === 'js' }"
+            @click="tab = 'js'"
+          >JS</button>
         </div>
+        <div class="cn-play__preview" v-show="tab === 'preview'">
+          <iframe
+            ref="iframe"
+            title="Playground preview"
+            sandbox="allow-scripts allow-same-origin allow-modals"
+          ></iframe>
+          <div class="cn-play__console" v-if="logs.length">
+            <div
+              v-for="(l, i) in logs"
+              :key="i"
+              class="cn-play__log"
+              :class="`cn-play__log--${l.level}`"
+            >{{ l.text }}</div>
+          </div>
+        </div>
+        <pre
+          v-show="tab === 'compiled'"
+          class="cn-play__out"
+        ><code>{{ compiledOut || "// hit Run, then open this tab" }}</code></pre>
+        <pre
+          v-show="tab === 'js'"
+          class="cn-play__out"
+        ><code>{{ jsOut || "// hit Run, then open this tab" }}</code></pre>
       </div>
     </div>
   </div>
@@ -218,10 +268,54 @@ onBeforeUnmount(() => {
   height: 100%;
   font-size: 13px;
 }
+.cn-play__right {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.cn-play__tabs {
+  display: flex;
+  gap: 2px;
+  padding: 4px 6px 0;
+  border-bottom: 1px solid var(--vp-c-divider);
+  background: var(--vp-c-bg-alt);
+}
+.cn-play__tab {
+  font-size: 12px;
+  padding: 5px 12px;
+  border: 0;
+  border-radius: 6px 6px 0 0;
+  background: transparent;
+  color: var(--vp-c-text-2);
+  cursor: pointer;
+}
+.cn-play__tab--on {
+  background: var(--vp-c-bg);
+  color: var(--vp-c-text-1);
+  font-weight: 600;
+}
 .cn-play__preview {
   display: flex;
   flex-direction: column;
   background: #fff;
+  flex: 1;
+}
+.cn-play__out {
+  flex: 1;
+  margin: 0;
+  padding: 12px 14px;
+  overflow: auto;
+  max-height: 70vh;
+  background: var(--vp-c-bg);
+  font-family: var(--vp-font-family-mono);
+  font-size: 12px;
+  line-height: 1.5;
+  white-space: pre;
+}
+.cn-play__out code {
+  background: none;
+  padding: 0;
+  color: var(--vp-c-text-1);
 }
 .cn-play__preview iframe {
   flex: 1;

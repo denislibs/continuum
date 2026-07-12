@@ -39,6 +39,10 @@ export default defineConfig({
         find: "@continuum-js/frp",
         replacement: r("./packages/frp/src/index.ts"),
       },
+      {
+        find: "@continuum-js/vite-plugin/transform",
+        replacement: r("./packages/vite-plugin/src/transform.ts"),
+      },
     ],
   },
   esbuild: {
