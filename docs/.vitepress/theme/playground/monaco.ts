@@ -21,14 +21,19 @@ function configure() {
 
   const ts = monaco.languages.typescript.typescriptDefaults;
   ts.setCompilerOptions({
-    jsx: monaco.languages.typescript.JsxEmit.React,
-    jsxFactory: "h",
+    // Automatic runtime pointed at @continuum-js/dom, so intrinsic tags
+    // (<button>, <div>…) type through the package's JSX namespace instead of
+    // resolving to `any`.
+    jsx: monaco.languages.typescript.JsxEmit.ReactJSX,
+    jsxImportSource: "@continuum-js/dom",
     target: monaco.languages.typescript.ScriptTarget.ESNext,
     module: monaco.languages.typescript.ModuleKind.ESNext,
+    lib: ["esnext", "dom", "dom.iterable"],
     allowNonTsExtensions: true,
     moduleResolution: monaco.languages.typescript.ModuleResolutionKind.NodeJs,
     noEmit: true,
     esModuleInterop: true,
+    skipLibCheck: true,
   });
   // Keep real syntax errors; leave semantic squiggles off (JSX with a custom
   // runtime can't be fully type-checked in-browser). IntelliSense — hover

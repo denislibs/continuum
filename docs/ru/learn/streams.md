@@ -6,5 +6,5 @@ sidebar: false
 ---
 
 <ClientOnly>
-  <Tutorial track="streams" />
+  <Tutorial track="streams" lang="ru" />
 </ClientOnly>

@@ -15,10 +15,54 @@ import { markComplete, isComplete, trackPercent } from "./progress";
 import { renderTask } from "./md";
 import { burst } from "./confetti";
 import type { EditorHandle } from "../playground/monaco";
+import { tracks as ruTracks, ui as ruUi } from "./ru";
 
-const props = withDefaults(defineProps<{ track?: string }>(), {
-  track: "basics",
-});
+const props = withDefaults(
+  defineProps<{ track?: string; lang?: "en" | "ru" }>(),
+  { track: "basics", lang: "en" },
+);
+const ru = props.lang === "ru";
+
+// English UI labels; ru overrides come from ./ru.
+const L = ru
+  ? ruUi
+  : {
+      run: "Run",
+      check: "Check",
+      checking: "Checking…",
+      preview: "Preview",
+      next: "Next →",
+      hint: "Hint",
+      showSolution: "Show solution",
+      passed: "Passed! 🎉",
+      notYet: "Not yet",
+      mastered: "mastered!",
+      masteredNote: "You finished every step. Nice work.",
+      shareBadge: "Share your badge",
+      copied: "Copied ✓",
+      runThenTab: "// Run, then open this tab",
+    };
+
+function trackTitle(id: string, fallback: string): string {
+  return (ru && ruTracks[id]?.title) || fallback;
+}
+function stepTitle(): string {
+  return (
+    (ru && ruTracks[track!.id]?.steps[step.value.id]?.title) || step.value.title
+  );
+}
+function stepTaskHtml(): string {
+  const t = ru && ruTracks[track!.id]?.steps[step.value.id]?.task;
+  return renderTask(t || step.value.task);
+}
+function stepHint(): string | undefined {
+  return (
+    (ru && ruTracks[track!.id]?.steps[step.value.id]?.hint) || step.value.hint
+  );
+}
+function stepTitleById(id: string, fallback: string): string {
+  return (ru && ruTracks[track!.id]?.steps[id]?.title) || fallback;
+}
 
 const track = findTrack(props.track);
 const base = import.meta.env.BASE_URL;
@@ -169,7 +213,10 @@ function onSolved() {
 }
 
 async function shareBadge() {
-  const text = `I completed the “${track!.title}” track in the Continuum tutorial 🎖️`;
+  const title = trackTitle(track!.id, track!.title);
+  const text = ru
+    ? `Я прошёл трек «${title}» в тренажёре Continuum 🎖️`
+    : `I completed the “${title}” track in the Continuum tutorial 🎖️`;
   const url = `${location.origin}${location.pathname}`;
   try {
     await navigator.clipboard.writeText(`${text}\n${url}`);
@@ -240,11 +287,13 @@ onBeforeUnmount(() => {
           :href="trackLink(t.id)"
           class="cn-tut__tracklink"
           :class="{ 'cn-tut__tracklink--on': t.id === track.id }"
-          >{{ t.title }}</a
+          >{{ trackTitle(t.id, t.title) }}</a
         >
       </nav>
       <div class="cn-tut__crumbs">
-        <span class="cn-tut__track">{{ track.title }}</span>
+        <span class="cn-tut__track">{{
+          trackTitle(track.id, track.title)
+        }}</span>
         <span class="cn-tut__count">{{ stepIndex + 1 }} / {{ total }}</span>
       </div>
       <div class="cn-tut__bar">
@@ -261,59 +310,63 @@ onBeforeUnmount(() => {
           @click="goto(i)"
         >
           <span class="cn-tut__tick">{{ done(s.id) ? "✓" : i + 1 }}</span>
-          {{ s.title }}
+          {{ stepTitleById(s.id, s.title) }}
         </li>
       </ol>
       <div v-if="trackDone" class="cn-tut__badge">
         <div class="cn-tut__medal">🎖️</div>
-        <strong>{{ track.title }} mastered!</strong>
-        <p>You finished every step. Nice work.</p>
+        <strong
+          >{{ trackTitle(track.id, track.title) }} {{ L.mastered }}</strong
+        >
+        <p>{{ L.masteredNote }}</p>
         <button @click="shareBadge">
-          {{ badgeCopied ? "Copied ✓" : "Share your badge" }}
+          {{ badgeCopied ? L.copied : L.shareBadge }}
         </button>
       </div>
 
-      <h2>{{ step.title }}</h2>
-      <div class="cn-tut__prose" v-html="renderTask(step.task)"></div>
+      <h2>{{ stepTitle() }}</h2>
+      <div class="cn-tut__prose" v-html="stepTaskHtml()"></div>
       <div class="cn-tut__nudges">
-        <button v-if="step.hint && !hintShown" @click="hintShown = true">
-          Hint
+        <button v-if="stepHint() && !hintShown" @click="hintShown = true">
+          {{ L.hint }}
         </button>
-        <p v-if="hintShown && step.hint" class="cn-tut__hint">
-          {{ step.hint }}
+        <p v-if="hintShown && stepHint()" class="cn-tut__hint">
+          {{ stepHint() }}
         </p>
         <button v-if="!solutionShown" @click="showSolution">
-          Show solution
+          {{ L.showSolution }}
         </button>
       </div>
     </aside>
 
     <section class="cn-tut__work">
       <div class="cn-tut__actions">
-        <button class="cn-tut__btn cn-tut__btn--run" @click="run">▶ Run</button>
+        <button class="cn-tut__btn cn-tut__btn--run" @click="run">
+          ▶ {{ L.run }}
+        </button>
         <button
           class="cn-tut__btn cn-tut__btn--check"
           @click="check"
           :disabled="checkState === 'checking'"
         >
-          {{ checkState === "checking" ? "Checking…" : "Check ✓" }}
+          {{ checkState === "checking" ? L.checking : L.check + " ✓" }}
         </button>
         <span
           v-if="checkState === 'pass'"
           class="cn-tut__verdict cn-tut__verdict--pass"
-          >Passed! 🎉</span
+          >{{ L.passed }}</span
         >
         <span
           v-else-if="checkState === 'fail'"
           class="cn-tut__verdict cn-tut__verdict--fail"
-          >Not yet{{ checkMsg ? ": " + checkMsg : "" }}</span
+          >{{ L.notYet }}{{ checkMsg ? ": " + checkMsg : "" }}</span
         >
         <button
           v-if="checkState === 'pass' && stepIndex < total - 1"
           class="cn-tut__btn cn-tut__btn--next"
           @click="goto(stepIndex + 1)"
         >
-          Next →
+          {{ L.next }}
         </button>
       </div>
       <div class="cn-tut__panes">
@@ -321,7 +374,7 @@ onBeforeUnmount(() => {
         <div class="cn-tut__right">
           <div class="cn-tut__tabs">
             <button :class="{ on: tab === 'preview' }" @click="tab = 'preview'">
-              Preview
+              {{ L.preview }}
             </button>
             <button
               :class="{ on: tab === 'compiled' }"

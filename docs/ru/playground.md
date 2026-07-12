@@ -20,5 +20,5 @@ export default function Counter() {
 </script>
 
 <ClientOnly>
-  <Playground full :code="counterCode" />
+  <Playground full lang="ru" :code="counterCode" />
 </ClientOnly>

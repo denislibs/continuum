@@ -7,9 +7,32 @@ import { encodeCode, decodeCode } from "./share";
 import type { EditorHandle } from "./monaco";
 
 const props = withDefaults(
-  defineProps<{ code?: string; height?: string; full?: boolean }>(),
-  { code: "", height: "360px", full: false },
+  defineProps<{
+    code?: string;
+    height?: string;
+    full?: boolean;
+    lang?: "en" | "ru";
+  }>(),
+  { code: "", height: "360px", full: false, lang: "en" },
 );
+const L =
+  props.lang === "ru"
+    ? {
+        run: "Запустить",
+        reset: "Сброс",
+        share: "Поделиться",
+        copied: "Скопировано ✓",
+        preview: "Превью",
+        loading: "загрузка…",
+      }
+    : {
+        run: "Run",
+        reset: "Reset",
+        share: "Share",
+        copied: "Copied ✓",
+        preview: "Preview",
+        loading: "loading…",
+      };
 
 const editorHost = ref<HTMLElement | null>(null);
 const outputHost = ref<HTMLElement | null>(null);
@@ -159,13 +182,17 @@ onBeforeUnmount(() => {
     :style="full ? undefined : { '--cn-play-h': height }"
   >
     <div class="cn-play__bar">
-      <button class="cn-play__btn cn-play__btn--run" @click="run">▶ Run</button>
-      <button class="cn-play__btn" @click="reset">Reset</button>
+      <button class="cn-play__btn cn-play__btn--run" @click="run">
+        ▶ {{ L.run }}
+      </button>
+      <button class="cn-play__btn" @click="reset">{{ L.reset }}</button>
       <button class="cn-play__btn" @click="share">
-        {{ copied ? "Copied ✓" : "Share" }}
+        {{ copied ? L.copied : L.share }}
       </button>
       <span class="cn-play__file">main.tsx</span>
-      <span class="cn-play__status" v-if="status === 'loading'">loading…</span>
+      <span class="cn-play__status" v-if="status === 'loading'">{{
+        L.loading
+      }}</span>
     </div>
     <div class="cn-play__panes">
       <div class="cn-play__editor" ref="editorHost"></div>
@@ -176,7 +203,7 @@ onBeforeUnmount(() => {
             :class="{ 'cn-play__tab--on': tab === 'preview' }"
             @click="tab = 'preview'"
           >
-            Preview
+            {{ L.preview }}
           </button>
           <button
             class="cn-play__tab"
