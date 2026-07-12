@@ -14,6 +14,20 @@ import { fileURLToPath } from "node:url";
 
 const root = path.dirname(fileURLToPath(import.meta.url));
 
+// BENCH_APP=continuum (default) | solid | vanilla — same harness, same
+// selectors, different implementation under test.
+const VARIANT = process.env.BENCH_APP ?? "continuum";
+async function buildConfig() {
+  if (VARIANT === "continuum") return { root, logLevel: "warn" };
+  const vroot = path.join(root, "variants", VARIANT);
+  const cfg = { root: vroot, configFile: false, logLevel: "warn" };
+  if (VARIANT === "solid") {
+    const solid = (await import("vite-plugin-solid")).default;
+    cfg.plugins = [solid()];
+  }
+  return cfg;
+}
+
 const REPEAT = Number(process.env.BENCH_REPEAT ?? 10);
 const WARMUP = Number(process.env.BENCH_WARMUP ?? 3);
 
@@ -101,9 +115,10 @@ async function main() {
     process.exit(1);
   }
 
-  console.log("Building production bundle...");
-  await build({ root, logLevel: "warn" });
-  const server = await preview({ root, preview: { port: 0 } });
+  console.log(`Building production bundle (${VARIANT})...`);
+  const cfg = await buildConfig();
+  await build(cfg);
+  const server = await preview({ ...cfg, preview: { port: 0 } });
   const url =
     server.resolvedUrls?.local?.[0] ??
     `http://localhost:${server.httpServer.address().port}/`;
