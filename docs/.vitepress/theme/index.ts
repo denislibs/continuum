@@ -6,7 +6,9 @@
 // rest of the docs stay light.
 import DefaultTheme from "vitepress/theme";
 import type { Theme } from "vitepress";
-import { defineAsyncComponent } from "vue";
+import { defineAsyncComponent, watch, nextTick } from "vue";
+import { useRoute } from "vitepress";
+import { attachRunButtons } from "./runButtons";
 import "./custom.css";
 
 export default {
@@ -19,6 +21,16 @@ export default {
     app.component(
       "Tutorial",
       defineAsyncComponent(() => import("./tutorial/Tutorial.vue")),
+    );
+  },
+  setup() {
+    const route = useRoute();
+    const base = import.meta.env.BASE_URL;
+    // Re-scan after each navigation once the new page's DOM is in place.
+    watch(
+      () => route.path,
+      () => nextTick(() => attachRunButtons(base)),
+      { immediate: true },
     );
   },
 } satisfies Theme;

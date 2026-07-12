@@ -1,7 +1,45 @@
-/* Theme customizations layered on VitePress defaults. Kept minimal in
-   phase 1; the landing redesign (phase 5) builds on this file. */
+/* Theme customizations layered on VitePress defaults. */
 :root {
   --vp-c-brand-1: #3b82f6;
   --vp-c-brand-2: #2563eb;
   --vp-c-brand-3: #60a5fa;
+}
+
+/* Home hero: a subtle brand gradient on the product name. */
+.VPHero .name {
+  background: linear-gradient(120deg, var(--vp-c-brand-1), #8b5cf6);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* "Run" button injected into tsx/jsx code blocks (see runButtons.ts).
+   Sits left of VitePress's copy button, revealed on block hover. */
+.vp-doc div[class*="language-"] {
+  position: relative;
+}
+.cn-run {
+  position: absolute;
+  top: 12px;
+  right: 64px;
+  z-index: 3;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--vp-c-brand-1);
+  color: var(--vp-c-brand-1) !important;
+  background: var(--vp-c-bg);
+  opacity: 0;
+  transition: opacity 0.2s;
+  text-decoration: none !important;
+  cursor: pointer;
+}
+.vp-doc div[class*="language-"]:hover .cn-run,
+.cn-run:focus {
+  opacity: 1;
+}
+.cn-run:hover {
+  background: var(--vp-c-brand-1);
+  color: #fff !important;
 }
