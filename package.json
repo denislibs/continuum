@@ -2,7 +2,7 @@
   "name": "continuum-monorepo",
   "version": "0.2.0",
   "private": true,
-  "description": "Continuum — classic FRP (Behaviors + Events) with fine-grained rendering",
+  "description": "Continuum \u2014 classic FRP (Behaviors + Events) with fine-grained rendering",
   "type": "module",
   "workspaces": [
     "packages/*",
@@ -34,7 +34,8 @@
     "example:showcase": "npm run dev -w @continuum-js/example-showcase",
     "example:data": "npm run dev -w @continuum-js/example-data",
     "example:router": "npm run dev -w @continuum-js/example-router-app",
-    "prepare": "husky"
+    "prepare": "husky",
+    "test:compiled": "vitest run --config vitest.compiled.config.ts"
   },
   "devDependencies": {
     "@changesets/cli": "^2.31.0",

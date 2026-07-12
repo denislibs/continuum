@@ -46,6 +46,7 @@ function sidebar(
         { text: t.patterns, link: `${prefix}/guides/patterns` },
         { text: t.composables, link: `${prefix}/guides/composables` },
         { text: t.mistakes, link: `${prefix}/guides/common-mistakes` },
+        { text: t.compiler, link: `${prefix}/guides/compiler` },
       ],
     },
     {
@@ -104,6 +105,7 @@ const en = {
   animation: "Animation",
   patterns: "Patterns",
   composables: "Your own composables",
+  compiler: "The compiler (optional)",
   mistakes: "Common mistakes",
   migration: "Migration",
   fromReact: "From React",
@@ -136,6 +138,7 @@ const ru = {
   animation: "Анимация",
   patterns: "Паттерны",
   composables: "Свои композаблы",
+  compiler: "Компилятор (опциональный)",
   mistakes: "Частые ошибки",
   migration: "Миграция",
   fromReact: "Из React",
