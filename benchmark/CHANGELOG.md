@@ -1,5 +1,13 @@
 # @continuum-js/benchmark
 
+## 0.2.23
+
+### Patch Changes
+
+- Updated dependencies [ed8adb8]
+  - @continuum-js/frp@0.19.0
+  - @continuum-js/dom@0.19.0
+
 ## 0.2.22
 
 ### Patch Changes
