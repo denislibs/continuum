@@ -4,13 +4,15 @@ import { transpile } from "./transpile";
 import { compileToTemplates } from "./compile";
 import { buildRunnerHtml } from "./runner";
 import { encodeCode, decodeCode } from "./share";
+import type { EditorHandle } from "./monaco";
 
-const props = withDefaults(defineProps<{ code?: string; height?: string }>(), {
-  code: "",
-  height: "360px",
-});
+const props = withDefaults(
+  defineProps<{ code?: string; height?: string; full?: boolean }>(),
+  { code: "", height: "360px", full: false },
+);
 
 const editorHost = ref<HTMLElement | null>(null);
+const outputHost = ref<HTMLElement | null>(null);
 const iframe = ref<HTMLIFrameElement | null>(null);
 const logs = ref<{ level: string; text: string }[]>([]);
 const errored = ref(false);
@@ -20,12 +22,22 @@ const tab = ref<"preview" | "compiled" | "js">("preview");
 const compiledOut = ref("");
 const jsOut = ref("");
 
-// Recompute the output panels only when their tab is open — the compiler and
-// transpiler both run @babel/standalone, no reason to pay for hidden tabs.
-watch(tab, (t) => {
-  if (t === "compiled" && !compiledOut.value) refreshOutputs();
-  if (t === "js" && !jsOut.value) refreshOutputs();
-});
+const editor = shallowRef<EditorHandle | null>(null);
+const output = shallowRef<EditorHandle | null>(null);
+let iframeReady = false;
+let pendingRun = false;
+
+function currentSource(): string {
+  return editor.value ? editor.value.getValue() : props.code;
+}
+
+function syncOutput() {
+  if (!output.value) return;
+  output.value.setValue(
+    tab.value === "compiled" ? compiledOut.value : jsOut.value,
+  );
+  output.value.layout();
+}
 
 function refreshOutputs() {
   const src = currentSource();
@@ -33,20 +45,19 @@ function refreshOutputs() {
   compiledOut.value = c.error ? `// ${c.error}` : (c.code ?? "");
   const j = transpile(src);
   jsOut.value = j.error ? `// ${j.error}` : (j.code ?? "");
+  syncOutput();
 }
 
-const view = shallowRef<import("@codemirror/view").EditorView | null>(null);
-let iframeReady = false;
-let pendingRun = false;
-
-function currentSource(): string {
-  return view.value ? view.value.state.doc.toString() : props.code;
-}
+watch(tab, (t) => {
+  if (t !== "preview") {
+    if (!compiledOut.value && !jsOut.value) refreshOutputs();
+    else syncOutput();
+  }
+});
 
 async function run() {
   logs.value = [];
   errored.value = false;
-  // Outputs are stale after an edit; recompute the visible one, lazy-fill rest.
   compiledOut.value = "";
   jsOut.value = "";
   if (tab.value !== "preview") refreshOutputs();
@@ -100,15 +111,11 @@ async function share() {
 }
 
 function reset() {
-  if (!view.value) return;
-  view.value.dispatch({
-    changes: { from: 0, to: view.value.state.doc.length, insert: props.code },
-  });
+  editor.value?.setValue(props.code);
   run();
 }
 
 onMounted(async () => {
-  // Initial source: URL fragment wins over the prop so shared links restore.
   let initial = props.code;
   const m = location.hash.match(/#code=([^&]+)/);
   if (m) {
@@ -116,37 +123,18 @@ onMounted(async () => {
     if (decoded) initial = decoded;
   }
 
-  const [
-    { EditorView, keymap },
-    { basicSetup },
-    { javascript },
-    { oneDark },
-    { indentWithTab },
-  ] = await Promise.all([
-    import("@codemirror/view"),
-    import("codemirror"),
-    import("@codemirror/lang-javascript"),
-    import("@codemirror/theme-one-dark"),
-    import("@codemirror/commands"),
-  ]);
-
-  view.value = new EditorView({
-    doc: initial,
-    parent: editorHost.value!,
-    extensions: [
-      basicSetup,
-      keymap.of([indentWithTab]),
-      javascript({ jsx: true, typescript: true }),
-      oneDark,
-    ],
+  const { createEditor } = await import("./monaco");
+  editor.value = createEditor(editorHost.value!, { value: initial });
+  output.value = createEditor(outputHost.value!, {
+    value: "",
+    readOnly: true,
+    language: "javascript",
   });
 
   const res = await fetch(
     `${import.meta.env.BASE_URL}playground/vendor/importmap.json`,
   );
   const { imports } = await res.json();
-  // Absolutize the root-relative vendor paths against this origin: the iframe
-  // is srcdoc (base about:srcdoc), so bare "/continuum/..." would not resolve.
   const absolute: Record<string, string> = {};
   for (const [k, v] of Object.entries(imports as Record<string, string>)) {
     absolute[k] = v.startsWith("/") ? location.origin + v : v;
@@ -159,18 +147,24 @@ onMounted(async () => {
 
 onBeforeUnmount(() => {
   window.removeEventListener("message", onMessage);
-  view.value?.destroy();
+  editor.value?.dispose();
+  output.value?.dispose();
 });
 </script>
 
 <template>
-  <div class="cn-play" :style="{ '--cn-play-h': height }">
+  <div
+    class="cn-play"
+    :class="{ 'cn-play--full': full }"
+    :style="full ? undefined : { '--cn-play-h': height }"
+  >
     <div class="cn-play__bar">
       <button class="cn-play__btn cn-play__btn--run" @click="run">▶ Run</button>
       <button class="cn-play__btn" @click="reset">Reset</button>
       <button class="cn-play__btn" @click="share">
         {{ copied ? "Copied ✓" : "Share" }}
       </button>
+      <span class="cn-play__file">main.tsx</span>
       <span class="cn-play__status" v-if="status === 'loading'">loading…</span>
     </div>
     <div class="cn-play__panes">
@@ -216,14 +210,11 @@ onBeforeUnmount(() => {
             </div>
           </div>
         </div>
-        <pre
-          v-show="tab === 'compiled'"
-          class="cn-play__out"
-        ><code>{{ compiledOut || "// hit Run, then open this tab" }}</code></pre>
-        <pre
-          v-show="tab === 'js'"
-          class="cn-play__out"
-        ><code>{{ jsOut || "// hit Run, then open this tab" }}</code></pre>
+        <div
+          class="cn-play__output"
+          v-show="tab !== 'preview'"
+          ref="outputHost"
+        ></div>
       </div>
     </div>
   </div>
@@ -237,17 +228,28 @@ onBeforeUnmount(() => {
   margin: 20px 0;
   background: var(--vp-c-bg-alt);
 }
+.cn-play--full {
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+  width: 100vw;
+  margin-left: calc(50% - 50vw);
+  height: calc(100vh - var(--vp-nav-height, 64px));
+  display: flex;
+  flex-direction: column;
+}
 .cn-play__bar {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 8px 10px;
+  padding: 8px 12px;
   border-bottom: 1px solid var(--vp-c-divider);
+  flex: 0 0 auto;
 }
 .cn-play__btn {
   font-size: 13px;
   font-weight: 500;
-  padding: 4px 12px;
+  padding: 5px 14px;
   border-radius: 6px;
   border: 1px solid var(--vp-c-divider);
   background: var(--vp-c-bg);
@@ -262,6 +264,12 @@ onBeforeUnmount(() => {
   border-color: var(--vp-c-brand-1);
   color: var(--vp-c-brand-1);
 }
+.cn-play__file {
+  font-size: 12px;
+  color: var(--vp-c-text-3);
+  font-family: var(--vp-font-family-mono);
+  margin-left: 6px;
+}
 .cn-play__status {
   font-size: 12px;
   color: var(--vp-c-text-3);
@@ -270,16 +278,19 @@ onBeforeUnmount(() => {
 .cn-play__panes {
   display: grid;
   grid-template-columns: 1fr 1fr;
+}
+.cn-play:not(.cn-play--full) .cn-play__panes {
   min-height: var(--cn-play-h);
+  height: var(--cn-play-h);
+}
+.cn-play--full .cn-play__panes {
+  flex: 1 1 auto;
+  min-height: 0;
 }
 .cn-play__editor {
-  overflow: auto;
   border-right: 1px solid var(--vp-c-divider);
-  max-height: 70vh;
-}
-.cn-play__editor :deep(.cm-editor) {
-  height: 100%;
-  font-size: 13px;
+  min-width: 0;
+  overflow: hidden;
 }
 .cn-play__right {
   display: flex;
@@ -291,7 +302,7 @@ onBeforeUnmount(() => {
   gap: 2px;
   padding: 4px 6px 0;
   border-bottom: 1px solid var(--vp-c-divider);
-  background: var(--vp-c-bg-alt);
+  flex: 0 0 auto;
 }
 .cn-play__tab {
   font-size: 12px;
@@ -311,30 +322,18 @@ onBeforeUnmount(() => {
   display: flex;
   flex-direction: column;
   background: #fff;
-  flex: 1;
-}
-.cn-play__out {
-  flex: 1;
-  margin: 0;
-  padding: 12px 14px;
-  overflow: auto;
-  max-height: 70vh;
-  background: var(--vp-c-bg);
-  font-family: var(--vp-font-family-mono);
-  font-size: 12px;
-  line-height: 1.5;
-  white-space: pre;
-}
-.cn-play__out code {
-  background: none;
-  padding: 0;
-  color: var(--vp-c-text-1);
+  flex: 1 1 auto;
+  min-height: 0;
 }
 .cn-play__preview iframe {
   flex: 1;
   border: 0;
   width: 100%;
   min-height: 180px;
+}
+.cn-play__output {
+  flex: 1 1 auto;
+  min-height: 0;
 }
 .cn-play__console {
   border-top: 1px solid var(--vp-c-divider);
@@ -363,6 +362,7 @@ onBeforeUnmount(() => {
   .cn-play__editor {
     border-right: 0;
     border-bottom: 1px solid var(--vp-c-divider);
+    min-height: 260px;
   }
 }
 </style>

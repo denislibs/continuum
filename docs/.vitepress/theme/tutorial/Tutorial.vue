@@ -14,6 +14,7 @@ import { findTrack, tracks as allTracks } from "./tracks";
 import { markComplete, isComplete, trackPercent } from "./progress";
 import { renderTask } from "./md";
 import { burst } from "./confetti";
+import type { EditorHandle } from "../playground/monaco";
 
 const props = withDefaults(defineProps<{ track?: string }>(), {
   track: "basics",
@@ -32,8 +33,10 @@ const step = computed(() => track!.steps[stepIndex.value]);
 const total = computed(() => track!.steps.length);
 
 const editorHost = ref<HTMLElement | null>(null);
+const outputHost = ref<HTMLElement | null>(null);
 const iframe = ref<HTMLIFrameElement | null>(null);
-const view = shallowRef<import("@codemirror/view").EditorView | null>(null);
+const editor = shallowRef<EditorHandle | null>(null);
+const output = shallowRef<EditorHandle | null>(null);
 
 const logs = ref<{ level: string; text: string }[]>([]);
 const tab = ref<"preview" | "compiled" | "js">("preview");
@@ -61,14 +64,11 @@ let iframeReady = false;
 let pendingRun = false;
 
 function currentSource(): string {
-  return view.value ? view.value.state.doc.toString() : step.value.starter;
+  return editor.value ? editor.value.getValue() : step.value.starter;
 }
 
 function setEditor(code: string) {
-  if (!view.value) return;
-  view.value.dispatch({
-    changes: { from: 0, to: view.value.state.doc.length, insert: code },
-  });
+  editor.value?.setValue(code);
 }
 
 function run() {
@@ -111,17 +111,28 @@ function check() {
   );
 }
 
+function syncOutput() {
+  if (!output.value) return;
+  output.value.setValue(
+    tab.value === "compiled" ? compiledOut.value : jsOut.value,
+  );
+  output.value.layout();
+}
+
 function refreshOutputs() {
   const src = currentSource();
   const c = compileToTemplates(src);
   compiledOut.value = c.error ? `// ${c.error}` : (c.code ?? "");
   const j = transpile(src);
   jsOut.value = j.error ? `// ${j.error}` : (j.code ?? "");
+  syncOutput();
 }
 
 watch(tab, (t) => {
-  if (t === "compiled" && !compiledOut.value) refreshOutputs();
-  if (t === "js" && !jsOut.value) refreshOutputs();
+  if (t !== "preview") {
+    if (!compiledOut.value && !jsOut.value) refreshOutputs();
+    else syncOutput();
+  }
 });
 
 function onMessage(e: MessageEvent) {
@@ -191,28 +202,12 @@ function showSolution() {
 }
 
 onMounted(async () => {
-  const [
-    { EditorView, keymap },
-    { basicSetup },
-    { javascript },
-    { oneDark },
-    { indentWithTab },
-  ] = await Promise.all([
-    import("@codemirror/view"),
-    import("codemirror"),
-    import("@codemirror/lang-javascript"),
-    import("@codemirror/theme-one-dark"),
-    import("@codemirror/commands"),
-  ]);
-  view.value = new EditorView({
-    doc: step.value.starter,
-    parent: editorHost.value!,
-    extensions: [
-      basicSetup,
-      keymap.of([indentWithTab]),
-      javascript({ jsx: true, typescript: true }),
-      oneDark,
-    ],
+  const { createEditor } = await import("../playground/monaco");
+  editor.value = createEditor(editorHost.value!, { value: step.value.starter });
+  output.value = createEditor(outputHost.value!, {
+    value: "",
+    readOnly: true,
+    language: "javascript",
   });
 
   const res = await fetch(
@@ -230,7 +225,8 @@ onMounted(async () => {
 
 onBeforeUnmount(() => {
   window.removeEventListener("message", onMessage);
-  view.value?.destroy();
+  editor.value?.dispose();
+  output.value?.dispose();
 });
 </script>
 
@@ -353,14 +349,11 @@ onBeforeUnmount(() => {
               </div>
             </div>
           </div>
-          <pre
-            v-show="tab === 'compiled'"
+          <div
             class="cn-tut__out"
-          ><code>{{ compiledOut || "// Run, then open this tab" }}</code></pre>
-          <pre
-            v-show="tab === 'js'"
-            class="cn-tut__out"
-          ><code>{{ jsOut || "// Run, then open this tab" }}</code></pre>
+            v-show="tab !== 'preview'"
+            ref="outputHost"
+          ></div>
         </div>
       </div>
     </section>
@@ -585,13 +578,9 @@ onBeforeUnmount(() => {
   min-height: 0;
 }
 .cn-tut__editor {
-  overflow: auto;
+  overflow: hidden;
   border-right: 1px solid var(--vp-c-divider);
   min-height: 0;
-}
-.cn-tut__editor :deep(.cm-editor) {
-  height: 100%;
-  font-size: 13px;
 }
 .cn-tut__right {
   display: flex;
@@ -646,14 +635,9 @@ onBeforeUnmount(() => {
   color: var(--vp-c-danger-1);
 }
 .cn-tut__out {
-  flex: 1;
-  margin: 0;
-  padding: 12px 14px;
-  overflow: auto;
+  flex: 1 1 auto;
   min-height: 0;
-  font-family: var(--vp-font-family-mono);
-  font-size: 12px;
-  line-height: 1.5;
+  overflow: hidden;
 }
 @media (max-width: 860px) {
   .cn-tut {

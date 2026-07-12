@@ -48,6 +48,9 @@ fs.rmSync(outDir, { recursive: true, force: true });
 fs.mkdirSync(outDir, { recursive: true });
 
 const imports = {};
+// Type manifest: virtual node_modules path -> fetch url. Monaco loads these
+// .d.ts into its TypeScript worker so the editor gets real @continuum-js types.
+const types = [];
 const missing = [];
 for (const { pkg, dir, subpaths } of PACKAGES) {
   const absDir = path.join(root, dir);
@@ -55,14 +58,28 @@ for (const { pkg, dir, subpaths } of PACKAGES) {
     missing.push(dir);
     continue;
   }
-  // Copy the whole dist/ (only .js files needed at runtime).
+  // Copy the whole dist/: .js for the iframe runtime, .d.ts for Monaco types.
   const dest = path.join(outDir, pkg);
   fs.mkdirSync(dest, { recursive: true });
   for (const file of fs.readdirSync(absDir)) {
-    if (file.endsWith(".js")) {
+    if (file.endsWith(".js") || file.endsWith(".d.ts")) {
       fs.copyFileSync(path.join(absDir, file), path.join(dest, file));
     }
+    if (file.endsWith(".d.ts")) {
+      types.push({
+        path: `node_modules/@continuum-js/${pkg}/${file}`,
+        url: `${BASE}${pkg}/${file}`,
+      });
+    }
   }
+  // A package.json shim so `import "@continuum-js/pkg"` resolves to index.d.ts.
+  types.push({
+    path: `node_modules/@continuum-js/${pkg}/package.json`,
+    content: JSON.stringify({
+      name: `@continuum-js/${pkg}`,
+      types: "index.d.ts",
+    }),
+  });
   for (const [suffix, file] of Object.entries(subpaths)) {
     imports[`@continuum-js/${pkg}${suffix}`] = `${BASE}${pkg}/${file}`;
   }
@@ -78,6 +95,11 @@ if (missing.length) {
 fs.writeFileSync(
   path.join(outDir, "importmap.json"),
   JSON.stringify({ imports }, null, 2) + "\n",
+);
+
+fs.writeFileSync(
+  path.join(outDir, "types.json"),
+  JSON.stringify({ types }, null, 2) + "\n",
 );
 
 console.log(

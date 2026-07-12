@@ -5,12 +5,62 @@
   --vp-c-brand-3: #60a5fa;
 }
 
-/* Home hero: a subtle brand gradient on the product name. */
+/* Home hero — a full-width gradient band, Solid-style. The VitePress home
+   hero sits inside it; we widen and enlarge the type. */
+.VPHome {
+  --cn-hero:
+    radial-gradient(
+      1200px 500px at 15% -10%,
+      rgba(96, 165, 250, 0.28),
+      transparent 60%
+    ),
+    radial-gradient(
+      1000px 500px at 95% 0%,
+      rgba(139, 92, 246, 0.26),
+      transparent 55%
+    ),
+    linear-gradient(180deg, var(--vp-c-bg-alt), var(--vp-c-bg));
+}
+.VPHome .VPHero {
+  background: var(--cn-hero);
+  border-bottom: 1px solid var(--vp-c-divider);
+  margin-bottom: 8px;
+  padding-bottom: 24px;
+}
+.VPHome .VPHero .container {
+  max-width: 1120px;
+}
 .VPHero .name {
-  background: linear-gradient(120deg, var(--vp-c-brand-1), #8b5cf6);
+  font-size: 68px;
+  line-height: 1.05;
+  background: linear-gradient(120deg, var(--vp-c-brand-1), #8b5cf6 70%);
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
+}
+.VPHero .text {
+  font-size: 30px;
+  font-weight: 700;
+}
+@media (min-width: 960px) {
+  .VPHero .name {
+    font-size: 80px;
+  }
+}
+.VPHero .tagline {
+  font-size: 17px;
+  line-height: 1.6;
+  color: var(--vp-c-text-2);
+}
+/* Feature cards: lift on hover, brand accent. */
+.VPHome .VPFeature {
+  transition:
+    border-color 0.2s,
+    transform 0.2s;
+}
+.VPHome .VPFeature:hover {
+  border-color: var(--vp-c-brand-1);
+  transform: translateY(-3px);
 }
 
 /* "Run" button injected into tsx/jsx code blocks (see runButtons.ts).
