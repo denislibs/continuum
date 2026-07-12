@@ -2,7 +2,13 @@
 // The standard Solid keyed implementation (signals + <For>), compiled by
 // vite-plugin-solid — the fair "compiled templates" baseline. Same DOM
 // structure and selectors as the Continuum app.
-import { createSignal, batch, type Accessor, type Setter } from "solid-js";
+import {
+  createSignal,
+  createSelector,
+  batch,
+  type Accessor,
+  type Setter,
+} from "solid-js";
 import { For } from "solid-js";
 import { render } from "solid-js/web";
 
@@ -39,6 +45,7 @@ function buildRows(n: number): Row[] {
 function App() {
   const [rows, setRows] = createSignal<Row[]>([]);
   const [selected, setSelected] = createSignal<number | null>(null);
+  const isSelected = createSelector(selected);
 
   const run = () => setRows(buildRows(1000));
   const runLots = () => setRows(buildRows(10000));
@@ -100,7 +107,7 @@ function App() {
         <tbody>
           <For each={rows()}>
             {(row) => (
-              <tr class={selected() === row.id ? "danger" : ""}>
+              <tr class={isSelected(row.id) ? "danger" : ""}>
                 <td class="col-md-1">{row.id}</td>
                 <td class="col-md-4">
                   <a class="lbl" onClick={() => setSelected(row.id)}>

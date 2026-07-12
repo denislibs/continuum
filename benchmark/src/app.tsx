@@ -1,4 +1,4 @@
-import { newBehavior, type Behavior } from "@continuum-js/frp";
+import { newBehavior, selector, type Behavior } from "@continuum-js/frp";
 import { Each } from "@continuum-js/dom";
 import { buildRows, swap, type Row } from "./data";
 
@@ -10,6 +10,8 @@ export function App() {
   let data: Row[] = [];
   const [rows, setRows] = newBehavior<Row[]>(data);
   const [selected, setSelected] = newBehavior<number | null>(null);
+  // keyed selection: one watcher + a tiny cell per row — O(2) per click
+  const rowClass = selector(selected, "danger", "");
 
   const publish = () => setRows(data);
   const run = () => {
@@ -81,7 +83,7 @@ export function App() {
             {(r) => (
               <TableRow
                 row={r}
-                selected={selected}
+                rowClass={rowClass}
                 onSelect={setSelected}
                 onRemove={remove}
               />
@@ -96,12 +98,12 @@ export function App() {
 
 function TableRow(props: {
   row: Row;
-  selected: Behavior<number | null>;
+  rowClass: (id: number) => Behavior<string>;
   onSelect: (id: number) => void;
   onRemove: (id: number) => void;
 }) {
-  const { row, selected, onSelect, onRemove } = props;
-  const rowClass = selected.map((s) => (s === row.id ? "danger" : ""));
+  const { row, rowClass: cls, onSelect, onRemove } = props;
+  const rowClass = cls(row.id);
   const onClick = (e: MouseEvent) => {
     if ((e.target as HTMLElement).closest("a.remove")) onRemove(row.id);
     else onSelect(row.id);

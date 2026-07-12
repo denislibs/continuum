@@ -146,3 +146,20 @@ sleep and re-wake. It is never required for correctness.)
 ---
 
 > Unfamiliar term? Every piece of jargon in these docs is explained in the [glossary](/glossary).
+
+## Selection in lists: `selector()`
+
+Deriving "is this row selected?" per row (`selected.map((s) => s === id)`)
+creates a derivation per row and recomputes all of them on every click.
+`selector()` inverts it: ONE process watches the wire, each key gets a tiny
+cell, and changing the selection flips exactly two cells — in one moment:
+
+```ts
+import { selector } from "@continuum-js/frp";
+
+const rowClass = selector(selected, "danger", ""); // value form
+// in a row: <tr class={rowClass(row.id)}> — zero extra nodes per row
+```
+
+The watching process belongs to the ambient scope (a component, or `root()`
+at module level).
