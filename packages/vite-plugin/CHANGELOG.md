@@ -1,5 +1,14 @@
 # @continuum-js/vite-plugin
 
+## 0.3.0
+
+### Minor Changes
+
+- e31a3d3: Expose the raw babel transform as a `@continuum-js/vite-plugin/transform`
+  subpath export. This lets tooling run the exact compiler the plugin uses
+  outside a Vite build — the docs playground uses it to show what JSX compiles
+  into. The default plugin export is unchanged.
+
 ## 0.2.0
 
 ### Minor Changes
