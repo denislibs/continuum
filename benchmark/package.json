@@ -9,7 +9,10 @@
     "preview": "vite preview",
     "bench": "node bench.mjs",
     "bench:mem": "node mem.mjs",
-    "bench:heap": "node heap.mjs"
+    "bench:heap": "node heap.mjs",
+    "bench:core": "node core.mjs",
+    "bench:soak": "node soak.mjs",
+    "bench:fps": "node fps.mjs"
   },
   "dependencies": {
     "@continuum-js/dom": "0.18.1",
