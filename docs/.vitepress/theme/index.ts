@@ -16,5 +16,9 @@ export default {
       "Playground",
       defineAsyncComponent(() => import("./playground/Playground.vue")),
     );
+    app.component(
+      "Tutorial",
+      defineAsyncComponent(() => import("./tutorial/Tutorial.vue")),
+    );
   },
 } satisfies Theme;
