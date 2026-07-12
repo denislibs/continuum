@@ -49,8 +49,14 @@ export class Scope {
   children: Scope[] | null = null;
   /** @internal */
   parent: Scope | null;
+  /** @internal Bit 1 — disposed; bit 2 belongs to subclasses (dom Owner's
+   * `mounted`): two booleans in one slot. */
+  flags = 0;
+
   /** True once `dispose()` has run. */
-  disposed = false;
+  get disposed(): boolean {
+    return (this.flags & 1) !== 0;
+  }
 
   /** Attach to `parent`; defaults to the ambient scope. */
   constructor(parent: Scope | null = currentScope) {
@@ -65,8 +71,8 @@ export class Scope {
 
   /** Tear down children, then own cleanups; detach from the parent. Idempotent. */
   dispose(): void {
-    if (this.disposed) return;
-    this.disposed = true;
+    if ((this.flags & 1) !== 0) return;
+    this.flags |= 1;
     if (this.children) {
       for (let i = this.children.length - 1; i >= 0; i--) {
         this.children[i].dispose();
@@ -136,25 +142,43 @@ export class Transaction {
   /** @internal */
   static current: Transaction | null = null;
   private static seqCounter = 0;
+  private static idCounter = 0;
+
+  /**
+   * @internal Monotonic MOMENT id. The pool below recycles the object, so
+   * object identity no longer distinguishes moments across time — anything
+   * comparing a SAVED transaction against a later one (makeFire's
+   * once-per-moment guard) must compare ids. In-moment staging keyed by
+   * identity is fine: those keys reset at the boundary, and an aborted
+   * moment's object is never recycled.
+   */
+  id = Transaction.idCounter++;
 
   // Binary min-heap over `prioritized`, keyed by (rank, seq) — but the
   // FIRST entry of a moment lives inline in three fields: most moments
   // schedule exactly one prioritized action (a lone `set`), and paying a
   // heap entry object + sift for it showed up in moment-throughput
-  // profiles. The heap only engages from the second entry on.
+  // profiles. The heap engages from the second entry on and is allocated
+  // then — most moments never pay the array.
   private p1a: ((t: Transaction) => void) | null = null;
   private p1r = 0;
   private p1s = 0;
-  private heap: Entry[] = [];
-  private lastQ: Array<() => void> = [];
-  // flat (fn, arg) pairs — a closure per delivery per listener showed up
-  // in update-path profiles
+  private heap: Entry[] | null = null;
+  // flat (fn, arg) pairs written by cursor into a REUSED array (the pool
+  // below recycles the whole transaction): `push` + `length = 0` looks
+  // cheaper, but resetting length is a V8 runtime call that dominated the
+  // 500k-set profile. Consumed slots are cleared during the drain, so the
+  // recycled arrays retain nothing.
+  private lastQ: unknown[] = [];
+  private lastIx = 0; // batch drain cursor
+  private lastN = 0; // write cursor
   private postQ: unknown[] = [];
+  private postN = 0;
 
   // --- phase 1: prioritized work (rank order) ---
   prioritized(rank: number, action: (t: Transaction) => void): void {
     const seq = Transaction.seqCounter++;
-    if (this.p1a === null && this.heap.length === 0) {
+    if (this.p1a === null && (this.heap === null || this.heap.length === 0)) {
       this.p1a = action;
       this.p1r = rank;
       this.p1s = seq;
@@ -169,17 +193,23 @@ export class Transaction {
   }
 
   // --- phase 2: end-of-moment commits (hold, switch) ---
-  last(action: () => void): void {
-    this.lastQ.push(action);
+  last(action: () => void): void;
+  last<X>(action: (x: X) => void, arg: X): void;
+  last(action: (x?: unknown) => void, arg?: unknown): void {
+    const q = this.lastQ;
+    q[this.lastN++] = action;
+    q[this.lastN++] = arg;
   }
 
   // --- phase 3: observer side effects, run after the moment closes ---
   post<X>(fn: (x: X) => void, arg: X): void {
-    this.postQ.push(fn, arg);
+    const q = this.postQ;
+    q[this.postN++] = fn;
+    q[this.postN++] = arg;
   }
 
   private heapPush(e: Entry): void {
-    const h = this.heap;
+    const h = (this.heap ??= []);
     h.push(e);
     let i = h.length - 1;
     while (i > 0) {
@@ -193,7 +223,7 @@ export class Transaction {
 
   private heapPop(): Entry | undefined {
     const h = this.heap;
-    if (h.length === 0) return undefined;
+    if (h === null || h.length === 0) return undefined;
     const top = h[0];
     const last = h.pop()!;
     if (h.length > 0) {
@@ -249,6 +279,7 @@ export class Transaction {
         if (a !== null) {
           const h = this.heap;
           if (
+            h === null ||
             h.length === 0 ||
             this.p1r < h[0].rank ||
             (this.p1r === h[0].rank && this.p1s < h[0].seq)
@@ -262,20 +293,47 @@ export class Transaction {
         if (e === undefined) break;
         e.action(this);
       }
-      if (this.lastQ.length === 0) break;
-      const ls = this.lastQ;
-      this.lastQ = [];
-      for (const l of ls) l();
+      // One BATCH is the pairs queued so far; entries a batch enqueues run
+      // in the next batch, after another prioritized pass — the cursor
+      // replaces the old array swap (an allocation per batch).
+      if (this.lastIx >= this.lastN) break;
+      const q = this.lastQ;
+      const batchEnd = this.lastN;
+      for (let i = this.lastIx; i < batchEnd; i += 2) {
+        const fn = q[i] as (x: unknown) => void;
+        const arg = q[i + 1];
+        q[i] = q[i + 1] = undefined; // recycled array must retain nothing
+        fn(arg);
+      }
+      this.lastIx = batchEnd;
       // `last` may have scheduled fresh prioritized work — loop again.
     }
+    // drained clean: reset the cursors for the next moment (see the pool)
+    this.lastN = 0;
+    this.lastIx = 0;
   }
+
+  // One recycled instance: a moment is Transaction + three queue arrays,
+  // and update-heavy apps open millions of them. A moment that completed
+  // cleanly leaves every queue empty (drainLoop resets lastQ, the heap is
+  // popped dry, postQ is cleared below), so the object can be reused as-is.
+  // A moment that THREW is abandoned — its queues may hold stale work.
+  private static pool: Transaction | null = null;
 
   // Run `f` inside a transaction. Nested calls reuse the enclosing moment.
   static run<A>(f: (t: Transaction) => A): A {
     const existing = Transaction.current;
     if (existing) return f(existing);
 
-    const t = new Transaction();
+    const pooled = Transaction.pool;
+    let t: Transaction;
+    if (pooled !== null) {
+      Transaction.pool = null;
+      pooled.id = Transaction.idCounter++; // a fresh MOMENT in a reused shell
+      t = pooled;
+    } else {
+      t = new Transaction();
+    }
     Transaction.current = t;
     let result: A;
     try {
@@ -286,15 +344,20 @@ export class Transaction {
       Transaction.current = null;
     }
     // phase 3: observers run after the moment has closed, so a `send`
-    // from an observer opens a brand-new moment. Observers are isolated:
-    // one throwing does not stop the rest; the first error is rethrown.
+    // from an observer opens a brand-new moment (which allocates its own
+    // transaction — this one is not in the pool yet, so no aliasing).
+    // Observers are isolated: one throwing does not stop the rest; the
+    // first error is rethrown.
     const posts = t.postQ;
-    t.postQ = [];
+    const postN = t.postN;
     let firstErr: unknown;
     let hasErr = false;
-    for (let i = 0; i < posts.length; i += 2) {
+    for (let i = 0; i < postN; i += 2) {
+      const fn = posts[i] as (x: unknown) => void;
+      const arg = posts[i + 1];
+      posts[i] = posts[i + 1] = undefined; // recycled array must retain nothing
       try {
-        (posts[i] as (x: unknown) => void)(posts[i + 1]);
+        fn(arg);
       } catch (err) {
         if (!hasErr) {
           hasErr = true;
@@ -302,6 +365,8 @@ export class Transaction {
         }
       }
     }
+    t.postN = 0;
+    Transaction.pool = t;
     if (hasErr) throw firstErr;
     return result;
   }
@@ -345,8 +410,16 @@ const RANK_LIMIT = 1 << 16;
 export class Stream<A> {
   /** @internal Topological height in the graph (propagation order). */
   rank: number;
-  // Observer edges, slot-style: removal swaps with the last edge (O(1), no
-  // hashing). Rank propagation walks the same array via `Edge.t` — the old
+  // Observer edges. MOST nodes carry exactly one (a binding chain), so the
+  // first edge lives INLINE in `ob0` and the array exists only from the
+  // second subscriber on (heap profiles: ~64 B of array per single-listener
+  // node, 20k of them at 10k rows). Once spilled, a node stays on the array
+  // — churn between 1 and 2 listeners must not re-allocate it. Invariant:
+  // ob0 and obs are never both non-null. `Edge.i` is -2 for the inline
+  // slot, the array index otherwise, -1 once removed.
+  private ob0: Edge<any> | null = null;
+  // Array form, slot-style: removal swaps with the last edge (O(1), no
+  // hashing). Rank propagation walks the same edges via `Edge.t` — the old
   // separate refcounted targets Map was this information duplicated.
   // Relative delivery order of two surviving listeners may change after an
   // unrelated removal (same as Solid's slots); effects still run in
@@ -430,14 +503,23 @@ export class Stream<A> {
       }
       onPath.add(n);
       n.rank = l + 1;
-      if (!n.obs) continue;
-      for (const e of n.obs) {
-        const t = e.t;
-        if (t === null || t === POST) continue;
-        if (onPath.has(t))
-          throw new Error("Continuum: dependency cycle detected");
-        // duplicate edges to one target just revisit an already-high rank
-        stack.push({ n: t, l: n.rank });
+      const o0 = n.ob0;
+      if (o0 !== null) {
+        const t0 = o0.t;
+        if (t0 !== null && t0 !== POST) {
+          if (onPath.has(t0))
+            throw new Error("Continuum: dependency cycle detected");
+          stack.push({ n: t0, l: n.rank });
+        }
+      } else if (n.obs) {
+        for (const e of n.obs) {
+          const t = e.t;
+          if (t === null || t === POST) continue;
+          if (onPath.has(t))
+            throw new Error("Continuum: dependency cycle detected");
+          // duplicate edges to one target just revisit an already-high rank
+          stack.push({ n: t, l: n.rank });
+        }
       }
     }
   }
@@ -459,19 +541,43 @@ export class Stream<A> {
           "scope that uses them.",
       );
     }
-    const obs = (this.obs ??= []);
-    const rec: Edge<any> = { h, t: target, i: obs.length };
-    obs.push(rec);
-    this.snap = null;
-    if (obs.length === 1) this.wake();
+    const rec: Edge<any> = { h, t: target, i: -2 };
+    const obs = this.obs;
+    if (obs === null) {
+      const first = this.ob0;
+      if (first === null) {
+        // first observer overall — the inline slot, no array
+        this.ob0 = rec;
+        this.wake();
+      } else {
+        // second observer: spill the inline edge into a fresh array
+        first.i = 0;
+        rec.i = 1;
+        this.obs = [first, rec];
+        this.ob0 = null;
+        this.snap = null;
+      }
+    } else {
+      rec.i = obs.length;
+      obs.push(rec);
+      this.snap = null;
+      if (obs.length === 1) this.wake(); // array drained earlier, now refilled
+    }
     // keep the target strictly above this source (handles dynamic
     // subscriptions from flatten onto deeper events).
     if (target !== null && target !== POST) target.ensureBiggerThan(this.rank);
     return rec;
   }
 
-  /** @internal O(1) edge removal: swap with the last, fix its index. */
+  /** @internal O(1) edge removal: clear the inline slot, or swap with the
+   * array's last edge and fix its index. */
   unlisten_(rec: Edge<any>): void {
+    if (rec === this.ob0) {
+      this.ob0 = null;
+      rec.i = -1;
+      this.sleep();
+      return;
+    }
     const obs = this.obs;
     if (!obs || rec.i < 0) return;
     const last = obs.pop()!;
@@ -488,14 +594,25 @@ export class Stream<A> {
   send_(t: Transaction, a: A): void {
     // Delivery iterates a snapshot: a listener added during delivery must
     // NOT see this occurrence, one removed during delivery still does (see
-    // the bookkeeping tests). The snapshot is CACHED between mutations —
-    // fan-out sources fire far more often than they churn listeners, so
-    // steady-state delivery allocates nothing.
-    const ls = (this.snap ??= this.obs ? [...this.obs] : EMPTY_SNAP);
-    for (const e of ls) {
-      // The sentinel target discriminates the union in `Edge.h`: a POST
+    // the bookkeeping tests).
+    const o0 = this.ob0;
+    if (o0 !== null) {
+      // Single observer: the captured record IS the snapshot — an attach
+      // during delivery lands in ob0-spilled storage and is not visited; a
+      // removal cannot un-run this call.
+      // (The sentinel target discriminates the union in `Edge.h`: a POST
       // edge carries the user callback — schedule it for the observer
-      // phase without a per-listen wrapper closure.
+      // phase without a per-listen wrapper closure.)
+      if (o0.t === POST) t.post(o0.h as Observer<A>, a);
+      else (o0.h as Handler<A>)(t, a);
+      return;
+    }
+    if (this.obs === null) return;
+    // The array snapshot is CACHED between mutations — fan-out sources fire
+    // far more often than they churn listeners, so steady-state delivery
+    // allocates nothing.
+    const ls = (this.snap ??= this.obs.length > 0 ? [...this.obs] : EMPTY_SNAP);
+    for (const e of ls) {
       if (e.t === POST) t.post(e.h as Observer<A>, a);
       else (e.h as Handler<A>)(t, a);
     }
@@ -547,7 +664,12 @@ export class Stream<A> {
   }
 
   private sleep(): void {
-    if ((this.flags & 2) !== 0 || (this.obs?.length ?? 0) > 0) return;
+    if (
+      (this.flags & 2) !== 0 ||
+      this.ob0 !== null ||
+      (this.obs?.length ?? 0) > 0
+    )
+      return;
     const live = this.live;
     if (live) {
       this.live = null;
@@ -600,6 +722,7 @@ export class Stream<A> {
     const cs = this.cleanups;
     this.cleanups = null;
     if (cs) for (const c of cs) c();
+    this.ob0 = null;
     this.obs = null;
     this.snap = null;
   }
@@ -645,16 +768,20 @@ export class Stream<A> {
     // moment leaves nothing to commit and never blocks a later moment.
     let stagedTx: Transaction | null = null;
     let stagedVal: A;
+    // ONE commit closure per node, re-queued per staged moment (an aborted
+    // moment drops its queue, so a non-null stagedTx here means OUR moment
+    // is committing — see Cell.commit for the full argument).
+    const commit = () => {
+      if (stagedTx !== null) {
+        value = stagedVal;
+        stagedTx = null;
+      }
+    };
     const updates = new Stream<A>(this.rank + 1);
     const un = this.listen_(updates, (t, a) => {
       if (stagedTx !== t) {
         stagedTx = t;
-        t.last(() => {
-          if (stagedTx === t) {
-            value = stagedVal;
-            stagedTx = null;
-          }
-        });
+        t.last(commit);
       }
       stagedVal = a; // last write wins within a moment
       updates.send_(t, a);
@@ -675,15 +802,17 @@ export class Stream<A> {
     let value = init;
     let stagedTx: Transaction | null = null;
     let staged: B;
+    // one commit closure per node, not per moment (see hold)
+    const commit = () => {
+      if (stagedTx !== null) {
+        value = staged;
+        stagedTx = null;
+      }
+    };
     const un = this.listen_(out, (t, a) => {
       if (stagedTx !== t) {
         stagedTx = t;
-        t.last(() => {
-          if (stagedTx === t) {
-            value = staged;
-            stagedTx = null;
-          }
-        });
+        t.last(commit);
       }
       staged = f(a, value); // folds over the committed (pre-moment) state
       out.send_(t, staged);
@@ -702,15 +831,17 @@ export class Stream<A> {
     let value = init;
     let stagedTx: Transaction | null = null;
     let staged: B;
+    // one commit closure per node, not per moment (see hold)
+    const commit = () => {
+      if (stagedTx !== null) {
+        value = staged;
+        stagedTx = null;
+      }
+    };
     const un = this.listen_(out, (t, a) => {
       if (stagedTx !== t) {
         stagedTx = t;
-        t.last(() => {
-          if (stagedTx === t) {
-            value = staged;
-            stagedTx = null;
-          }
-        });
+        t.last(commit);
       }
       staged = f(a, value); // folds over the committed (pre-moment) state
       out.send_(t, staged);
@@ -728,16 +859,18 @@ export class Stream<A> {
     const out = new Stream<A>(this.rank + 1);
     let fired = false;
     let stagedTx: Transaction | null = null;
+    // one commit closure per node, not per moment (see hold)
+    const spend = () => {
+      if (stagedTx !== null) {
+        fired = true;
+        stagedTx = null;
+      }
+    };
     out.source(this, (t, a) => {
       if (fired || stagedTx === t) return;
       // spend the once at the boundary — an aborted moment leaves it armed
       stagedTx = t;
-      t.last(() => {
-        if (stagedTx === t) {
-          fired = true;
-          stagedTx = null;
-        }
-      });
+      t.last(spend);
       out.send_(t, a);
     });
     return out;
@@ -939,20 +1072,23 @@ export class Wire<A> {
     let scheduledTx: Transaction | null = null;
     let reseeding = false;
     let suppressed = false;
+    // one commit closure per join, not per moment (see hold); a mid-moment
+    // reseed sets stagedTx to null, which also disarms a queued commit
+    const commit = () => {
+      if (stagedTx !== null) {
+        if (hasSa) va = sa;
+        if (hasSb) vb = sb;
+        stagedTx = null;
+        hasSa = false;
+        hasSb = false;
+      }
+    };
     const stage = (t: Transaction) => {
       if (stagedTx !== t) {
         stagedTx = t;
         hasSa = false;
         hasSb = false;
-        t.last(() => {
-          if (stagedTx === t) {
-            if (hasSa) va = sa;
-            if (hasSb) vb = sb;
-            stagedTx = null;
-            hasSa = false;
-            hasSb = false;
-          }
-        });
+        t.last(commit);
       }
     };
     const flush = (t: Transaction) => {
@@ -1125,7 +1261,9 @@ export class Wire<A> {
 // PRE-moment state, dropping the first. Behaviors opt out: `hold` stages
 // last-write-wins by design, so repeated `set` in a moment is legal.
 function makeFire<A>(e: Stream<A>, once: boolean): (a: A) => void {
-  let lastTx: Transaction | null = null;
+  // Keyed by MOMENT id, not object identity: the transaction shell is
+  // pooled, so a saved reference would alias the next moment too.
+  let lastId = -1;
   return (a: A) => {
     if (Transaction.current?.pureZone) {
       throw new Error(
@@ -1135,13 +1273,13 @@ function makeFire<A>(e: Stream<A>, once: boolean): (a: A) => void {
     }
     Transaction.run((t) => {
       if (once) {
-        if (lastTx === t)
+        if (t.id === lastId)
           throw new Error(
             "Continuum: a source may fire once per moment — merge distinct " +
               "streams with an explicit combine, or use a behavior's setter " +
               "for last-write-wins.",
           );
-        lastTx = t;
+        lastId = t.id;
       }
       t.sending++;
       try {
@@ -1185,11 +1323,27 @@ class Cell<A> extends Wire<A> {
   protected eq: (prev: A, next: A) => boolean;
   private stagedTx: Transaction | null = null;
   private staged!: A;
+  // Cached prioritized action — one closure per cell LIFETIME (lazy, on the
+  // first stage) instead of one per moment; a set used to cost two fresh
+  // closures (this and the commit, now a flat pair below).
+  private sendFn: ((t: Transaction) => void) | null = null;
 
   constructor(init: A, eq: (prev: A, next: A) => boolean) {
     super(cellSample as () => A, new Stream<A>(0));
     this.value = init;
     this.eq = eq;
+  }
+
+  // End-of-moment commit, shared by ALL cells via a flat (fn, cell) lastQ
+  // pair. Safe without a transaction guard: the pair dies with an aborted
+  // moment, and inside a committing moment `stagedTx` is non-null exactly
+  // when a staging round queued this pair (only the commit itself resets
+  // it; a later round in the same moment queues its own pair).
+  private static commit(c: Cell<unknown>): void {
+    if (c.stagedTx !== null) {
+      c.value = c.staged;
+      c.stagedTx = null;
+    }
   }
 
   /** Staged value if this moment already wrote one, else the committed one. */
@@ -1200,18 +1354,16 @@ class Cell<A> extends Wire<A> {
   stage(t: Transaction, a: A): void {
     if (this.stagedTx !== t) {
       this.stagedTx = t;
-      t.last(() => {
-        if (this.stagedTx === t) {
-          this.value = this.staged;
-          this.stagedTx = null;
-        }
-      });
+      t.last(Cell.commit, this as Cell<unknown>);
       // ONE updates occurrence per moment — the final staged value.
       // Several sets in one batch coalesce; the intermediate values never
       // reach the graph (they are not values the cell ever held).
-      t.prioritized(this.updates.rank, (t2) => {
-        if (this.stagedTx === t2) this.updates.send_(t2, this.staged);
-      });
+      t.prioritized(
+        this.updates.rank,
+        (this.sendFn ??= (t2) => {
+          if (this.stagedTx === t2) this.updates.send_(t2, this.staged);
+        }),
+      );
     }
     this.staged = a; // last write wins within a moment
   }
@@ -1385,15 +1537,19 @@ export function selector<K, V>(
   const offVal = arguments.length >= 3 ? (off as V) : (false as boolean | V);
   const cells = new Map<K, Cell<boolean | V>>();
   let current = w.sampleNoTrans();
+  // `current` commits at the boundary like everything else (law 2); the
+  // pending key is staged so ONE closure serves every moment (see hold)
+  let nextKey: K;
+  const commit = () => {
+    current = nextKey;
+  };
   const un = w.updates.listen_(null, (t, k) => {
     const prev = cells.get(current);
     if (prev) prev.stage(t, offVal);
     const next = cells.get(k);
     if (next) next.stage(t, onVal);
-    // `current` commits at the boundary like everything else (law 2)
-    t.last(() => {
-      current = k;
-    });
+    nextKey = k;
+    t.last(commit);
   });
   scope.onDispose(un);
   return (key: K) => {
@@ -1513,17 +1669,20 @@ export function distinct<A>(
   // must not prime the dedup) …
   let stagedTx: Transaction | null = null;
   let staged: A;
+  // one commit closure per node, not per moment (see hold); a wake mid-
+  // moment resets stagedTx to null, which also disarms a queued commit
+  const commit = () => {
+    if (stagedTx !== null) {
+      hasPrev = true;
+      prev = staged;
+      stagedTx = null;
+    }
+  };
   out.source(e, (t, a) => {
     if (!hasPrev || !eq(prev, a)) {
       if (stagedTx !== t) {
         stagedTx = t;
-        t.last(() => {
-          if (stagedTx === t) {
-            hasPrev = true;
-            prev = staged;
-            stagedTx = null;
-          }
-        });
+        t.last(commit);
       }
       staged = a;
       out.send_(t, a);
