@@ -1,5 +1,13 @@
 # @continuum-js/test
 
+## 0.1.17
+
+### Patch Changes
+
+- Updated dependencies [ed8adb8]
+  - @continuum-js/frp@0.19.0
+  - @continuum-js/dom@0.19.0
+
 ## 0.1.16
 
 ### Patch Changes
