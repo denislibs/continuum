@@ -1,5 +1,11 @@
 # @continuum-js/std
 
+## 0.17.0
+
+### Patch Changes
+
+- @continuum-js/frp@0.17.0
+
 ## 0.16.0
 
 ### Patch Changes

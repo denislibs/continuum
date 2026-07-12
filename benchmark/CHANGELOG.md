@@ -1,5 +1,13 @@
 # @continuum-js/benchmark
 
+## 0.2.19
+
+### Patch Changes
+
+- Updated dependencies [f0b1ddf]
+  - @continuum-js/dom@0.17.0
+  - @continuum-js/frp@0.17.0
+
 ## 0.2.18
 
 ### Patch Changes
