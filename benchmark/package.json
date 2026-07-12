@@ -1,6 +1,6 @@
 {
   "name": "@continuum-js/benchmark",
-  "version": "0.2.18",
+  "version": "0.2.19",
   "private": true,
   "type": "module",
   "scripts": {
@@ -10,8 +10,8 @@
     "bench": "node bench.mjs"
   },
   "dependencies": {
-    "@continuum-js/dom": "0.16.0",
-    "@continuum-js/frp": "0.16.0"
+    "@continuum-js/dom": "0.17.0",
+    "@continuum-js/frp": "0.17.0"
   },
   "devDependencies": {
     "solid-js": "^1.9.14",
