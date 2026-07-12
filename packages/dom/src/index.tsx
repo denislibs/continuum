@@ -154,13 +154,17 @@ function bindWire<T>(w: Wire<T>, h: (v: T) => void): void {
     throw err;
   }
   const s = getScope();
-  // Duck-typed (only Owner declares `subs`): an `instanceof Owner` here
-  // would drag the whole Owner/Scope machinery into the compiled-template
-  // bundle, which otherwise tree-shakes it away.
-  if (s !== null && (s as Owner).subs !== undefined)
-    ((s as Owner).subs ??= []).push(w.updates, handle);
+  if (s !== null && hasSubs(s)) (s.subs ??= []).push(w.updates, handle);
   else if (s) s.onDispose(() => unobserve_(w.updates, handle));
   // no scope: an unowned static fragment — the binding lives forever (as before)
+}
+
+// Duck-typed Owner check (only Owner declares `subs`): an `instanceof
+// Owner` inside bindWire would drag the whole Owner/Scope machinery into
+// the compiled-template bundle, which otherwise tree-shakes it away. The
+// guard mentions Owner as a TYPE only — erased at runtime.
+function hasSubs(s: Scope): s is Owner {
+  return (s as Owner).subs !== undefined;
 }
 
 // ---------------------------------------------------------------------------

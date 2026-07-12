@@ -2,7 +2,7 @@
   {
     "name": "@continuum-js/frp",
     "path": "packages/frp/src/index.ts",
-    "limit": "3.95 kB"
+    "limit": "3.96 kB"
   },
   {
     "name": "@continuum-js/dom (incl. frp)",

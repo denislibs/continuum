@@ -12,12 +12,20 @@ export type Unlisten = () => void;
 // A subscriber inside the graph: receives the enclosing transaction + value.
 type Handler<A> = (t: Transaction, a: A) => void;
 
-// One graph edge: the handler, the receiving node (null for leaf observers —
-// rank propagation walks `t`), and this edge's index in the source's `obs`
-// array (kept current by swap-removal; -1 once removed). One small record
-// replaces what used to be a Set entry + a refcounted Map entry + a closure.
-interface Edge<A> {
-  h: Handler<A>;
+// A leaf observer (public `listen`): just the value, scheduled into the
+// observer phase after the moment closes.
+type Observer<A> = (a: A) => void;
+
+// One graph edge: the handler, the receiving node (null for in-graph leaf
+// subscribers — rank propagation walks `t`), and this edge's index in the
+// source's `obs` array (kept current by swap-removal; -1 once removed). One
+// small record replaces what used to be a Set entry + a refcounted Map
+// entry + a closure. The discriminant for `h` is the target: an edge whose
+// `t` is the POST sentinel holds an Observer, every other edge an in-graph
+// Handler (see `send_`).
+/** @internal Exposed to the dom renderer only as the opaque `ObserverHandle`. */
+export interface Edge<A> {
+  h: Handler<A> | Observer<A>;
   t: Stream<any> | null;
   i: number;
 }
@@ -440,8 +448,10 @@ export class Stream<A> {
     return () => this.unlisten_(rec);
   }
 
-  /** @internal Closure-free subscription: returns the edge record. */
-  attach_(target: Stream<any> | null, h: Handler<A>): Edge<any> {
+  /** @internal Closure-free subscription: returns the edge record. The
+   * handler kind must match the target (Observer for POST, Handler else) —
+   * see the Edge discriminant. */
+  attach_(target: Stream<any> | null, h: Handler<A> | Observer<A>): Edge<any> {
     if ((this.flags & 1) !== 0) {
       throw new Error(
         "Continuum: this node was disposed — dispose() was called on it — " +
@@ -483,10 +493,11 @@ export class Stream<A> {
     // steady-state delivery allocates nothing.
     const ls = (this.snap ??= this.obs ? [...this.obs] : EMPTY_SNAP);
     for (const e of ls) {
-      // leaf observers (POST edges) carry the user callback — schedule it
-      // for the observer phase without a per-listen wrapper closure
-      if (e.t === POST) t.post(e.h as unknown as (a: A) => void, a);
-      else e.h(t, a);
+      // The sentinel target discriminates the union in `Edge.h`: a POST
+      // edge carries the user callback — schedule it for the observer
+      // phase without a per-listen wrapper closure.
+      if (e.t === POST) t.post(e.h as Observer<A>, a);
+      else (e.h as Handler<A>)(t, a);
     }
   }
 
@@ -804,7 +815,7 @@ export class Stream<A> {
     // No dispose-cascade here (it used to guess liveness from listener
     // counts and guessed wrong): pure derivations sleep on their own, and
     // stateful ones live exactly as long as their owning scope.
-    const rec = this.attach_(POST, h as unknown as Handler<A>);
+    const rec = this.attach_(POST, h);
     return () => this.unlisten_(rec);
   }
 
@@ -1155,12 +1166,13 @@ export function newStream<A>(): [Stream<A>, (a: A) => void] {
 // moment.
 
 // The shared pull for every cell: one function object for ALL cells instead
-// of a `() => this.value` closure per cell. Assigned as the wire's
-// `sampleNoTrans` own property and only ever called method-style
-// (`w.sampleNoTrans()`), so `this` is the cell.
-function cellSample<A>(this: Cell<A>): A {
+// of a `() => this.value` closure per cell. Only ever called method-style
+// (`w.sampleNoTrans()`), so `this` is the cell; the stored view is the
+// plain `() => A` that Wire declares — a this-typed function has no subtype
+// relation to it, hence the one widening cast HERE and nowhere else.
+const cellSample = function (this: Cell<unknown>): unknown {
   return this.value;
-}
+} as () => unknown;
 
 // A source cell fused INTO its wire: one object carries the committed value,
 // the staging slot and the whole Wire surface. Round 4 cut the cell from ~7
@@ -1175,7 +1187,7 @@ class Cell<A> extends Wire<A> {
   private staged!: A;
 
   constructor(init: A, eq: (prev: A, next: A) => boolean) {
-    super(cellSample as unknown as () => A, new Stream<A>(0));
+    super(cellSample as () => A, new Stream<A>(0));
     this.value = init;
     this.eq = eq;
   }
@@ -1261,8 +1273,9 @@ export function batch<A>(f: () => A): A {
   return Transaction.run(() => f());
 }
 
-/** @internal Opaque observer handle (an edge record) for `observe_`. */
-export type ObserverHandle = { readonly __continuumEdge: unique symbol };
+/** @internal Observer handle (an edge record) for `observe_` — opaque to
+ * the renderer, which only stores and returns it. */
+export type ObserverHandle = Edge<any>;
 
 /**
  * @internal Closure-free observer subscription for the dom renderer: like
@@ -1270,16 +1283,13 @@ export type ObserverHandle = { readonly __continuumEdge: unique symbol };
  * renderer stores flat (stream, handle) pairs on its owners — two array
  * slots where `listen` costs two closures per binding.
  */
-export function observe_<A>(e: Stream<A>, h: (a: A) => void): ObserverHandle {
-  return e.attach_(
-    POST,
-    h as unknown as Handler<A>,
-  ) as unknown as ObserverHandle;
+export function observe_<A>(e: Stream<A>, h: Observer<A>): ObserverHandle {
+  return e.attach_(POST, h);
 }
 
 /** @internal Detach a subscription made with `observe_`. */
 export function unobserve_(e: Stream<unknown>, handle: ObserverHandle): void {
-  e.unlisten_(handle as unknown as Edge<any>);
+  e.unlisten_(handle);
 }
 
 // ---------------------------------------------------------------------------
