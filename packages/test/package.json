@@ -1,6 +1,6 @@
 {
   "name": "@continuum-js/test",
-  "version": "0.1.13",
+  "version": "0.1.14",
   "description": "Continuum test utilities — render, event helpers, flush, fake-timer integration",
   "license": "MIT",
   "repository": {
@@ -30,8 +30,8 @@
     "access": "public"
   },
   "dependencies": {
-    "@continuum-js/dom": "^0.15.0",
-    "@continuum-js/frp": "^0.15.0"
+    "@continuum-js/dom": "^0.16.0",
+    "@continuum-js/frp": "^0.16.0"
   },
   "peerDependencies": {
     "vitest": ">=2"

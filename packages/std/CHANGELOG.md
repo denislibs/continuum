@@ -1,5 +1,12 @@
 # @continuum-js/std
 
+## 0.16.0
+
+### Patch Changes
+
+- Updated dependencies [8b043ed]
+  - @continuum-js/frp@0.16.0
+
 ## 0.15.0
 
 ### Minor Changes
