@@ -27,24 +27,46 @@ features:
     details: "A complete app — framework, state and your code — builds to 5.6 kB of gzipped JS; React + ReactDOM alone are ~8× that. Hard size budgets are enforced in CI."
 ---
 
-## Try it
+## Solid-class speed and memory — in a fraction of the bytes
+
+<BenchBars />
+
+**−32 % memory, ~40 % less garbage, faster interaction** — and one third the
+download. Measured on one machine through the same Playwright harness
+(`npm run bench`, `bench:mem`, `size`); full table with per-operation timings
+in the [overview](/overview#how-it-compares). React is a virtual-DOM re-render
+model — several times slower on the same table, and ~8× the bytes.
+
+## The same counter, two models
+
+<CodeCompare />
+
+## Try it — right here
+
+<script setup>
+const heroCounter = `import { state } from '@continuum-js/frp';
+
+export default function Counter() {
+  const count = state(0);
+  // Counter never runs again. {count} binds one text node;
+  // clicking patches exactly that node — no re-render.
+  return (
+    <button onClick={() => count.update((n) => n + 1)}>
+      count: {count}
+    </button>
+  );
+}`;
+</script>
+
+<ClientOnly>
+  <Playground height="300px" :code="heroCounter" />
+</ClientOnly>
+
+Edit the code, hit **Run**, and open the **Compiled** tab to see it become a
+parse-once template with a single insert hole. Then scaffold your own:
 
 ```bash
 npm create continuum-js@latest my-app
-```
-
-```tsx
-import { state } from "@continuum-js/frp";
-import { mount } from "@continuum-js/dom";
-
-function Counter() {
-  const count = state(0);
-  return (
-    <button onClick={() => count.update((n) => n + 1)}>count: {count}</button>
-  );
-}
-
-mount(document.getElementById("app")!, () => <Counter />);
 ```
 
 If you know `useState`, you already know this — except `Counter` never runs

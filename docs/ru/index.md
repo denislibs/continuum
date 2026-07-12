@@ -27,24 +27,48 @@ features:
     details: "Целое приложение — фреймворк, состояние и ваш код — собирается в 5,6 кБ gzip JavaScript; одни React + ReactDOM в ~8 раз больше. Жёсткие бюджеты размера проверяются в CI."
 ---
 
-## Попробовать
+## Скорость и память класса Solid — в разы меньше по весу
+
+<BenchBars lang="ru" />
+
+**−32 % памяти, ~40 % меньше мусора, быстрее интерактив** — и втрое меньше
+загрузка. Замер на одной машине через один и тот же Playwright-харнесс
+(`npm run bench`, `bench:mem`, `size`); полная таблица с потактовыми
+таймингами — в [обзоре](/ru/overview#как-он-сравнивается). React — модель
+виртуального DOM с ре-рендером: в разы медленнее на той же таблице и ~8× по
+весу.
+
+## Тот же счётчик, две модели
+
+<CodeCompare lang="ru" />
+
+## Попробовать — прямо здесь
+
+<script setup>
+const heroCounter = `import { state } from '@continuum-js/frp';
+
+export default function Counter() {
+  const count = state(0);
+  // Counter больше не выполнится. {count} привязывает один текстовый
+  // узел; клик патчит ровно его — без ре-рендера.
+  return (
+    <button onClick={() => count.update((n) => n + 1)}>
+      count: {count}
+    </button>
+  );
+}`;
+</script>
+
+<ClientOnly>
+  <Playground height="300px" :code="heroCounter" />
+</ClientOnly>
+
+Поменяйте код, нажмите **Run**, откройте вкладку **Compiled** — увидите, как
+он превращается в шаблон, разбираемый один раз, с единственной дыркой-вставкой.
+Затем создайте свой проект:
 
 ```bash
 npm create continuum-js@latest my-app
-```
-
-```tsx
-import { state } from "@continuum-js/frp";
-import { mount } from "@continuum-js/dom";
-
-function Counter() {
-  const count = state(0);
-  return (
-    <button onClick={() => count.update((n) => n + 1)}>count: {count}</button>
-  );
-}
-
-mount(document.getElementById("app")!, () => <Counter />);
 ```
 
 Если вы знаете `useState`, вы уже знаете и это — с одной разницей:

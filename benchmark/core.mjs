@@ -19,7 +19,7 @@ const self = fileURLToPath(import.meta.url);
 
 const CASE = process.env.CORE_CASE;
 if (CASE) {
-  const { wire, stream, root, selector, Stream, Wire, batch } =
+  const { state, stream, root, selector, Stream, combine, batch } =
     await import("@continuum-js/frp");
 
   const gcNow = () => {
@@ -69,7 +69,7 @@ if (CASE) {
   const CASES = {
     // --- retained bytes ---------------------------------------------------
     "stream node": () => entity(() => new Stream(0)),
-    "wire() cell": () => entity(() => wire(0)),
+    "state() cell": () => entity(() => state(0)),
     "listen() edge": () => {
       const src = new Stream(0);
       return entity(() => src.listen(() => {}));
@@ -95,17 +95,17 @@ if (CASE) {
         const src = new Stream(0);
         return entity(() => src.accum(0, (a, b) => b));
       }),
-    "lift2 awake + listen": () => {
-      const a = wire(0);
-      const b = wire(0);
+    "combine awake + listen": () => {
+      const a = state(0);
+      const b = state(0);
       return entity(() => {
-        const j = Wire.lift2((x, y) => x + y, a, b);
+        const j = combine(a, b, (x, y) => x + y);
         return [j, j.updates.listen(() => {})];
       });
     },
     "selector cell": () =>
       root(() => {
-        const sel = wire(0);
+        const sel = state(0);
         const isSel = selector(sel);
         return entity((i) => isSel(i));
       }),
@@ -114,7 +114,7 @@ if (CASE) {
     "garbage: set, 1 listener": () =>
       root(() =>
         garbage(
-          () => listened(wire(0)),
+          () => listened(state(0)),
           (w, i) => w.set(i),
           300_000,
         ),
@@ -122,7 +122,7 @@ if (CASE) {
     "garbage: batch of 5 sets": () =>
       root(() =>
         garbage(
-          () => Array.from({ length: 5 }, () => listened(wire(0))),
+          () => Array.from({ length: 5 }, () => listened(state(0))),
           (ws, i) => batch(() => ws.forEach((w) => w.set(i))),
           200_000,
         ),
@@ -139,7 +139,7 @@ if (CASE) {
       root(() =>
         garbage(
           () => {
-            const w = wire(0);
+            const w = state(0);
             w.updates
               .map((x) => x)
               .map((x) => x)
@@ -156,7 +156,7 @@ if (CASE) {
     "time: set → flush → post": () =>
       root(() =>
         timed(
-          () => listened(wire(0)),
+          () => listened(state(0)),
           (w, i) => w.set(i),
           5_000_000,
         ),
@@ -172,14 +172,14 @@ if (CASE) {
     "time: batch of 5 sets": () =>
       root(() =>
         timed(
-          () => Array.from({ length: 5 }, () => listened(wire(0))),
+          () => Array.from({ length: 5 }, () => listened(state(0))),
           (ws, i) => batch(() => ws.forEach((w) => w.set(i))),
           1_000_000,
         ),
       ),
     "time: sample()": () =>
       timed(
-        () => wire(42),
+        () => state(42),
         (w) => w.sample(),
         10_000_000,
       ),
@@ -201,13 +201,13 @@ if (CASE) {
 
 const ALL = [
   "stream node",
-  "wire() cell",
+  "state() cell",
   "listen() edge",
   "map, asleep",
   "map awake + listen",
   "hold node",
   "accum node (fused)",
-  "lift2 awake + listen",
+  "combine awake + listen",
   "selector cell",
   "garbage: set, 1 listener",
   "garbage: batch of 5 sets",

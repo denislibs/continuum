@@ -275,3 +275,32 @@ router 6.44 / compiled 3.85 (+~250 Б кода за ветки ob0 и пул).
 Не сделано из списка метрик (по желанию): startup (FCP/TTI),
 js-reactivity-benchmark-адаптер (графовые сценарии ядра), INP-прокси
 (задержка клика под нагрузкой).
+
+---
+
+## bench:core после миграции на 1.0 (12.07.2026, эта машина)
+
+`core.mjs` мигрирован с снятого `wire()`/`Wire.lift2` на `state()`/`combine`
+(до этого падал). Изолированные Node-процессы, `npm run bench:core`:
+
+| case                   | value  | unit     |
+| ---------------------- | ------ | -------- |
+| stream node            | 96.1   | B/entity |
+| state() cell           | 336.3  | B/entity |
+| listen() edge          | 209.8  | B/entity |
+| map, asleep            | 456.2  | B/entity |
+| map awake + listen     | 986.3  | B/entity |
+| hold node              | 547.4  | B/entity |
+| accum node (fused)     | 611.4  | B/entity |
+| combine awake + listen | 1604.2 | B/entity |
+| selector cell          | 300.9  | B/entity |
+| set → flush → post     | 34.9   | ns/op    |
+| fire → flush → post    | 22.6   | ns/op    |
+| batch of 5 sets        | 294.6  | ns/op    |
+| sample()               | 0.5    | ns/op    |
+| garbage: set           | ~1     | B/op     |
+| garbage: fire          | ~1.9   | B/op     |
+
+Совпадает с раундом 6 (set 33.7 → 34.9 нс, sample 0.5, мусор ~1 Б/set) —
+регрессий нет. combine (бывш. lift2) остаётся самым тяжёлым узлом (1.6 кБ) —
+бэклог Л6 (lift2 классом).
