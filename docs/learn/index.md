@@ -28,6 +28,18 @@ re-renders, just pinpoint DOM updates.
     <h3>Patterns →</h3>
     <p>Real features in a few lines: filter, totals, undo, a todo form.</p>
   </a>
+  <a class="cn-track-card" href="./async">
+    <h3>Async →</h3>
+    <p>Talk to the network as values: perform, resource, races solved.</p>
+  </a>
+  <a class="cn-track-card" href="./router">
+    <h3>Router →</h3>
+    <p>The URL as a value: routes, links, params, nested layouts.</p>
+  </a>
+  <a class="cn-track-card" href="./forms">
+    <h3>Forms →</h3>
+    <p>Inputs without boilerplate: bind, validate, derive, gate submit.</p>
+  </a>
 </div>
 
 <style>
