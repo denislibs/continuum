@@ -1038,6 +1038,7 @@ interface Cell<A> {
   w: Wire<A>;
   updates: Stream<A>;
   set: (a: A) => void;
+  update: (f: (state: A) => A) => void;
   stage: (t: Transaction, a: A) => void;
   /** Staged value if this moment already wrote one, else the committed one. */
   pending: (t: Transaction) => A;
@@ -1082,7 +1083,21 @@ function makeCell<A>(init: A, eq: (prev: A, next: A) => boolean): Cell<A> {
     }
     Transaction.run((t) => stage(t, a));
   };
-  return { w: new Wire<A>(() => value, updates), updates, set, stage, pending };
+  // Read-modify-write over the PENDING value: several updates inside one
+  // batch compose (set(sample() + 1) would read the stale pre-moment value
+  // twice — that is the hold delay working as documented).
+  const update = (f: (state: A) => A) => {
+    const t0 = Transaction.current;
+    set(f(t0 && stagedTx === t0 ? staged : value));
+  };
+  return {
+    w: new Wire<A>(() => value, updates),
+    updates,
+    set,
+    update,
+    stage,
+    pending,
+  };
 }
 
 /**
@@ -1127,6 +1142,14 @@ export interface WireSource<A> extends Wire<A> {
   /** Set the current value; equal values (by the cell's `eq`) are a no-op. */
   set(a: A): void;
   /**
+   * Read-modify-write: fold the updater over the current value —
+   * `count.update((n) => n + 1)`. Inside a `batch` the updater sees the
+   * value staged by this very moment, so several updates compose (unlike
+   * `set(sample() + 1)`, which reads the pre-moment value). Equal results
+   * (by the cell's `eq`) are a no-op.
+   */
+  update(f: (state: A) => A): void;
+  /**
    * Declare a state transition: on each occurrence of `e`, fold the reducer
    * over the current value — `(state, event) => next`, `useReducer` order.
    * The occurrence and the wire's update share ONE moment (snapshot
@@ -1162,7 +1185,11 @@ export function wire<A>(
     scope.onDispose(un);
     return src;
   };
-  const src: WireSource<A> = Object.assign(c.w, { set: c.set, on });
+  const src: WireSource<A> = Object.assign(c.w, {
+    set: c.set,
+    update: c.update,
+    on,
+  });
   return src;
 }
 

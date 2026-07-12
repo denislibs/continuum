@@ -128,7 +128,7 @@ Wire → событие).
 function Counter() {
   const count = wire(0); // ячейка
   return (
-    <button onClick={() => count.set(count.sample() + 1)}>
+    <button onClick={() => count.update((n) => n + 1)}>
       count: {count} {/* этот текст привязан к ячейке навсегда */}
     </button>
   );

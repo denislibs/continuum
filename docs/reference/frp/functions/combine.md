@@ -10,7 +10,7 @@
 
 > **combine**\<`A`, `B`, `R`\>(`a`, `b`, `f`): [`Wire`](../classes/Wire.md)\<`R`\>
 
-Defined in: [index.ts:1180](https://github.com/denislibs/continuum/blob/cc4617269797dda656aa4d28267b6b87666cd809/packages/frp/src/index.ts#L1180)
+Defined in: [index.ts:1207](https://github.com/denislibs/continuum/blob/cd06cfd704b2e2e6c2e5200a78b1a8b9bff05997/packages/frp/src/index.ts#L1207)
 
 Combine wires pointwise — the join of the graph. Data first, the combiner
 last; simultaneous updates coalesce into ONE recompute per moment
@@ -52,7 +52,7 @@ last; simultaneous updates coalesce into ONE recompute per moment
 
 > **combine**\<`A`, `B`, `C`, `R`\>(`a`, `b`, `c`, `f`): [`Wire`](../classes/Wire.md)\<`R`\>
 
-Defined in: [index.ts:1185](https://github.com/denislibs/continuum/blob/cc4617269797dda656aa4d28267b6b87666cd809/packages/frp/src/index.ts#L1185)
+Defined in: [index.ts:1212](https://github.com/denislibs/continuum/blob/cd06cfd704b2e2e6c2e5200a78b1a8b9bff05997/packages/frp/src/index.ts#L1212)
 
 Combine wires pointwise — the join of the graph. Data first, the combiner
 last; simultaneous updates coalesce into ONE recompute per moment
@@ -102,7 +102,7 @@ last; simultaneous updates coalesce into ONE recompute per moment
 
 > **combine**\<`A`, `B`, `C`, `D`, `R`\>(`a`, `b`, `c`, `d`, `f`): [`Wire`](../classes/Wire.md)\<`R`\>
 
-Defined in: [index.ts:1191](https://github.com/denislibs/continuum/blob/cc4617269797dda656aa4d28267b6b87666cd809/packages/frp/src/index.ts#L1191)
+Defined in: [index.ts:1218](https://github.com/denislibs/continuum/blob/cd06cfd704b2e2e6c2e5200a78b1a8b9bff05997/packages/frp/src/index.ts#L1218)
 
 Combine wires pointwise — the join of the graph. Data first, the combiner
 last; simultaneous updates coalesce into ONE recompute per moment
@@ -160,7 +160,7 @@ last; simultaneous updates coalesce into ONE recompute per moment
 
 > **combine**\<`A`, `B`, `C`, `D`, `E`, `R`\>(`a`, `b`, `c`, `d`, `e`, `f`): [`Wire`](../classes/Wire.md)\<`R`\>
 
-Defined in: [index.ts:1198](https://github.com/denislibs/continuum/blob/cc4617269797dda656aa4d28267b6b87666cd809/packages/frp/src/index.ts#L1198)
+Defined in: [index.ts:1225](https://github.com/denislibs/continuum/blob/cd06cfd704b2e2e6c2e5200a78b1a8b9bff05997/packages/frp/src/index.ts#L1225)
 
 Combine wires pointwise — the join of the graph. Data first, the combiner
 last; simultaneous updates coalesce into ONE recompute per moment

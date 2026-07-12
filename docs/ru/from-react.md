@@ -35,23 +35,23 @@ undo/redo — вторая свёртка тех же действий, перс
 
 ## Таблица соответствий
 
-| React                         | Continuum                             | Комментарий                                                          |
-| ----------------------------- | ------------------------------------- | -------------------------------------------------------------------- |
-| `useState(init)`              | `wire(init)`                          | возвращает Wire с методом `.set`; на уровне модуля — внутри `root()` |
-| `useMemo(f, [a, b])`          | `a.map(f)` / `combine(a, b, f)`       | зависимости — сама структура выражения, массив не нужен              |
-| `useEffect(f, [x])`           | `x.listen(f)` + `onCleanup`           | подписка на значение; очистка — явная и одноразовая                  |
-| `useEffect(f, [])` (маунт)    | `onMount(f)`                          | вызывается один раз, когда узлы уже вставлены в DOM                  |
-| `useEffect(fetch…)`           | `perform` / `resource`                | IO — граница сети; ошибки — данные (`Result`), не исключения         |
-| `useContext` / `<Provider>`   | `use(ctx)` / `provide(ctx, v)`        | то же, но через дерево владения                                      |
-| `useRef(dom)`                 | обычная переменная или `ref={…}`      | компонент выполняется один раз — `const el = <div/>` уже стабилен    |
-| `useCallback` / `memo`        | —                                     | не нужны: ничего не перезапускается, идентичность стабильна          |
-| `key` в списках               | `by` в `<Each>`                       | тот же смысл (keyed reconciliation, у нас LIS-диффинг)               |
-| `{cond && <A/>}`              | `<Show when={b}>`                     | перестройка только при смене истинности                              |
-| `<Suspense>` + `React.lazy`   | `lazy(() => import(…), { fallback })` | pending/error — обычные значения, не механизм исключений             |
-| Error Boundary (класс / либа) | `<Catch fallback={(e, reset) => …}>`  | компонент, не класс; ловит ошибки построения и пересборки регионов   |
-| `useSyncExternalStore`        | `Wire.fromPoll` / `wire`              | внешний мир входит как Wire                                          |
-| `onClick={handler}`           | `onClick={e.fire}`                    | событие уходит в FRP-сеть, не в setState                             |
-| StrictMode double-render      | —                                     | нечему перезапускаться — нечего и проверять                          |
+| React                         | Continuum                             | Комментарий                                                            |
+| ----------------------------- | ------------------------------------- | ---------------------------------------------------------------------- |
+| `useState(init)`              | `wire(init)`                          | возвращает Wire с `.set`/`.update`; на уровне модуля — внутри `root()` |
+| `useMemo(f, [a, b])`          | `a.map(f)` / `combine(a, b, f)`       | зависимости — сама структура выражения, массив не нужен                |
+| `useEffect(f, [x])`           | `x.listen(f)` + `onCleanup`           | подписка на значение; очистка — явная и одноразовая                    |
+| `useEffect(f, [])` (маунт)    | `onMount(f)`                          | вызывается один раз, когда узлы уже вставлены в DOM                    |
+| `useEffect(fetch…)`           | `perform` / `resource`                | IO — граница сети; ошибки — данные (`Result`), не исключения           |
+| `useContext` / `<Provider>`   | `use(ctx)` / `provide(ctx, v)`        | то же, но через дерево владения                                        |
+| `useRef(dom)`                 | обычная переменная или `ref={…}`      | компонент выполняется один раз — `const el = <div/>` уже стабилен      |
+| `useCallback` / `memo`        | —                                     | не нужны: ничего не перезапускается, идентичность стабильна            |
+| `key` в списках               | `by` в `<Each>`                       | тот же смысл (keyed reconciliation, у нас LIS-диффинг)                 |
+| `{cond && <A/>}`              | `<Show when={b}>`                     | перестройка только при смене истинности                                |
+| `<Suspense>` + `React.lazy`   | `lazy(() => import(…), { fallback })` | pending/error — обычные значения, не механизм исключений               |
+| Error Boundary (класс / либа) | `<Catch fallback={(e, reset) => …}>`  | компонент, не класс; ловит ошибки построения и пересборки регионов     |
+| `useSyncExternalStore`        | `Wire.fromPoll` / `wire`              | внешний мир входит как Wire                                            |
+| `onClick={handler}`           | `onClick={e.fire}`                    | событие уходит в FRP-сеть, не в setState                               |
+| StrictMode double-render      | —                                     | нечему перезапускаться — нечего и проверять                            |
 
 ---
 
@@ -74,9 +74,7 @@ import { wire } from "@continuum-js/frp";
 function Counter() {
   const count = wire(0);
   return (
-    <button onClick={() => count.set(count.sample() + 1)}>
-      count: {count}
-    </button>
+    <button onClick={() => count.update((n) => n + 1)}>count: {count}</button>
   );
 }
 ```

@@ -57,6 +57,19 @@ as the second argument (`wire(user, (a, b) => a.id === b.id)`), or
 in place and setting the same reference is skipped — set a fresh object
 instead.
 
+For read-modify-write there is `update()`:
+
+```ts
+count.update((n) => n + 1);
+todos.update((list) => [...list, item]);
+```
+
+Unlike `set(count.sample() + 1)`, the updater folds over the value staged
+by the **current moment**, so several updates inside one `batch` compose
+(+2, not +1) — `sample()` inside a batch would still show the pre-moment
+value (that's the hold delay working as documented). Equal results are
+skipped like any other set.
+
 ## Deriving
 
 Derived values are built with `map` and `combine`, and the expression

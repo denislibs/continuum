@@ -12,6 +12,9 @@ right now?" — and there is always an answer: `sample()` responds whether or
 not anybody is listening. The text of an input, the current user, the mouse
 position: they _exist_ at every moment, even when nobody is looking.
 Formally, a function from time to value (`Time → A`).
+A source wire (`wire(init)`) is written with `.set(value)` and
+`.update((state) => next)` — the updater folds over the value staged by
+the current moment, so several updates in one `batch` compose.
 More: [Wires](/concepts/behaviors).
 
 ### Behavior {#behavior}

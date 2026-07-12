@@ -8,7 +8,7 @@
 
 > **pairwise**\<`A`\>(`e`): `Stream`\<\[`A`, `A`\]\>
 
-Defined in: [index.ts:104](https://github.com/denislibs/continuum/blob/cc4617269797dda656aa4d28267b6b87666cd809/packages/std/src/index.ts#L104)
+Defined in: [index.ts:104](https://github.com/denislibs/continuum/blob/cd06cfd704b2e2e6c2e5200a78b1a8b9bff05997/packages/std/src/index.ts#L104)
 
 Pair each occurrence with the previous one; emits from the 2nd occurrence.
 

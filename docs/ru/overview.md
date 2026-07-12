@@ -14,7 +14,7 @@ function Counter() {
   const double = count.map((n) => n * 2);
   return (
     <div>
-      <button onClick={() => count.set(count.sample() + 1)}>+1</button>
+      <button onClick={() => count.update((n) => n + 1)}>+1</button>
       <p>
         count: {count}, double: {double}
       </p>

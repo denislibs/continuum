@@ -40,9 +40,7 @@ import { mount } from "@continuum-js/dom";
 function Counter() {
   const count = wire(0);
   return (
-    <button onClick={() => count.set(count.sample() + 1)}>
-      count: {count}
-    </button>
+    <button onClick={() => count.update((n) => n + 1)}>count: {count}</button>
   );
 }
 

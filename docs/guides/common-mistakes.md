@@ -85,10 +85,12 @@ forever. Put the wire itself into JSX — that's the whole point:
 ```
 
 `sample()` belongs in **handlers**, where you need "the value at the moment
-of the click":
+of the click" — and for read-modify-write there is `update()`, which also
+composes correctly inside a `batch` (each updater sees the value staged by
+the same moment):
 
 ```tsx
-<button onClick={() => count.set(count.sample() + 1)}>+1</button>
+<button onClick={() => count.update((n) => n + 1)}>+1</button>
 ```
 
 ## 4. A ternary instead of `<Show>`
