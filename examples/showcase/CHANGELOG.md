@@ -1,5 +1,13 @@
 # @continuum-js/example-showcase
 
+## 0.2.21
+
+### Patch Changes
+
+- Updated dependencies [a5ca1b3]
+  - @continuum-js/frp@0.18.1
+  - @continuum-js/dom@0.18.1
+
 ## 0.2.20
 
 ### Patch Changes
