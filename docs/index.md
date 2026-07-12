@@ -3,8 +3,8 @@ layout: home
 
 hero:
   name: Continuum
-  text: Reactive UI without re-renders
-  tagline: Components run once. State is a reactive value you drop straight into JSX — the framework keeps the DOM in sync, one text node at a time.
+  text: UI where change is data
+  tagline: Starts like useState — state(0), .set, values straight in JSX. Then every change becomes an occurrence in a stream with transactional semantics, and undo, race-free search and cross-tab sync cost one fold each — not a library each.
   actions:
     - theme: brand
       text: Get started
@@ -17,14 +17,14 @@ hero:
       link: https://github.com/denislibs/continuum
 
 features:
+  - title: Actions are a stream
+    details: Route every user action through one stream and fold it — undo, persistence, cross-tab sync and race-free search are one extra fold each, not a library each. External sources — storage events, sockets — enter the same model of moments.
+  - title: Updates are transactions
+    details: Simultaneous changes are one atomic moment — a derived value can never observe half a state. Guaranteed by the engine's laws (classic FRP semantics), not by discipline.
   - title: No re-renders
     details: A component function runs exactly once. State is a value you drop into JSX; only the text node or attribute that depends on it updates — no hooks, no dependency arrays, no virtual DOM.
-  - title: Change is data — the part nobody else has
-    details: User actions are a stream you fold into state. One stream of actions — and undo, persistence, cross-tab sync and race-free search are one extra fold each, not a library each.
-  - title: No update bugs, guaranteed
-    details: All updates are atomic — derived values can never observe a half-updated state. Backed by classic FRP semantics rather than discipline.
   - title: Small enough to read
-    details: "A complete app — framework, state and your code — builds to 3.7 kB of gzipped JS; React + ReactDOM alone are ~12× that. Hard size budgets are enforced in CI."
+    details: "A complete app — framework, state and your code — builds to 5.6 kB of gzipped JS; React + ReactDOM alone are ~8× that. Hard size budgets are enforced in CI."
 ---
 
 ## Try it
@@ -64,6 +64,13 @@ const todos = actions.accum(loadPersisted("todos", []), reduce); // the state
 const history = actions.accum(emptyHistory, undoReduce); //       + undo
 onCleanup(persist("todos", todos)); //                            + persistence
 // the `storage` event dispatching into the same reducer:         + cross-tab sync
+```
+
+And because requests are a stream too, search cannot race:
+
+```tsx
+const results = resource(debounce(query.updates, 300), search);
+// a stale response physically cannot overwrite a fresh one
 ```
 
 The reducer never changes. The [patterns cookbook](/guides/patterns) walks

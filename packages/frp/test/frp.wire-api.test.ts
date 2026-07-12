@@ -1,29 +1,26 @@
-// Phase 1 of REFACTOR-PLAN: the Wire naming and the declarative combinator
+// Phase 1 of REFACTOR-PLAN: the State naming and the declarative combinator
 // surface. Data first, names as intents; the old names stay as deprecated
 // aliases until 1.0 (the Event → Stream playbook).
 import { describe, test, expect } from "vitest";
 import {
-  Wire,
-  wire,
+  State,
+  state,
   stream,
   combine,
   flatten,
-  Behavior,
-  newBehavior,
-  newStream,
   Stream,
   batch,
 } from "@continuum-js/frp";
 
-describe("Wire — the type rename", () => {
-  test("Wire is the class; Behavior is the same class under a deprecated alias", () => {
-    expect(Behavior).toBe(Wire);
-    const [b] = newBehavior(1);
-    expect(b instanceof Wire).toBe(true);
+describe("State — the type rename", () => {
+  test("State is the class; State is the same class under a deprecated alias", () => {
+    expect(State).toBe(State);
+    const b = state(1);
+    expect(b instanceof State).toBe(true);
   });
 
-  test("wire(init) is a source cell with .set", () => {
-    const count = wire(0);
+  test("state(init) is a source cell with .set", () => {
+    const count = state(0);
     expect(count.sample()).toBe(0);
     count.set(5);
     expect(count.sample()).toBe(5);
@@ -35,8 +32,8 @@ describe("Wire — the type rename", () => {
     expect(seen).toEqual([5, 6]);
   });
 
-  test("wire(init, eq) honors a custom equality", () => {
-    const user = wire({ id: 1, name: "a" }, (p, n) => p.id === n.id);
+  test("state(init, eq) honors a custom equality", () => {
+    const user = state({ id: 1, name: "a" }, (p, n) => p.id === n.id);
     const seen: string[] = [];
     user.listen((u) => seen.push(u.name));
     user.set({ id: 1, name: "b" }); // same id -> skipped
@@ -46,8 +43,8 @@ describe("Wire — the type rename", () => {
 
   test(".set/.update are standalone — safe to pass as handlers", () => {
     // bindInput(draft, draft.set) in the examples relies on this: the
-    // setters must not lose their cell when detached from the wire.
-    const count = wire(0);
+    // setters must not lose their cell when detached from the state.
+    const count = state(0);
     const { set, update } = count;
     set(5);
     expect(count.sample()).toBe(5);
@@ -70,8 +67,8 @@ describe("Wire — the type rename", () => {
 
 describe("combine — variadic, data first", () => {
   test("combine(a, b, f) equals lift2 semantics, coalesced per moment", () => {
-    const a = wire(1);
-    const b = wire(10);
+    const a = state(1);
+    const b = state(10);
     const total = combine(a, b, (x, y) => x + y);
     expect(total.sample()).toBe(11);
     const seen: number[] = [];
@@ -84,10 +81,10 @@ describe("combine — variadic, data first", () => {
   });
 
   test("combine with three and four wires", () => {
-    const a = wire(1);
-    const b = wire(2);
-    const c = wire(3);
-    const d = wire(4);
+    const a = state(1);
+    const b = state(2);
+    const c = state(3);
+    const d = state(4);
     expect(combine(a, b, c, (x, y, z) => x + y + z).sample()).toBe(6);
     expect(combine(a, b, c, d, (x, y, z, w) => x + y + z + w).sample()).toBe(
       10,
@@ -109,10 +106,10 @@ describe("combine — variadic, data first", () => {
   });
 });
 
-describe("at — sampling a wire at a stream's moments", () => {
+describe("at — sampling a state at a stream's moments", () => {
   test("draft.at(submits) captures the pre-moment value", () => {
     const submits = stream<null>();
-    const draft = wire("");
+    const draft = state("");
     const submitted = draft.at(submits);
     const seen: string[] = [];
     submitted.listen((v) => seen.push(v));
@@ -123,7 +120,7 @@ describe("at — sampling a wire at a stream's moments", () => {
 
   test("at with a combiner receives (value, event)", () => {
     const submits = stream<number>();
-    const draft = wire("t");
+    const draft = state("t");
     const tagged = draft.at(submits, (text, n) => `${text}:${n}`);
     const seen: string[] = [];
     tagged.listen((v) => seen.push(v));
@@ -135,7 +132,7 @@ describe("at — sampling a wire at a stream's moments", () => {
 describe("when / or — stream intents", () => {
   test("clicks.when(enabled) passes occurrences only while true", () => {
     const clicks = stream<number>();
-    const enabled = wire(false);
+    const enabled = state(false);
     const seen: number[] = [];
     clicks.when(enabled).listen((v) => seen.push(v));
     clicks.fire(1);
@@ -156,10 +153,10 @@ describe("when / or — stream intents", () => {
 });
 
 describe("flatten — one name for both switches", () => {
-  test("flatten over a wire of wires follows the selection", () => {
-    const x = wire(1);
-    const y = wire(10);
-    const sel = wire<Wire<number>>(x);
+  test("flatten over a state of wires follows the selection", () => {
+    const x = state(1);
+    const y = state(10);
+    const sel = state<State<number>>(x);
     const flat = flatten(sel);
     expect(flat.sample()).toBe(1);
     sel.set(y);
@@ -170,10 +167,10 @@ describe("flatten — one name for both switches", () => {
     expect(seen).toEqual([10, 20]);
   });
 
-  test("flatten over a wire of streams follows the selection", () => {
+  test("flatten over a state of streams follows the selection", () => {
     const a = stream<number>();
     const b = stream<number>();
-    const sel = wire<Stream<number>>(a);
+    const sel = state<Stream<number>>(a);
     const flat = flatten(sel);
     const seen: number[] = [];
     flat.listen((v) => seen.push(v));
@@ -182,20 +179,5 @@ describe("flatten — one name for both switches", () => {
     b.fire(2);
     a.fire(99); // no longer selected
     expect(seen).toEqual([1, 2]);
-  });
-});
-
-describe("deprecated aliases stay callable until 1.0", () => {
-  test("newBehavior/newStream/lift2/gate/orElse/snapshot still work", () => {
-    const [b, setB] = newBehavior(1);
-    const [e, fire] = newStream<number>();
-    const lifted = Behavior.lift2((x, y) => x + y, b, b);
-    expect(lifted.sample()).toBe(2);
-    const snap = e.snapshot(b, (a, v) => a + v);
-    const seen: number[] = [];
-    snap.listen((v) => seen.push(v));
-    setB(5);
-    fire(1);
-    expect(seen).toEqual([6]);
   });
 });

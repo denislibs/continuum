@@ -1,6 +1,6 @@
 import { describe, test, expect } from "vitest";
 import { mount } from "@continuum-js/dom";
-import { root, newStream, newBehavior } from "@continuum-js/frp";
+import { root, newStream, state } from "@continuum-js/frp";
 
 describe("h — static elements", () => {
   test("creates an element with attributes and text children", () => {
@@ -59,16 +59,18 @@ describe("h — static elements", () => {
 });
 
 describe("h — fine-grained bindings", () => {
-  test("Behavior child becomes a live text node", () => {
-    const [b, set] = newBehavior("x");
+  test("State child becomes a live text node", () => {
+    const b = state("x");
+    const set = b.set;
     const el = (<span>{b}</span>) as HTMLElement;
     expect(el.textContent).toBe("x");
     set("y");
     expect(el.textContent).toBe("y");
   });
 
-  test("Behavior prop becomes a live attribute", () => {
-    const [cls, setCls] = newBehavior("one");
+  test("State prop becomes a live attribute", () => {
+    const cls = state("one");
+    const setCls = cls.set;
     const el = (<div class={cls} />) as HTMLElement;
     expect(el.className).toBe("one");
     setCls("two");
@@ -76,7 +78,8 @@ describe("h — fine-grained bindings", () => {
   });
 
   test("mixed static and reactive children keep their positions", () => {
-    const [b, set] = newBehavior(1);
+    const b = state(1);
+    const set = b.set;
     const el = (<div>count: {b}!</div>) as HTMLElement;
     expect(el.textContent).toBe("count: 1!");
     set(2);
@@ -113,11 +116,12 @@ describe("h — events", () => {
 describe("h — components", () => {
   test("a component function runs exactly once", () => {
     let calls = 0;
-    function Comp(props: { n: import("@continuum-js/frp").Behavior<number> }) {
+    function Comp(props: { n: import("@continuum-js/frp").State<number> }) {
       calls++;
       return <span>{props.n}</span>;
     }
-    const [n, set] = newBehavior(1);
+    const n = state(1);
+    const set = n.set;
     const el = (<Comp n={n} />) as HTMLElement;
     expect(calls).toBe(1);
     set(2);
@@ -145,7 +149,8 @@ describe("Fragment", () => {
 describe("mount / unmount", () => {
   test("mounts a live view and cleans up on unmount", () => {
     const container = document.createElement("div");
-    const [b, set] = newBehavior("x");
+    const b = state("x");
+    const set = b.set;
     const unmount = mount(container, () => <span>{b}</span>);
     expect(container.textContent).toBe("x");
     set("y");

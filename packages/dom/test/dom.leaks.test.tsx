@@ -9,7 +9,7 @@ import {
   onCleanup,
   animationFrames,
 } from "@continuum-js/dom";
-import { newBehavior, type Behavior } from "@continuum-js/frp";
+import { state, type State } from "@continuum-js/frp";
 import { interval } from "@continuum-js/std";
 
 afterEach(() => {
@@ -19,7 +19,8 @@ afterEach(() => {
 
 describe("leak stress", () => {
   test("10k mount/unmount cycles leave no live listeners behind", () => {
-    const [b, set] = newBehavior(0);
+    const b = state(0);
+    const set = b.set;
     let mapCalls = 0;
     const container = document.createElement("div");
 
@@ -81,8 +82,10 @@ describe("leak stress", () => {
   });
 
   test("10k Show toggles neither accumulate DOM nodes nor listeners", () => {
-    const [flag, setFlag] = newBehavior(false);
-    const [b, set] = newBehavior(0);
+    const flag = state(false);
+    const setFlag = flag.set;
+    const b = state(0);
+    const set = b.set;
     let mapCalls = 0;
     const container = document.createElement("div");
     const unmount = mount(container, () => (
@@ -105,8 +108,10 @@ describe("leak stress", () => {
   });
 
   test("keyed-list churn disposes removed rows completely", () => {
-    const [items, setItems] = newBehavior<number[]>([]);
-    const [b, set] = newBehavior(0);
+    const items = state<number[]>([]);
+    const setItems = items.set;
+    const b = state(0);
+    const set = b.set;
     let mapCalls = 0;
     const container = document.createElement("div");
     const unmount = mount(container, () => (
@@ -133,7 +138,8 @@ describe("leak stress", () => {
   test("a module-level behavior shared across remounts stays functional", () => {
     // The dispose cascade must not sever a *source* behavior: after churn,
     // a fresh mount still receives updates.
-    const [b, set] = newBehavior(0);
+    const b = state(0);
+    const set = b.set;
     const container = document.createElement("div");
     for (let i = 0; i < 1_000; i++) {
       mount(container, () => <span>{b}</span>)();
@@ -147,7 +153,8 @@ describe("leak stress", () => {
 
 describe("derivation lifecycle semantics", () => {
   test("a module-level derivation reused across mounts just works (sleeps and wakes)", () => {
-    const [b, set] = newBehavior(0);
+    const b = state(0);
+    const set = b.set;
     const shared = b.map((v) => v + 1); // created once, outside any mount
     const container = document.createElement("div");
     mount(container, () => <span>{shared}</span>)(); // last listener leaves → node sleeps
@@ -160,8 +167,9 @@ describe("derivation lifecycle semantics", () => {
   });
 
   test("retain() makes a shared derivation survive listener churn", () => {
-    const [b, set] = newBehavior(0);
-    const shared: Behavior<number> = b.map((v) => v + 1).retain();
+    const b = state(0);
+    const set = b.set;
+    const shared: State<number> = b.map((v) => v + 1).retain();
     const container = document.createElement("div");
     for (let i = 0; i < 1_000; i++) {
       mount(container, () => <span>{shared}</span>)();

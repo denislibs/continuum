@@ -18,8 +18,8 @@ quantity is passed around as an object (`<div>{count}</div>`), so the renderer
 needs no build-time transform.
 
 **Featherweight, measured honestly:** a complete app — framework, state
-management, renderer _and_ the app code — builds to **3.7 kB of gzipped JS**
-(the whole `examples/counter` bundle). React + ReactDOM alone weigh ~12× that,
+management, renderer _and_ the app code — builds to **5.6 kB of gzipped JS**
+(the whole `examples/counter` bundle). React + ReactDOM alone weigh ~8× that,
 before you add a state library.
 
 > 📖 A conceptual walkthrough of the model — from philosophy to algebra to its

@@ -1,5 +1,5 @@
 import { describe, test, expect, afterEach, vi } from "vitest";
-import { root, newStream, newBehavior, perform } from "@continuum-js/frp";
+import { root, newStream, state, perform } from "@continuum-js/frp";
 import { bindInput } from "@continuum-js/dom";
 import { debounce } from "@continuum-js/std";
 import {
@@ -63,7 +63,8 @@ describe("events", () => {
   });
 
   test("type() fills an input through bindInput", () => {
-    const [text, setText] = newBehavior("");
+    const text = state("");
+    const setText = text.set;
     const { container } = render(() => <input {...bindInput(text, setText)} />);
     const input = container.querySelector("input")!;
     type(input, "abc");

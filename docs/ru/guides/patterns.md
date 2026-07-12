@@ -144,19 +144,19 @@ const effectiveClicks = saveClicks.when(saving.map((s) => !s));
 Пока условие ложно, у потока просто нет происшествий — коду ниже не нужны
 рассыпанные `if (saving) return`.
 
-### 7. Только изменения — `distinct` / `distinctB`
+### 7. Только изменения — `distinct` / `dedupe`
 
 **Когда:** шумный источник повторяет одно и то же значение.
 
 ```ts
 import { distinct } from "@continuum-js/frp";
-import { distinctB } from "@continuum-js/std";
+import { dedupe } from "@continuum-js/std";
 
 const realMoves = distinct(moves); // Stream: отбросить подряд идущие равные
-const stableTheme = distinctB(theme); // Behavior: подавить пустые обновления
+const stableTheme = dedupe(theme); // Behavior: подавить пустые обновления
 ```
 
-`distinctB` — способ не дать области `dyn`/`<Dynamic>` пересобираться на
+`dedupe` — способ не дать области `dyn`/`<Dynamic>` пересобираться на
 записи того же значения.
 
 ### 8. Прошлое + текущее — `pairwise` и `previous`

@@ -1,23 +1,15 @@
-// The State rename (the Event → Stream / Behavior → Wire playbook, third and
-// last): `Wire` read as nothing to anyone outside this repo, `state` is the
+// The State rename (the Event → Stream / State → State playbook, third and
+// last): `State` read as nothing to anyone outside this repo, `state` is the
 // word every React/Vue/Svelte person already thinks in. Old names stay as
 // deprecated aliases until 1.0.
 import { describe, test, expect } from "vitest";
-import {
-  State,
-  state,
-  Stream,
-  Wire,
-  wire,
-  Behavior,
-  constant,
-} from "@continuum-js/frp";
-import type { StateSource, WireSource } from "@continuum-js/frp";
+import { State, state, Stream, constant } from "@continuum-js/frp";
+import type { StateSource } from "@continuum-js/frp";
 
 describe("State — the type rename", () => {
-  test("State is the class; Wire and Behavior are the same class under deprecated aliases", () => {
-    expect(Wire).toBe(State);
-    expect(Behavior).toBe(State);
+  test("State is the class; State and State are the same class under deprecated aliases", () => {
+    expect(State).toBe(State);
+    expect(State).toBe(State);
     expect(constant(1) instanceof State).toBe(true);
   });
 
@@ -31,14 +23,14 @@ describe("State — the type rename", () => {
     expect(count.sample()).toBe(6);
   });
 
-  test("wire === state (the deprecated factory alias)", () => {
-    expect(wire).toBe(state);
+  test("state === state (the deprecated factory alias)", () => {
+    expect(state).toBe(state);
   });
 
-  test("a StateSource is assignable where a WireSource is expected", () => {
+  test("a StateSource is assignable where a StateSource is expected", () => {
     // type-level: the aliases must stay interchangeable until 1.0
     const s: StateSource<number> = state(0);
-    const w: WireSource<number> = s;
+    const w: StateSource<number> = s;
     w.set(1);
     expect(s.sample()).toBe(1);
   });

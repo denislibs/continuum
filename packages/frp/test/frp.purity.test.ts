@@ -7,9 +7,9 @@ import { describe, test, expect } from "vitest";
 import {
   root,
   newStream,
-  newBehavior,
-  Behavior,
+  state,
   Transaction,
+  combine,
 } from "@continuum-js/frp";
 
 describe("firing a source inside a pure combinator throws", () => {
@@ -17,7 +17,8 @@ describe("firing a source inside a pure combinator throws", () => {
     const [other, fireOther] = newStream<number>();
     other.listen(() => {});
 
-    const [b, set] = newBehavior(0);
+    const b = state(0);
+    const set = b.set;
     const bad = b.map((n) => {
       if (n > 0) fireOther(n); // side effect in a pure zone
       return n;
@@ -67,8 +68,8 @@ describe("firing a source inside a pure combinator throws", () => {
 
     const [src, fire] = newStream<number>();
     const held = root(() => src.hold(0));
-    const un = src
-      .snapshot(held, (now, prev) => {
+    const un = held
+      .at(src, (prev, now) => {
         fireOther(now);
         return now + prev;
       })
@@ -81,8 +82,10 @@ describe("firing a source inside a pure combinator throws", () => {
 
 describe("legitimate effect sites keep working", () => {
   test("set from a post-phase listener opens a fresh moment", () => {
-    const [a, setA] = newBehavior(0);
-    const [b, setB] = newBehavior(0);
+    const a = state(0);
+    const setA = a.set;
+    const b = state(0);
+    const setB = b.set;
 
     // the boundary pattern: react to one value by setting another
     const seen: number[] = [];
@@ -98,9 +101,11 @@ describe("legitimate effect sites keep working", () => {
   });
 
   test("batching several sets in one Transaction.run body stays atomic", () => {
-    const [a, setA] = newBehavior(0);
-    const [b, setB] = newBehavior(0);
-    const joined = Behavior.lift2((x, y) => [x, y] as const, a, b);
+    const a = state(0);
+    const setA = a.set;
+    const b = state(0);
+    const setB = b.set;
+    const joined = combine(a, b, (x, y) => [x, y] as const);
     const seen: Array<readonly [number, number]> = [];
     const un = joined.updates.listen((p) => seen.push(p));
 

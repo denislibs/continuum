@@ -1,6 +1,6 @@
 import { describe, test, expect, afterEach } from "vitest";
 import { mount, Catch, Show, onCleanup } from "@continuum-js/dom";
-import { newBehavior } from "@continuum-js/frp";
+import { state } from "@continuum-js/frp";
 
 let unmounts: Array<() => void> = [];
 afterEach(() => {
@@ -61,7 +61,8 @@ describe("<Catch>", () => {
   });
 
   test("an error in a nested dynamic region trips the boundary", () => {
-    const [show, setShow] = newBehavior(false);
+    const show = state(false);
+    const setShow = show.set;
     const container = render(() => (
       <Catch fallback={() => <p class="err">fail</p>}>
         {() => (
@@ -83,7 +84,8 @@ describe("<Catch>", () => {
   });
 
   test("switching to the fallback disposes the children's ownership", () => {
-    const [show, setShow] = newBehavior(false);
+    const show = state(false);
+    const setShow = show.set;
     let cleaned = 0;
     render(() => (
       <Catch fallback={() => <p class="err">fail</p>}>
@@ -137,7 +139,8 @@ describe("<Catch>", () => {
   });
 
   test("without a boundary a dynamic-region error still throws", () => {
-    const [show, setShow] = newBehavior(false);
+    const show = state(false);
+    const setShow = show.set;
     render(() => (
       <Show when={show}>
         {() => {

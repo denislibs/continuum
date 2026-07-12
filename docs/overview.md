@@ -64,6 +64,45 @@ features that usually cost a library each cost **one more fold** each:
   solved once, in the library
   ([recipe](/guides/patterns#14-race-free-search-resource)).
 
+### Where it pays off
+
+Two of these in full — each snippet is the entire feature, not an excerpt.
+
+**Undo in ten lines.** Fold the same actions into a history instead of a
+plain value; the reducer doesn't change:
+
+```tsx
+import { stream } from "@continuum-js/frp";
+
+type Hist = { past: Todo[][]; present: Todo[] };
+
+const actions = stream<Action>();
+const history = actions.accum<Hist>({ past: [], present: [] }, (a, h) =>
+  a.type === "undo"
+    ? h.past.length
+      ? { past: h.past.slice(0, -1), present: h.past.at(-1)! }
+      : h
+    : { past: [...h.past, h.present], present: reduce(a, h.present) },
+);
+const todos = history.map((h) => h.present);
+const canUndo = history.map((h) => h.past.length > 0);
+```
+
+**Search that cannot race.** Keystrokes are a stream: debounce it, feed it
+to `resource` — a stale response physically cannot overwrite a fresh one,
+because last-request-wins is solved once, inside the library:
+
+```tsx
+import { state } from "@continuum-js/frp";
+import { debounce, resource } from "@continuum-js/std";
+
+const query = state("");
+const results = resource(debounce(query.updates, 300), (q) =>
+  fetch(`/api/search?q=${encodeURIComponent(q)}`).then((r) => r.json()),
+);
+// State<Async<T>>: idle → loading → ok | error
+```
+
 The rule of thumb for which tool to reach for: **no history — `state`;
 a history worth keeping — a stream.** `state` is itself just sugar over
 `stream` + `hold`: perfect for form fields, toggles and everything you
@@ -94,7 +133,16 @@ Sodium-style discrete branch). What that buys you in practice:
 - **Atomic updates.** When one change fans out to many derived values,
   everything updates as a single step. A derived value can never observe a
   half-updated state — a whole class of subtle UI bugs is impossible, not
-  just unlikely.
+  just unlikely. Several sources changing together is one `batch`:
+
+  ```tsx
+  batch(() => {
+    price.set(99);
+    currency.set("EUR");
+  });
+  // every formula over both updates once — "99 USD" is never visible
+  ```
+
 - **Honest async.** IO results and errors come back as ordinary data;
   response races are solved once, in the library (`resource`,
   last-request-wins).

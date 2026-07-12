@@ -24,7 +24,7 @@ function sidebar(
       text: t.concepts,
       items: [
         { text: t.components, link: `${prefix}/concepts/components` },
-        { text: "Wires", link: `${prefix}/concepts/behaviors` },
+        { text: "States", link: `${prefix}/concepts/behaviors` },
         { text: "Streams", link: `${prefix}/concepts/events` },
         {
           text: t.conditional,
@@ -52,6 +52,7 @@ function sidebar(
     {
       text: t.migration,
       items: [
+        { text: t.migrationV1, link: `${prefix}/migration-1.0` },
         { text: t.fromReact, link: `${prefix}/from-react` },
         { text: t.fromRxjs, link: `${prefix}/from-rxjs` },
       ],
@@ -89,7 +90,7 @@ const en = {
   glossary: "Glossary",
   examples: "Examples",
   quickStart: "Quick start",
-  tutorial: "Thinking in Wires and Streams",
+  tutorial: "Thinking in States and Streams",
   concepts: "Concepts",
   components: "Components",
   transactions: "Transactions and time",
@@ -108,6 +109,7 @@ const en = {
   compiler: "The compiler (optional)",
   mistakes: "Common mistakes",
   migration: "Migration",
+  migrationV1: "Migrating to 1.0",
   fromReact: "From React",
   fromRxjs: "From RxJS",
   reference: "API Reference",
@@ -122,7 +124,7 @@ const ru = {
   glossary: "Глоссарий",
   examples: "Примеры",
   quickStart: "Быстрый старт",
-  tutorial: "Мышление в Wires и Streams",
+  tutorial: "Мышление в States и Streams",
   concepts: "Понятия",
   components: "Компоненты",
   transactions: "Транзакции и время",
@@ -141,6 +143,7 @@ const ru = {
   compiler: "Компилятор (опциональный)",
   mistakes: "Частые ошибки",
   migration: "Миграция",
+  migrationV1: "Миграция на 1.0",
   fromReact: "Из React",
   fromRxjs: "Из RxJS",
   reference: "Справочник API",

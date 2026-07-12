@@ -77,7 +77,7 @@ describe("Stream.dispose", () => {
   });
 });
 
-describe("Behavior.dispose", () => {
+describe("State.dispose", () => {
   test("detaches a stepped behavior from its source event", () => {
     const [e, fire] = newStream<number>();
     const b = root(() => e.hold(0));

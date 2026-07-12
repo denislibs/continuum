@@ -142,8 +142,9 @@ export function previous<A>(b: State<A>, init: A): State<A> {
   return b.at(b.updates, (old) => old).hold(init);
 }
 
-/** A behavior that suppresses updates equal to the current value (default `Object.is`). */
-export function distinctB<A>(
+/** A state that suppresses updates equal to the current value (default `Object.is`).
+ * (Named `distinctB` before 1.0 — the Behavior-era name.) */
+export function dedupe<A>(
   b: State<A>,
   eq: (x: A, y: A) => boolean = Object.is,
 ): State<A> {

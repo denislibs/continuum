@@ -91,13 +91,13 @@ current moment. The practical rule: `sample` for code outside the network
 
 A source state already refuses no-op writes: `.set` with an equal value (by
 the cell's `eq`, `Object.is` by default) does nothing. For _derived_ states,
-`distinctB` from `@continuum-js/std` drops consecutive equal values — useful
+`dedupe` from `@continuum-js/std` drops consecutive equal values — useful
 in front of `dyn`/`Show` so a subtree isn't rebuilt for nothing:
 
 ```ts
-import { distinctB } from "@continuum-js/std";
+import { dedupe } from "@continuum-js/std";
 
-const page = distinctB(location().map((u) => u.pathname.split("/")[1]));
+const page = dedupe(location().map((u) => u.pathname.split("/")[1]));
 ```
 
 ## State outside components

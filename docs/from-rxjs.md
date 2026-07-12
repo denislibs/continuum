@@ -180,27 +180,27 @@ The only place an unsubscribe is visible at all is the explicit low-level
 
 Your reflexes port almost verbatim:
 
-| RxJS                              | Continuum                      | Note                                 |
-| --------------------------------- | ------------------------------ | ------------------------------------ |
-| `map`, `filter`                   | `e.map`, `e.filter`            | same                                 |
-| `scan(f, init)`                   | `e.accum(init, f)`             | result is a State already            |
-| `startWith(x)` + `shareReplay(1)` | `e.hold(x)`                    | one word for the whole ceremony      |
-| `combineLatest`                   | `combine(a, b, f)`             | glitch-free                          |
-| `withLatestFrom(b$)`              | `b.at(e, f)`                   | with exact simultaneity              |
-| `merge(a$, b$)`                   | `Stream.merge(a, b, f)`        | simultaneous inputs coalesce via `f` |
-| `race(a$, b$)`-ish                | `a.or(b)`                      | left-biased                          |
-| `debounceTime(ms)`                | `debounce(e, ms)`              | std                                  |
-| `throttleTime(ms)`                | `throttle(e, ms)`              | std                                  |
-| `delay(ms)`                       | `delay(e, ms)`                 | std                                  |
-| `interval(ms)`                    | `interval(ms)`                 | std; a `Stream<number>`              |
-| `distinctUntilChanged()`          | `distinct(e)` / `distinctB(b)` | std                                  |
-| `pairwise()`                      | `pairwise(e)`                  | std                                  |
-| `take(1)` / `first()`             | `e.once()`                     |                                      |
-| `filter(() => flag)`              | `e.when(flag)`                 | the flag is a State, not a closure   |
-| `BehaviorSubject`                 | `state(init)`                  | a _type_, not a workaround           |
-| `Subject`                         | `stream()`                     |                                      |
-| `switchMap(fetch)`                | `resource(e, fetch)`           | see below                            |
-| `subscribe`                       | `listen` + `onCleanup`         | or just a JSX binding                |
+| RxJS                              | Continuum                   | Note                                 |
+| --------------------------------- | --------------------------- | ------------------------------------ |
+| `map`, `filter`                   | `e.map`, `e.filter`         | same                                 |
+| `scan(f, init)`                   | `e.accum(init, f)`          | result is a State already            |
+| `startWith(x)` + `shareReplay(1)` | `e.hold(x)`                 | one word for the whole ceremony      |
+| `combineLatest`                   | `combine(a, b, f)`          | glitch-free                          |
+| `withLatestFrom(b$)`              | `b.at(e, f)`                | with exact simultaneity              |
+| `merge(a$, b$)`                   | `Stream.merge(a, b, f)`     | simultaneous inputs coalesce via `f` |
+| `race(a$, b$)`-ish                | `a.or(b)`                   | left-biased                          |
+| `debounceTime(ms)`                | `debounce(e, ms)`           | std                                  |
+| `throttleTime(ms)`                | `throttle(e, ms)`           | std                                  |
+| `delay(ms)`                       | `delay(e, ms)`              | std                                  |
+| `interval(ms)`                    | `interval(ms)`              | std; a `Stream<number>`              |
+| `distinctUntilChanged()`          | `distinct(e)` / `dedupe(b)` | std                                  |
+| `pairwise()`                      | `pairwise(e)`               | std                                  |
+| `take(1)` / `first()`             | `e.once()`                  |                                      |
+| `filter(() => flag)`              | `e.when(flag)`              | the flag is a State, not a closure   |
+| `BehaviorSubject`                 | `state(init)`               | a _type_, not a workaround           |
+| `Subject`                         | `stream()`                  |                                      |
+| `switchMap(fetch)`                | `resource(e, fetch)`        | see below                            |
+| `subscribe`                       | `listen` + `onCleanup`      | or just a JSX binding                |
 
 ## `switchMap` and async: our answer is data
 

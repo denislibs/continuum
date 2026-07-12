@@ -1,6 +1,6 @@
 import { describe, test, expect, afterEach } from "vitest";
 import { mount, dyn, each, onMount, portal } from "@continuum-js/dom";
-import { newBehavior } from "@continuum-js/frp";
+import { state } from "@continuum-js/frp";
 
 let unmounts: Array<() => void> = [];
 afterEach(() => {
@@ -50,7 +50,8 @@ describe("onMount", () => {
   });
 
   test("fires for subtrees created by dyn after mount, once inserted", () => {
-    const [show, setShow] = newBehavior(false);
+    const show = state(false);
+    const setShow = show.set;
     let connectedAtCall = false;
     const el = document.createElement("p");
     const container = mountInBody(() =>
@@ -69,7 +70,8 @@ describe("onMount", () => {
   });
 
   test("fires for rows added by each after mount", () => {
-    const [items, setItems] = newBehavior<string[]>(["a"]);
+    const items = state<string[]>(["a"]);
+    const setItems = items.set;
     const mounted: string[] = [];
     mountInBody(() =>
       each(
@@ -105,7 +107,8 @@ describe("onMount", () => {
   });
 
   test("fires on every dyn re-render, for the subtree that was inserted", () => {
-    const [v, setV] = newBehavior(0);
+    const v = state(0);
+    const setV = v.set;
     const mounted: number[] = [];
     mountInBody(() =>
       dyn(v, (n) => {

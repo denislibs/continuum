@@ -65,6 +65,46 @@ const todos = actions.accum([], reduce); // состояние = всё, что 
   побеждает» решено один раз, в библиотеке
   ([рецепт](/ru/guides/patterns#_14-поиск-без-гонок-resource)).
 
+### Где это окупается
+
+Две фичи целиком — каждый сниппет и есть вся фича, а не выдержка из неё.
+
+**Undo в десять строк.** Сверните те же действия не в значение, а в
+историю; редьюсер не меняется ни на букву:
+
+```tsx
+import { stream } from "@continuum-js/frp";
+
+type Hist = { past: Todo[][]; present: Todo[] };
+
+const actions = stream<Action>();
+const history = actions.accum<Hist>({ past: [], present: [] }, (a, h) =>
+  a.type === "undo"
+    ? h.past.length
+      ? { past: h.past.slice(0, -1), present: h.past.at(-1)! }
+      : h
+    : { past: [...h.past, h.present], present: reduce(a, h.present) },
+);
+const todos = history.map((h) => h.present);
+const canUndo = history.map((h) => h.past.length > 0);
+```
+
+**Поиск, который не умеет гоняться.** Нажатия клавиш — поток: пропустите
+его через debounce и отдайте `resource` — устаревший ответ физически не
+может перезаписать свежий, потому что «последний запрос побеждает» решено
+один раз, внутри библиотеки:
+
+```tsx
+import { state } from "@continuum-js/frp";
+import { debounce, resource } from "@continuum-js/std";
+
+const query = state("");
+const results = resource(debounce(query.updates, 300), (q) =>
+  fetch(`/api/search?q=${encodeURIComponent(q)}`).then((r) => r.json()),
+);
+// State<Async<T>>: idle → loading → ok | error
+```
+
 Правило, каким инструментом пользоваться: **нет истории — `state`;
 история стоит того, чтобы её хранить — поток.** Сам `state` — это
 сахар над `stream` + `hold`: идеален для полей формы, тогглов и всего,
@@ -80,7 +120,17 @@ const todos = actions.accum([], reduce); // состояние = всё, что 
 - **Атомарные обновления.** Когда одно изменение расходится по многим
   производным значениям, всё обновляется одним шагом. Производное значение
   не может увидеть полуобновлённое состояние — целый класс тонких UI-багов
-  невозможен, а не просто маловероятен.
+  невозможен, а не просто маловероятен. Несколько источников, меняющихся
+  вместе, — это один `batch`:
+
+  ```tsx
+  batch(() => {
+    price.set(99);
+    currency.set("EUR");
+  });
+  // каждая формула над обоими обновится один раз — «99 USD» не увидеть никогда
+  ```
+
 - **Честная асинхронность.** Результаты и ошибки IO возвращаются обычными
   данными; гонки ответов решены один раз, в библиотеке (`resource`,
   last-request-wins).

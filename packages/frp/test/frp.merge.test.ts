@@ -1,5 +1,5 @@
 import { describe, test, expect } from "vitest";
-import { root, newStream, Stream, newBehavior } from "@continuum-js/frp";
+import { root, newStream, Stream, state } from "@continuum-js/frp";
 
 describe("accumulation", () => {
   test("accum folds occurrences into a behavior", () => {
@@ -38,9 +38,10 @@ describe("once", () => {
 describe("gate", () => {
   test("passes only while the behavior is true", () => {
     const [e, fire] = newStream<number>();
-    const [open, setOpen] = newBehavior(true);
+    const open = state(true);
+    const setOpen = open.set;
     const seen: number[] = [];
-    e.gate(open).listen((v) => seen.push(v));
+    e.when(open).listen((v) => seen.push(v));
     fire(1);
     setOpen(false);
     fire(2);
@@ -55,7 +56,7 @@ describe("orElse (left-biased merge)", () => {
     const [a, fireA] = newStream<number>();
     const [b, fireB] = newStream<number>();
     const seen: number[] = [];
-    a.orElse(b).listen((v) => seen.push(v));
+    a.or(b).listen((v) => seen.push(v));
     fireA(1);
     fireB(2);
     expect(seen).toEqual([1, 2]);
@@ -66,7 +67,7 @@ describe("orElse (left-biased merge)", () => {
     const left = src.map((n) => n + 100);
     const right = src.map((n) => n + 200);
     const seen: number[] = [];
-    left.orElse(right).listen((v) => seen.push(v));
+    left.or(right).listen((v) => seen.push(v));
     fire(1); // both branches fire in one moment; left wins
     expect(seen).toEqual([101]);
   });

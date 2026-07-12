@@ -8,7 +8,7 @@
 
 > **portal**(`target`, `child`): `Node`
 
-Defined in: [index.tsx:921](https://github.com/denislibs/continuum/blob/f5ae47f16f3158ab3acf341a203852240d621e88/packages/dom/src/index.tsx#L921)
+Defined in: [index.tsx:928](https://github.com/denislibs/continuum/blob/a6efe14ab8b1da85f964b151c4700e6197236815/packages/dom/src/index.tsx#L928)
 
 Render `child` into another node, cleaning up on dispose.
 

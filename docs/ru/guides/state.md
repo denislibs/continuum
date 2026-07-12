@@ -98,14 +98,14 @@ const submitted = draft.at(submitClicks);
 
 Сама ячейка уже коалесцирует: на один момент она доставляет **одно**
 вхождение `updates` — несколько `set` в одном `batch` дают подписчикам
-только финальное значение. `distinctB` из `@continuum-js/std` дополняет
+только финальное значение. `dedupe` из `@continuum-js/std` дополняет
 это для _производных_: убирает подряд идущие равные значения — полезно
 перед `dyn`/`Show`, чтобы не перестраивать поддерево зря:
 
 ```ts
-import { distinctB } from "@continuum-js/std";
+import { dedupe } from "@continuum-js/std";
 
-const page = distinctB(location().map((u) => u.pathname.split("/")[1]));
+const page = dedupe(location().map((u) => u.pathname.split("/")[1]));
 ```
 
 ## Состояние вне компонентов

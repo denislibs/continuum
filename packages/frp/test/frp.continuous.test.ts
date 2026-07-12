@@ -1,5 +1,5 @@
 import { describe, test, expect } from "vitest";
-import { newStream, newBehavior, constant, root } from "@continuum-js/frp";
+import { newStream, state, constant, root } from "@continuum-js/frp";
 import { integral, derivative, warp } from "@continuum-js/frp";
 
 describe("integral", () => {
@@ -17,7 +17,8 @@ describe("integral", () => {
 
   test("integrates a changing behavior (forward Euler)", () => {
     const [tick, fire] = newStream<number>();
-    const [v, setV] = newBehavior(1);
+    const v = state(1);
+    const setV = v.set;
     const x = root(() => integral(v, tick, 0));
     fire(0);
     fire(10); // v=1, dt=10 -> +10
@@ -31,7 +32,8 @@ describe("integral", () => {
 describe("derivative", () => {
   test("computes (dvalue / dt) over ticks", () => {
     const [tick, fire] = newStream<number>();
-    const [pos, setPos] = newBehavior(0);
+    const pos = state(0);
+    const setPos = pos.set;
     const d = root(() => derivative(pos, tick));
     fire(0); // baseline
     setPos(10);

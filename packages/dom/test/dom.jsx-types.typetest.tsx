@@ -2,7 +2,7 @@
 // `tsc -b` (the tsconfig includes `test/`), NOT executed by vitest — every
 // assertion here is a type-level one. `@ts-expect-error` lines pin what must
 // NOT compile; the rest pins what must.
-import { newBehavior, newStream } from "@continuum-js/frp";
+import { state, newStream } from "@continuum-js/frp";
 import { bindInput } from "@continuum-js/dom";
 
 export function TypedEventHandlers() {
@@ -25,13 +25,14 @@ export function TypedEventHandlers() {
 }
 
 export function ReactiveAttributes() {
-  const [text, setText] = newBehavior("");
-  const [checked] = newBehavior(false);
+  const text = state("");
+  const setText = text.set;
+  const checked = state(false);
   return (
     <div class={text.map((t) => (t ? "filled" : "empty"))} data-test="ok">
       {/* bindInput's props spread onto a typed <input> */}
       <input {...bindInput(text, setText)} placeholder="type here" />
-      {/* a Behavior is accepted wherever the plain value is */}
+      {/* a State is accepted wherever the plain value is */}
       <input value={text} readonly maxlength={10} />
       <input type="checkbox" checked={checked} />
       <label for="x">label</label>

@@ -2,25 +2,23 @@ import { describe, test, expect } from "vitest";
 import {
   root,
   newStream,
-  newBehavior,
-  Behavior,
+  state,
   Stream,
   batch,
+  combine,
 } from "@continuum-js/frp";
 
 describe("batch — several fires as one moment", () => {
   test("two sets inside one batch reach a lift2 as ONE recomputation", () => {
-    const [a, setA] = newBehavior(1);
-    const [b, setB] = newBehavior(10);
+    const a = state(1);
+    const setA = a.set;
+    const b = state(10);
+    const setB = b.set;
     let computes = 0;
-    const sum = Behavior.lift2(
-      (x, y) => {
-        computes++;
-        return x + y;
-      },
-      a,
-      b,
-    );
+    const sum = combine(a, b, (x, y) => {
+      computes++;
+      return x + y;
+    });
     const seen: number[] = [];
     sum.listen((v) => seen.push(v));
     computes = 0;
@@ -55,9 +53,11 @@ describe("batch — several fires as one moment", () => {
   });
 
   test("nested batch joins the enclosing moment", () => {
-    const [a, setA] = newBehavior(1);
-    const [b, setB] = newBehavior(1);
-    const sum = Behavior.lift2((x, y) => x + y, a, b);
+    const a = state(1);
+    const setA = a.set;
+    const b = state(1);
+    const setB = b.set;
+    const sum = combine(a, b, (x, y) => x + y);
     const seen: number[] = [];
     sum.listen((v) => seen.push(v));
 
@@ -70,7 +70,8 @@ describe("batch — several fires as one moment", () => {
   });
 
   test("observers run after the batch closes and see committed state", () => {
-    const [a, setA] = newBehavior(0);
+    const a = state(0);
+    const setA = a.set;
     const [e, fire] = newStream<number>();
     let sampledInsideObserver = -1;
     e.listen(() => {
@@ -130,7 +131,8 @@ describe("batch — one occurrence per source per moment", () => {
   });
 
   test("setting the SAME behavior twice in one batch is fine: last write wins", () => {
-    const [b, set] = newBehavior(0);
+    const b = state(0);
+    const set = b.set;
     const seen: number[] = [];
     b.listen((v) => seen.push(v));
     batch(() => {

@@ -12,7 +12,7 @@ import {
   onCleanup,
   type Child,
 } from "@continuum-js/dom";
-import { distinctB } from "@continuum-js/std";
+import { dedupe } from "@continuum-js/std";
 import {
   matchChain,
   type MatchEntry,
@@ -49,9 +49,7 @@ function renderLevel(
   depth: number,
   fallback?: () => Child,
 ): Node {
-  const defAt = distinctB(
-    chain.map((c) => (c ? (c[depth]?.def ?? null) : null)),
-  );
+  const defAt = dedupe(chain.map((c) => (c ? (c[depth]?.def ?? null) : null)));
   return dyn(defAt, (def) => {
     if (!def) return chainOrNull(chain, fallback);
     provide(RouterContext, { chain, depth });
@@ -103,7 +101,7 @@ export function useParams(): State<Params> {
   const ctx = use(RouterContext);
   if (!ctx) return constant({});
   const d = ctx.depth;
-  return distinctB(
+  return dedupe(
     ctx.chain.map((c) => (c ? (c[d]?.params ?? {}) : {})),
     shallowEq,
   );

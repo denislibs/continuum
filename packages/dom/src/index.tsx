@@ -857,7 +857,7 @@ export function use<T>(ctx: Context<T>): T {
 // A behavior that only emits updates when its value actually changes.
 // The dedup memory is seeded with the current value, so re-emitting the
 // initial value does not trigger a rebuild.
-function distinctB<T>(b: State<T>): State<T> {
+function dedupe<T>(b: State<T>): State<T> {
   const out = new Stream<T>(b.updates.rank + 1);
   let prev = b.sampleNoTrans();
   let stagedTx: unknown = null;
@@ -897,7 +897,7 @@ export function when(
   thenRender: () => Child,
   elseRender?: () => Child,
 ): Node {
-  return dyn(distinctB(cond), (c) =>
+  return dyn(dedupe(cond), (c) =>
     c ? thenRender() : elseRender ? elseRender() : null,
   );
 }

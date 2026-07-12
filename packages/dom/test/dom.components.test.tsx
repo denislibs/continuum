@@ -9,11 +9,12 @@ import {
   each,
   portal,
 } from "@continuum-js/dom";
-import { newBehavior } from "@continuum-js/frp";
+import { state } from "@continuum-js/frp";
 
 describe("<Show>", () => {
   test("renders children when truthy, fallback when falsy, and toggles", () => {
-    const [user, setUser] = newBehavior<{ name: string } | null>(null);
+    const user = state<{ name: string } | null>(null);
+    const setUser = user.set;
     const container = document.createElement("div");
     mount(container, () => (
       <Show when={user} fallback={() => <p class="empty">none</p>}>
@@ -29,7 +30,8 @@ describe("<Show>", () => {
   });
 
   test("does not rebuild while the condition stays truthy", () => {
-    const [flag, setFlag] = newBehavior(true);
+    const flag = state(true);
+    const setFlag = flag.set;
     let builds = 0;
     const container = document.createElement("div");
     mount(container, () => (
@@ -48,10 +50,11 @@ describe("<Show>", () => {
 
 describe("<Each>", () => {
   test("renders a keyed list and reuses nodes on reorder", () => {
-    const [items, setItems] = newBehavior([
+    const items = state([
       { id: 1, t: "a" },
       { id: 2, t: "b" },
     ]);
+    const setItems = items.set;
     const container = document.createElement("div");
     mount(container, () => (
       <Each each={items} by={(i) => i.id}>
@@ -71,7 +74,8 @@ describe("<Each>", () => {
 
 describe("<Dynamic>", () => {
   test("swaps the subtree when the value changes", () => {
-    const [tab, setTab] = newBehavior("home");
+    const tab = state("home");
+    const setTab = tab.set;
     const container = document.createElement("div");
     mount(container, () => (
       <Dynamic value={tab}>
@@ -102,7 +106,7 @@ describe("<Portal>", () => {
 
 describe("dynamic regions demand an owner — with a teaching error", () => {
   test("dyn/each/portal outside any owner explain themselves", () => {
-    const [b] = newBehavior(0);
+    const b = state(0);
     expect(() => dyn(b, (v) => String(v))).toThrow(/needs an owner/);
     expect(() =>
       each(

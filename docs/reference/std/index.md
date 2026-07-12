@@ -13,8 +13,8 @@
 
 - [count](functions/count.md)
 - [debounce](functions/debounce.md)
+- [dedupe](functions/dedupe.md)
 - [delay](functions/delay.md)
-- [distinctB](functions/distinctB.md)
 - [filterMap](functions/filterMap.md)
 - [interval](functions/interval.md)
 - [loadPersisted](functions/loadPersisted.md)

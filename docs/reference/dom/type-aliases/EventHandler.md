@@ -8,7 +8,7 @@
 
 > **EventHandler**\<`Ev`, `E`\> = (`e`) => `void`
 
-Defined in: [jsx-runtime.ts:105](https://github.com/denislibs/continuum/blob/f5ae47f16f3158ab3acf341a203852240d621e88/packages/dom/src/jsx-runtime.ts#L105)
+Defined in: [jsx-runtime.ts:105](https://github.com/denislibs/continuum/blob/a6efe14ab8b1da85f964b151c4700e6197236815/packages/dom/src/jsx-runtime.ts#L105)
 
 A handler whose `currentTarget` carries the tag's concrete element type —
 the native-event answer to React's `MouseEvent<HTMLButtonElement>`:

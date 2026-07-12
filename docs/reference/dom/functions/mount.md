@@ -8,7 +8,7 @@
 
 > **mount**(`container`, `view`): () => `void`
 
-Defined in: [index.tsx:933](https://github.com/denislibs/continuum/blob/f5ae47f16f3158ab3acf341a203852240d621e88/packages/dom/src/index.tsx#L933)
+Defined in: [index.tsx:940](https://github.com/denislibs/continuum/blob/a6efe14ab8b1da85f964b151c4700e6197236815/packages/dom/src/index.tsx#L940)
 
 Mount a view under a root owner. Returns an unmount function.
 

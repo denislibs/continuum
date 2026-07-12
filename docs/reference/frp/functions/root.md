@@ -8,7 +8,7 @@
 
 > **root**\<`T`\>(`fn`): `T`
 
-Defined in: [index.ts:122](https://github.com/denislibs/continuum/blob/f5ae47f16f3158ab3acf341a203852240d621e88/packages/frp/src/index.ts#L122)
+Defined in: [index.ts:122](https://github.com/denislibs/continuum/blob/a6efe14ab8b1da85f964b151c4700e6197236815/packages/frp/src/index.ts#L122)
 
 A root scope for state that outlives any component — module-level counters,
 app-wide processes. `fn` receives the dispose handle; state declared inside

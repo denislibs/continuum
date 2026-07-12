@@ -8,7 +8,7 @@
 
 > **type**(`input`, `text`): `void`
 
-Defined in: [index.ts:54](https://github.com/denislibs/continuum/blob/f5ae47f16f3158ab3acf341a203852240d621e88/packages/test/src/index.ts#L54)
+Defined in: [index.ts:54](https://github.com/denislibs/continuum/blob/a6efe14ab8b1da85f964b151c4700e6197236815/packages/test/src/index.ts#L54)
 
 Type `text` into an input character by character, dispatching a bubbling
 `input` event after each one — the shape `bindInput` listens to.

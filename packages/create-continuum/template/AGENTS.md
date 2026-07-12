@@ -71,7 +71,7 @@ onMount(fn); onCleanup(fn);                 // register in component body only
 createContext(def); provide(ctx, v); use(ctx);
 
 // @continuum-js/std
-debounce(e, ms); throttle(e, ms); interval(ms); distinctB(b);
+debounce(e, ms); throttle(e, ms); interval(ms); dedupe(b);
 resource(triggerEvent, async (arg) => data); // -> State<Async<T>>
 // Async<T> discriminant is `status`: "idle" | "loading" | "ok" | "error"
 // s.status === "ok" -> s.value; s.status === "error" -> s.error
@@ -119,7 +119,7 @@ lazy(() => import("./Page.js"), { fallback: () => <p>…</p> });
 | ---------------------- | --------------------------------------------------------------------------------------------- |
 | `@continuum-js/frp`    | state, stream, combine, flatten, batch, root, State, Stream, perform, constant, integral/warp |
 | `@continuum-js/dom`    | mount, Show, Each, Dynamic, Portal, onMount, onCleanup, bindInput, context, animationFrames   |
-| `@continuum-js/std`    | debounce, throttle, interval, distinctB, resource, Async                                      |
+| `@continuum-js/std`    | debounce, throttle, interval, dedupe, resource, Async                                         |
 | `@continuum-js/router` | Router, Outlet, Link, useParams, navigate, location, lazy                                     |
 | `@continuum-js/test`   | render, fire, click, type, flush (vitest helpers)                                             |
 

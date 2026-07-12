@@ -748,14 +748,6 @@ export class Stream<A> {
   }
 
   /**
-   * @deprecated Use `state.at(stream, (value, event) => …)` — same semantics,
-   * data first. Removed in 1.0.
-   */
-  snapshot<B, C>(b: State<B>, f: (a: A, b: B) => C): Stream<C> {
-    return b.at(this, (value, event: A) => f(event, value));
-  }
-
-  /**
    * Step function: hold the last occurrence, committing at the moment
    * boundary. State — so it needs an owner: the process that keeps the value
    * current is registered in the ambient scope and detaches when the scope
@@ -885,19 +877,9 @@ export class Stream<A> {
     return out;
   }
 
-  /** @deprecated Renamed to `when` — same semantics. Removed in 1.0. */
-  gate(b: State<boolean>): Stream<A> {
-    return this.when(b);
-  }
-
   /** Left-biased merge: on simultaneous occurrences the left wins. */
   or(other: Stream<A>): Stream<A> {
     return Stream.merge(this, other, (l) => l);
-  }
-
-  /** @deprecated Renamed to `or` — same semantics. Removed in 1.0. */
-  orElse(other: Stream<A>): Stream<A> {
-    return this.or(other);
   }
 
   /** Merge two events; simultaneous occurrences coalesce once via `combine`. */
@@ -1043,211 +1025,191 @@ export class State<A> {
 
   // --- static combinators -----------------------------------------------
 
-  /** @deprecated Use `combine(bf, ba, (f, a) => f(a))`. Removed in 1.0. */
-  static apply<A, B>(bf: State<(a: A) => B>, ba: State<A>): State<B> {
-    return State.lift2((f, a) => f(a), bf, ba);
-  }
-
-  /**
-   * @internal The two-input join every `combine` reduces to. Public under the
-   * deprecated `lift2` name until 1.0 — prefer `combine(a, b, f)`.
-   */
-  static lift2<A, B, C>(
-    f: (a: A, b: B) => C,
-    ba: State<A>,
-    bb: State<B>,
-  ): State<C> {
-    const rank = Math.max(ba.updates.rank, bb.updates.rank) + 1;
-    const out = new Stream<C>(rank);
-    // Committed caches + per-moment staging: the engine's own bookkeeping
-    // obeys the boundary-commit discipline it imposes on user state (law 2)
-    // — an aborted moment leaves the caches exactly as they were.
-    let va = ba.sampleNoTrans();
-    let vb = bb.sampleNoTrans();
-    let stagedTx: Transaction | null = null;
-    let sa: A;
-    let sb: B;
-    let hasSa = false;
-    let hasSb = false;
-    let scheduledTx: Transaction | null = null;
-    let reseeding = false;
-    let suppressed = false;
-    // one commit closure per join, not per moment (see hold); a mid-moment
-    // reseed sets stagedTx to null, which also disarms a queued commit
-    const commit = () => {
-      if (stagedTx !== null) {
-        if (hasSa) va = sa;
-        if (hasSb) vb = sb;
-        stagedTx = null;
-        hasSa = false;
-        hasSb = false;
-      }
-    };
-    const stage = (t: Transaction) => {
-      if (stagedTx !== t) {
-        stagedTx = t;
-        hasSa = false;
-        hasSb = false;
-        t.last(commit);
-      }
-    };
-    const flush = (t: Transaction) => {
-      scheduledTx = null;
-      if (reseeding) {
-        // Woken mid-moment: the caches are not trustworthy until after the
-        // commits — the deferred reseed emits once from fresh values.
-        suppressed = true;
-        return;
-      }
-      const a = stagedTx === t && hasSa ? sa : va;
-      const b = stagedTx === t && hasSb ? sb : vb;
-      out.send_(t, f(a, b));
-    };
-    const schedule = (t: Transaction) => {
-      if (scheduledTx !== t) {
-        scheduledTx = t;
-        t.prioritized(out.rank, flush); // out.rank may have been bumped
-      }
-    };
-    out.source(ba.updates, (t, a) => {
-      stage(t);
-      sa = a;
-      hasSa = true;
-      schedule(t);
-    });
-    out.source(bb.updates, (t, b) => {
-      stage(t);
-      sb = b;
-      hasSb = true;
-      schedule(t);
-    });
-    // While asleep the caches go stale — reseed on wake (also cures joins
-    // over continuous behaviors frozen at construction time).
-    out.onWake = () => {
-      const t = Transaction.current;
-      if (!t) {
-        va = ba.sampleNoTrans();
-        vb = bb.sampleNoTrans();
-        scheduledTx = null;
-        return;
-      }
-      // Waking mid-moment (a listen inside a batch, a switch rewire):
-      // fresh values exist only after this moment's commits. A nested
-      // `last` lands in the NEXT last batch — after every commit queued so
-      // far — so the reseed reads committed values; any flush scheduled
-      // meanwhile is suppressed and replaced by one emission from the
-      // reseeded caches.
-      reseeding = true;
-      t.last(() =>
-        t.last(() => {
-          va = ba.sampleNoTrans();
-          vb = bb.sampleNoTrans();
-          stagedTx = null;
-          hasSa = false;
-          hasSb = false;
-          reseeding = false;
-          scheduledTx = null;
-          if (suppressed) {
-            suppressed = false;
-            out.send_(t, f(va, vb));
-          }
-        }),
-      );
-    };
-    return new State<C>(() => f(ba.sampleNoTrans(), bb.sampleNoTrans()), out);
-  }
-
-  /** @deprecated Use `combine(a, b, c, f)`. Removed in 1.0. */
-  static lift3<A, B, C, D>(
-    f: (a: A, b: B, c: C) => D,
-    ba: State<A>,
-    bb: State<B>,
-    bc: State<C>,
-  ): State<D> {
-    const partial = State.lift2((a: A, b: B) => (c: C) => f(a, b, c), ba, bb);
-    return State.lift2((g, c) => g(c), partial, bc);
-  }
-
   /** Continuous behavior: sampled fresh on each read; no discrete updates. */
   static fromPoll<A>(poll: () => A): State<A> {
     return new State<A>(poll, new Stream<A>(0));
   }
+}
 
-  /**
-   * @internal The state-of-states switch behind `flatten`. Public under the
-   * deprecated `switchB` name until 1.0 — prefer `flatten(w)`.
-   *
-   * A formula: cold it is a recipe (pull samples straight through); waking
-   * attaches the outer state AND the currently selected inner; sleeping
-   * detaches both. Rewiring while warm commits at the moment boundary.
-   */
-  static switchB<A>(bb: State<State<A>>): State<A> {
-    const out = new Stream<A>(bb.updates.rank + 1);
-    let innerUn: Unlisten | null = null;
-    const attach = (b: State<A>) => {
-      innerUn = out.subscribe(b.updates, (t, a) => out.send_(t, a));
-    };
-    out.source(bb.updates, (t, nb) => {
-      // Rewire at the moment boundary (classic switch delay).
+// The two-input join every `combine` reduces to (a static `State.lift2`
+// until 1.0).
+function lift2<A, B, C>(
+  f: (a: A, b: B) => C,
+  ba: State<A>,
+  bb: State<B>,
+): State<C> {
+  const rank = Math.max(ba.updates.rank, bb.updates.rank) + 1;
+  const out = new Stream<C>(rank);
+  // Committed caches + per-moment staging: the engine's own bookkeeping
+  // obeys the boundary-commit discipline it imposes on user state (law 2)
+  // — an aborted moment leaves the caches exactly as they were.
+  let va = ba.sampleNoTrans();
+  let vb = bb.sampleNoTrans();
+  let stagedTx: Transaction | null = null;
+  let sa: A;
+  let sb: B;
+  let hasSa = false;
+  let hasSb = false;
+  let scheduledTx: Transaction | null = null;
+  let reseeding = false;
+  let suppressed = false;
+  // one commit closure per join, not per moment (see hold); a mid-moment
+  // reseed sets stagedTx to null, which also disarms a queued commit
+  const commit = () => {
+    if (stagedTx !== null) {
+      if (hasSa) va = sa;
+      if (hasSb) vb = sb;
+      stagedTx = null;
+      hasSa = false;
+      hasSb = false;
+    }
+  };
+  const stage = (t: Transaction) => {
+    if (stagedTx !== t) {
+      stagedTx = t;
+      hasSa = false;
+      hasSb = false;
+      t.last(commit);
+    }
+  };
+  const flush = (t: Transaction) => {
+    scheduledTx = null;
+    if (reseeding) {
+      // Woken mid-moment: the caches are not trustworthy until after the
+      // commits — the deferred reseed emits once from fresh values.
+      suppressed = true;
+      return;
+    }
+    const a = stagedTx === t && hasSa ? sa : va;
+    const b = stagedTx === t && hasSb ? sb : vb;
+    out.send_(t, f(a, b));
+  };
+  const schedule = (t: Transaction) => {
+    if (scheduledTx !== t) {
+      scheduledTx = t;
+      t.prioritized(out.rank, flush); // out.rank may have been bumped
+    }
+  };
+  out.source(ba.updates, (t, a) => {
+    stage(t);
+    sa = a;
+    hasSa = true;
+    schedule(t);
+  });
+  out.source(bb.updates, (t, b) => {
+    stage(t);
+    sb = b;
+    hasSb = true;
+    schedule(t);
+  });
+  // While asleep the caches go stale — reseed on wake (also cures joins
+  // over continuous behaviors frozen at construction time).
+  out.onWake = () => {
+    const t = Transaction.current;
+    if (!t) {
+      va = ba.sampleNoTrans();
+      vb = bb.sampleNoTrans();
+      scheduledTx = null;
+      return;
+    }
+    // Waking mid-moment (a listen inside a batch, a switch rewire):
+    // fresh values exist only after this moment's commits. A nested
+    // `last` lands in the NEXT last batch — after every commit queued so
+    // far — so the reseed reads committed values; any flush scheduled
+    // meanwhile is suppressed and replaced by one emission from the
+    // reseeded caches.
+    reseeding = true;
+    t.last(() =>
       t.last(() => {
-        if (!innerUn) return; // fell asleep before the boundary
-        innerUn();
-        // Rebase: after leaving a deep inner, come back down to the live
-        // topology. Lowering is safe — downstream nodes stayed strictly
-        // above the old (larger) rank, and the floor keeps `out` above
-        // both of its live inputs.
-        const floor = Math.max(bb.updates.rank, nb.updates.rank) + 1;
-        if (floor < out.rank) out.rank = floor;
-        attach(nb);
-        // Emit the new selection's value AFTER this moment's commits (a
-        // fresh last batch): on a simultaneous switch + inner update the
-        // push side then agrees with the pull side (law 1).
-        t.last(() => out.send_(t, nb.sampleNoTrans()));
-      });
-    });
-    out.onWake = () => attach(bb.sampleNoTrans());
-    out.onSleep = () => {
-      if (innerUn) {
-        innerUn();
-        innerUn = null;
-      }
-    };
-    return new State<A>(() => bb.sampleNoTrans().sampleNoTrans(), out);
-  }
+        va = ba.sampleNoTrans();
+        vb = bb.sampleNoTrans();
+        stagedTx = null;
+        hasSa = false;
+        hasSb = false;
+        reseeding = false;
+        scheduledTx = null;
+        if (suppressed) {
+          suppressed = false;
+          out.send_(t, f(va, vb));
+        }
+      }),
+    );
+  };
+  return new State<C>(() => f(ba.sampleNoTrans(), bb.sampleNoTrans()), out);
+}
 
-  /**
-   * @internal The state-of-streams switch behind `flatten`. Public under the
-   * deprecated `switchE` name until 1.0 — prefer `flatten(w)`.
-   *
-   * A formula (see switchB): waking attaches the CURRENT selection, even
-   * one chosen while asleep.
-   */
-  static switchE<A>(be: State<Stream<A>>): Stream<A> {
-    const out = new Stream<A>(be.updates.rank + 1);
-    let innerUn: Unlisten | null = null;
-    const attach = (e: Stream<A>) => {
-      innerUn = out.subscribe(e, (t, a) => out.send_(t, a));
-    };
-    out.source(be.updates, (t, ne) => {
-      // Rewire at the moment boundary so the old event stays live this moment.
-      t.last(() => {
-        if (!innerUn) return; // fell asleep before the boundary
-        innerUn();
-        // Rebase to the live topology (see switchB for the safety argument).
-        const floor = Math.max(be.updates.rank, ne.rank) + 1;
-        if (floor < out.rank) out.rank = floor;
-        attach(ne);
-      });
+/**
+ * The state-of-states switch behind `flatten` (a public static until 1.0).
+ *
+ * A formula: cold it is a recipe (pull samples straight through); waking
+ * attaches the outer state AND the currently selected inner; sleeping
+ * detaches both. Rewiring while warm commits at the moment boundary.
+ */
+function switchB<A>(bb: State<State<A>>): State<A> {
+  const out = new Stream<A>(bb.updates.rank + 1);
+  let innerUn: Unlisten | null = null;
+  const attach = (b: State<A>) => {
+    innerUn = out.subscribe(b.updates, (t, a) => out.send_(t, a));
+  };
+  out.source(bb.updates, (t, nb) => {
+    // Rewire at the moment boundary (classic switch delay).
+    t.last(() => {
+      if (!innerUn) return; // fell asleep before the boundary
+      innerUn();
+      // Rebase: after leaving a deep inner, come back down to the live
+      // topology. Lowering is safe — downstream nodes stayed strictly
+      // above the old (larger) rank, and the floor keeps `out` above
+      // both of its live inputs.
+      const floor = Math.max(bb.updates.rank, nb.updates.rank) + 1;
+      if (floor < out.rank) out.rank = floor;
+      attach(nb);
+      // Emit the new selection's value AFTER this moment's commits (a
+      // fresh last batch): on a simultaneous switch + inner update the
+      // push side then agrees with the pull side (law 1).
+      t.last(() => out.send_(t, nb.sampleNoTrans()));
     });
-    out.onWake = () => attach(be.sampleNoTrans());
-    out.onSleep = () => {
-      if (innerUn) {
-        innerUn();
-        innerUn = null;
-      }
-    };
-    return out;
-  }
+  });
+  out.onWake = () => attach(bb.sampleNoTrans());
+  out.onSleep = () => {
+    if (innerUn) {
+      innerUn();
+      innerUn = null;
+    }
+  };
+  return new State<A>(() => bb.sampleNoTrans().sampleNoTrans(), out);
+}
+
+/**
+ * The state-of-streams switch behind `flatten` (a public static until 1.0).
+ *
+ * A formula (see switchB): waking attaches the CURRENT selection, even
+ * one chosen while asleep.
+ */
+function switchE<A>(be: State<Stream<A>>): Stream<A> {
+  const out = new Stream<A>(be.updates.rank + 1);
+  let innerUn: Unlisten | null = null;
+  const attach = (e: Stream<A>) => {
+    innerUn = out.subscribe(e, (t, a) => out.send_(t, a));
+  };
+  out.source(be.updates, (t, ne) => {
+    // Rewire at the moment boundary so the old event stays live this moment.
+    t.last(() => {
+      if (!innerUn) return; // fell asleep before the boundary
+      innerUn();
+      // Rebase to the live topology (see switchB for the safety argument).
+      const floor = Math.max(be.updates.rank, ne.rank) + 1;
+      if (floor < out.rank) out.rank = floor;
+      attach(ne);
+    });
+  });
+  out.onWake = () => attach(be.sampleNoTrans());
+  out.onSleep = () => {
+    if (innerUn) {
+      innerUn();
+      innerUn = null;
+    }
+  };
+  return out;
 }
 
 // ---------------------------------------------------------------------------
@@ -1392,26 +1354,6 @@ class Cell<A> extends State<A> {
   modify(f: (state: A) => A): void {
     this.write(f(this.pending(Transaction.current)));
   }
-}
-
-/**
- * A source behavior plus its setter.
- *
- * Setting a value equal to the current one (by `eq`, default `Object.is`)
- * is a no-op: no moment opens, no subscriber wakes. A state is a value
- * across time — "changing" it to the same value is not a change. Pass a
- * custom `eq` for structural comparison, or `() => false` to deliver every
- * set.
- *
- * @deprecated Use `state(init, eq?)` — the same cell as one value with
- * `.set` (and `.on` for declarative transitions). Removed in 1.0.
- */
-export function newBehavior<A>(
-  init: A,
-  eq: (prev: A, next: A) => boolean = Object.is,
-): [State<A>, (a: A) => void] {
-  const c = new Cell(init, eq);
-  return [c, (a: A) => c.write(a)];
 }
 
 /**
@@ -1611,12 +1553,12 @@ export function combine<A, B, C, D, E, R>(
 export function combine(...args: unknown[]): State<unknown> {
   const f = args[args.length - 1] as (...xs: unknown[]) => unknown;
   const ws = args.slice(0, -1) as Array<State<unknown>>;
-  if (ws.length === 2) return State.lift2(f, ws[0], ws[1]);
+  if (ws.length === 2) return lift2(f, ws[0], ws[1]);
   // Wider joins fold through pair nodes; coalescing keeps it one recompute
   // per moment regardless of arity.
-  let acc: State<unknown[]> = State.lift2((x, y) => [x, y], ws[0], ws[1]);
+  let acc: State<unknown[]> = lift2((x, y) => [x, y], ws[0], ws[1]);
   for (let i = 2; i < ws.length; i++) {
-    acc = State.lift2((xs, y) => [...(xs as unknown[]), y], acc, ws[i]);
+    acc = lift2((xs, y) => [...(xs as unknown[]), y], acc, ws[i]);
   }
   return acc.map((xs) => f(...xs));
 }
@@ -1632,8 +1574,8 @@ export function flatten<A>(
   w: State<State<A>> | State<Stream<A>>,
 ): State<A> | Stream<A> {
   return w.sampleNoTrans() instanceof State
-    ? State.switchB(w as State<State<A>>)
-    : State.switchE(w as State<Stream<A>>);
+    ? switchB(w as State<State<A>>)
+    : switchE(w as State<Stream<A>>);
 }
 
 /** The behavior that is `v` at every moment (applicative `pure`). */
@@ -1739,32 +1681,3 @@ export function perform<A, B>(
 // ---------------------------------------------------------------------------
 
 export { integral, derivative, warp } from "./continuous.js";
-
-// ---------------------------------------------------------------------------
-// Deprecated aliases. Three renames, same playbook, removed in 1.0:
-//  - Event → Stream (an "event" reads as ONE occurrence, the type is the
-//    whole stream of them — and it collided with DOM's Event);
-//  - Behavior → Wire (theory jargon nobody outside FRP literature reads);
-//  - Wire → State (a metaphor nobody recognized; "state" is the word every
-//    React/Vue/Svelte person already thinks in — see the naming discussion
-//    in the docs).
-// ---------------------------------------------------------------------------
-
-/** @deprecated Renamed to `Stream` — same class, new name. Removed in 1.0. */
-export const Event = Stream;
-/** @deprecated Renamed to `Stream`. Removed in 1.0. */
-export type Event<A> = Stream<A>;
-/** @deprecated Renamed to `newStream`. Removed in 1.0. */
-export const newEvent = newStream;
-/** @deprecated Renamed to `State` — same class, new name. Removed in 1.0. */
-export const Behavior = State;
-/** @deprecated Renamed to `State`. Removed in 1.0. */
-export type Behavior<A> = State<A>;
-/** @deprecated Renamed to `State` — same class, new name. Removed in 1.0. */
-export const Wire = State;
-/** @deprecated Renamed to `State`. Removed in 1.0. */
-export type Wire<A> = State<A>;
-/** @deprecated Renamed to `state` — the same source cell. Removed in 1.0. */
-export const wire = state;
-/** @deprecated Renamed to `StateSource`. Removed in 1.0. */
-export type WireSource<A> = StateSource<A>;

@@ -13,7 +13,7 @@ import {
   use,
   createContext,
 } from "@continuum-js/dom";
-import { newBehavior } from "@continuum-js/frp";
+import { state } from "@continuum-js/frp";
 
 describe("onMount runs under its owner", () => {
   test("onCleanup inside onMount attaches to the component's scope", () => {
@@ -31,7 +31,8 @@ describe("onMount runs under its owner", () => {
   });
 
   test("the dyn-region path: mount hooks of a rebuilt region own their cleanups", () => {
-    const [visible, setVisible] = newBehavior(false);
+    const visible = state(false);
+    const setVisible = visible.set;
     let cleaned = 0;
 
     const container = document.createElement("div");

@@ -6,7 +6,7 @@
 
 # Interface: StateSource\<A\>
 
-Defined in: [index.ts:1454](https://github.com/denislibs/continuum/blob/f5ae47f16f3158ab3acf341a203852240d621e88/packages/frp/src/index.ts#L1454)
+Defined in: [index.ts:1404](https://github.com/denislibs/continuum/blob/a6efe14ab8b1da85f964b151c4700e6197236815/packages/frp/src/index.ts#L1404)
 
 A source state: a cell you read like any state and write via `.set`.
 
@@ -26,7 +26,7 @@ A source state: a cell you read like any state and write via `.set`.
 
 > **sampleNoTrans**: () => `A`
 
-Defined in: [index.ts:984](https://github.com/denislibs/continuum/blob/f5ae47f16f3158ab3acf341a203852240d621e88/packages/frp/src/index.ts#L984)
+Defined in: [index.ts:966](https://github.com/denislibs/continuum/blob/a6efe14ab8b1da85f964b151c4700e6197236815/packages/frp/src/index.ts#L966)
 
 Pull the current value without opening a transaction.
 
@@ -44,7 +44,7 @@ Pull the current value without opening a transaction.
 
 > **updates**: [`Stream`](../classes/Stream.md)\<`A`\>
 
-Defined in: [index.ts:986](https://github.com/denislibs/continuum/blob/f5ae47f16f3158ab3acf341a203852240d621e88/packages/frp/src/index.ts#L986)
+Defined in: [index.ts:968](https://github.com/denislibs/continuum/blob/a6efe14ab8b1da85f964b151c4700e6197236815/packages/frp/src/index.ts#L968)
 
 Push notifications of discrete changes (empty for continuous behaviors).
 
@@ -60,7 +60,7 @@ Push notifications of discrete changes (empty for continuous behaviors).
 
 > **at**\<`B`\>(`e`): [`Stream`](../classes/Stream.md)\<`A`\>
 
-Defined in: [index.ts:1006](https://github.com/denislibs/continuum/blob/f5ae47f16f3158ab3acf341a203852240d621e88/packages/frp/src/index.ts#L1006)
+Defined in: [index.ts:988](https://github.com/denislibs/continuum/blob/a6efe14ab8b1da85f964b151c4700e6197236815/packages/frp/src/index.ts#L988)
 
 Sample this state at each occurrence of `e`: `draft.at(submits)` is the
 stream of the state's values as of those moments (pre-moment, with exact
@@ -90,7 +90,7 @@ simultaneity semantics). An optional combiner receives `(value, event)`.
 
 > **at**\<`B`, `C`\>(`e`, `f`): [`Stream`](../classes/Stream.md)\<`C`\>
 
-Defined in: [index.ts:1007](https://github.com/denislibs/continuum/blob/f5ae47f16f3158ab3acf341a203852240d621e88/packages/frp/src/index.ts#L1007)
+Defined in: [index.ts:989](https://github.com/denislibs/continuum/blob/a6efe14ab8b1da85f964b151c4700e6197236815/packages/frp/src/index.ts#L989)
 
 Sample this state at each occurrence of `e`: `draft.at(submits)` is the
 stream of the state's values as of those moments (pre-moment, with exact
@@ -130,7 +130,7 @@ simultaneity semantics). An optional combiner receives `(value, event)`.
 
 > **dispose**(): `void`
 
-Defined in: [index.ts:1034](https://github.com/denislibs/continuum/blob/f5ae47f16f3158ab3acf341a203852240d621e88/packages/frp/src/index.ts#L1034)
+Defined in: [index.ts:1016](https://github.com/denislibs/continuum/blob/a6efe14ab8b1da85f964b151c4700e6197236815/packages/frp/src/index.ts#L1016)
 
 Detach this behavior's `updates` from the graph (see `Stream.dispose`).
 
@@ -148,7 +148,7 @@ Detach this behavior's `updates` from the graph (see `Stream.dispose`).
 
 > **listen**(`h`): [`Unlisten`](../type-aliases/Unlisten.md)
 
-Defined in: [index.ts:1017](https://github.com/denislibs/continuum/blob/f5ae47f16f3158ab3acf341a203852240d621e88/packages/frp/src/index.ts#L1017)
+Defined in: [index.ts:999](https://github.com/denislibs/continuum/blob/a6efe14ab8b1da85f964b151c4700e6197236815/packages/frp/src/index.ts#L999)
 
 Deliver the current value immediately, then every change.
 
@@ -172,7 +172,7 @@ Deliver the current value immediately, then every change.
 
 > **map**\<`B`\>(`f`): [`State`](../classes/State.md)\<`B`\>
 
-Defined in: [index.ts:997](https://github.com/denislibs/continuum/blob/f5ae47f16f3158ab3acf341a203852240d621e88/packages/frp/src/index.ts#L997)
+Defined in: [index.ts:979](https://github.com/denislibs/continuum/blob/a6efe14ab8b1da85f964b151c4700e6197236815/packages/frp/src/index.ts#L979)
 
 Pointwise transform (continuous-safe: recomputed on each sample).
 
@@ -202,7 +202,7 @@ Pointwise transform (continuous-safe: recomputed on each sample).
 
 > **on**\<`E`\>(`e`, `f`): `this`
 
-Defined in: [index.ts:1472](https://github.com/denislibs/continuum/blob/f5ae47f16f3158ab3acf341a203852240d621e88/packages/frp/src/index.ts#L1472)
+Defined in: [index.ts:1422](https://github.com/denislibs/continuum/blob/a6efe14ab8b1da85f964b151c4700e6197236815/packages/frp/src/index.ts#L1422)
 
 Declare a state transition: on each occurrence of `e`, fold the reducer
 over the current value — `(state, event) => next`, `useReducer` order.
@@ -236,7 +236,7 @@ sequentially. The transition process belongs to the ambient scope.
 
 > **retain**(): `this`
 
-Defined in: [index.ts:1039](https://github.com/denislibs/continuum/blob/f5ae47f16f3158ab3acf341a203852240d621e88/packages/frp/src/index.ts#L1039)
+Defined in: [index.ts:1021](https://github.com/denislibs/continuum/blob/a6efe14ab8b1da85f964b151c4700e6197236815/packages/frp/src/index.ts#L1021)
 
 Keep this behavior's update chain alive across listener churn (see `Stream.retain`).
 
@@ -254,7 +254,7 @@ Keep this behavior's update chain alive across listener churn (see `Stream.retai
 
 > **sample**(): `A`
 
-Defined in: [index.ts:989](https://github.com/denislibs/continuum/blob/f5ae47f16f3158ab3acf341a203852240d621e88/packages/frp/src/index.ts#L989)
+Defined in: [index.ts:971](https://github.com/denislibs/continuum/blob/a6efe14ab8b1da85f964b151c4700e6197236815/packages/frp/src/index.ts#L971)
 
 #### Returns
 
@@ -270,7 +270,7 @@ Defined in: [index.ts:989](https://github.com/denislibs/continuum/blob/f5ae47f16
 
 > **set**(`a`): `void`
 
-Defined in: [index.ts:1456](https://github.com/denislibs/continuum/blob/f5ae47f16f3158ab3acf341a203852240d621e88/packages/frp/src/index.ts#L1456)
+Defined in: [index.ts:1406](https://github.com/denislibs/continuum/blob/a6efe14ab8b1da85f964b151c4700e6197236815/packages/frp/src/index.ts#L1406)
 
 Set the current value; equal values (by the cell's `eq`) are a no-op.
 
@@ -290,7 +290,7 @@ Set the current value; equal values (by the cell's `eq`) are a no-op.
 
 > **update**(`f`): `void`
 
-Defined in: [index.ts:1464](https://github.com/denislibs/continuum/blob/f5ae47f16f3158ab3acf341a203852240d621e88/packages/frp/src/index.ts#L1464)
+Defined in: [index.ts:1414](https://github.com/denislibs/continuum/blob/a6efe14ab8b1da85f964b151c4700e6197236815/packages/frp/src/index.ts#L1414)
 
 Read-modify-write: fold the updater over the current value —
 `count.update((n) => n + 1)`. Inside a `batch` the updater sees the

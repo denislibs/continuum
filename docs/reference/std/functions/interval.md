@@ -8,7 +8,7 @@
 
 > **interval**(`ms`): `Stream`\<`number`\>
 
-Defined in: [index.ts:78](https://github.com/denislibs/continuum/blob/f5ae47f16f3158ab3acf341a203852240d621e88/packages/std/src/index.ts#L78)
+Defined in: [index.ts:78](https://github.com/denislibs/continuum/blob/a6efe14ab8b1da85f964b151c4700e6197236815/packages/std/src/index.ts#L78)
 
 A source event ticking `1, 2, 3, …` every `ms`. Stops on `dispose()`.
 

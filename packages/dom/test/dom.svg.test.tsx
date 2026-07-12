@@ -1,6 +1,6 @@
 import { describe, test, expect } from "vitest";
 import { mount } from "@continuum-js/dom";
-import { newBehavior } from "@continuum-js/frp";
+import { state } from "@continuum-js/frp";
 
 const SVG_NS = "http://www.w3.org/2000/svg";
 
@@ -30,7 +30,8 @@ describe("SVG namespace", () => {
   });
 
   test("reactive attribute binding works on SVG", () => {
-    const [fill, setFill] = newBehavior("red");
+    const fill = state("red");
+    const setFill = fill.set;
     const container = document.createElement("div");
     mount(container, () => (
       <svg>

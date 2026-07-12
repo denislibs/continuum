@@ -8,7 +8,7 @@
 
 > **getScope**(): [`Scope`](../classes/Scope.md) \| `null`
 
-Defined in: [index.ts:102](https://github.com/denislibs/continuum/blob/f5ae47f16f3158ab3acf341a203852240d621e88/packages/frp/src/index.ts#L102)
+Defined in: [index.ts:102](https://github.com/denislibs/continuum/blob/a6efe14ab8b1da85f964b151c4700e6197236815/packages/frp/src/index.ts#L102)
 
 The ambient scope, if any (set by `root`/`runInScope` and dom components).
 

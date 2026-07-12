@@ -6,7 +6,7 @@
 // and this file is the local safety harness for absolute memory growth.
 import { describe, test, expect } from "vitest";
 import { mount, Show, Each, onCleanup } from "@continuum-js/dom";
-import { newBehavior } from "@continuum-js/frp";
+import { state } from "@continuum-js/frp";
 import { interval } from "@continuum-js/std";
 import { memoryUsage } from "node:process";
 
@@ -26,8 +26,9 @@ async function heapAfterGc(): Promise<number> {
 // A representative little app: state, a derived binding, a conditional
 // region, a keyed list, a timer with explicit cleanup.
 function App() {
-  const [n, setN] = newBehavior(0);
-  const [items] = newBehavior([1, 2, 3, 4, 5]);
+  const n = state(0);
+  const setN = n.set;
+  const items = state([1, 2, 3, 4, 5]);
   const clock = interval(60_000);
   onCleanup(() => clock.dispose());
   setN(1);

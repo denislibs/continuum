@@ -1,10 +1,11 @@
 import { describe, test, expect } from "vitest";
 import { mount, dyn } from "@continuum-js/dom";
-import { newBehavior } from "@continuum-js/frp";
+import { state } from "@continuum-js/frp";
 
 describe("dyn under re-entrant moments", () => {
   test("a stale queued update cannot overwrite a newer render", () => {
-    const [n, setN] = newBehavior(0);
+    const n = state(0);
+    const setN = n.set;
 
     // A listener registered BEFORE dyn subscribes: in the post phase it runs
     // first and re-enters with a new moment (like a router redirect guard).
@@ -22,7 +23,8 @@ describe("dyn under re-entrant moments", () => {
   });
 
   test("duplicate deliveries of the same value do not rebuild", () => {
-    const [n, setN] = newBehavior(0);
+    const n = state(0);
+    const setN = n.set;
     let builds = 0;
     const container = document.createElement("div");
     mount(
@@ -43,8 +45,10 @@ describe("dyn under re-entrant moments", () => {
 
 describe("dyn region removal", () => {
   test("outer rebuild removes nodes a nested root-level dyn swapped in", () => {
-    const [inner, setInner] = newBehavior("a");
-    const [outer, setOuter] = newBehavior(true);
+    const inner = state("a");
+    const setInner = inner.set;
+    const outer = state(true);
+    const setOuter = outer.set;
 
     const container = document.createElement("div");
     mount(

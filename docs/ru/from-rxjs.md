@@ -177,27 +177,27 @@ function Ticker() {
 
 Рефлексы переносятся почти без перевода:
 
-| RxJS                              | Continuum                      | Комментарий                      |
-| --------------------------------- | ------------------------------ | -------------------------------- |
-| `map`, `filter`                   | `e.map`, `e.filter`            | так же                           |
-| `scan(f, init)`                   | `e.accum(init, f)`             | результат — сразу State          |
-| `startWith(x)` + `shareReplay(1)` | `e.hold(x)`                    | одно слово вместо церемонии      |
-| `combineLatest`                   | `combine(a, b, f)`             | без глитчей                      |
-| `withLatestFrom(b$)`              | `s.at(e, f)`                   | с точной одновременностью        |
-| `merge(a$, b$)`                   | `Stream.merge(a, b, f)`        | одновременные коалесцируются `f` |
-| `race(a$, b$)`-ish                | `a.or(b)`                      | лево-приоритетный                |
-| `debounceTime(ms)`                | `debounce(e, ms)`              | std                              |
-| `throttleTime(ms)`                | `throttle(e, ms)`              | std                              |
-| `delay(ms)`                       | `delay(e, ms)`                 | std                              |
-| `interval(ms)`                    | `interval(ms)`                 | std; `Stream<number>`            |
-| `distinctUntilChanged()`          | `distinct(e)` / `distinctB(b)` | std                              |
-| `pairwise()`                      | `pairwise(e)`                  | std                              |
-| `take(1)` / `first()`             | `e.once()`                     |                                  |
-| `filter(() => flag)`              | `e.when(flag)`                 | флаг — State, не замыкание       |
-| `BehaviorSubject`                 | `state(init)`                  | _тип_, а не костыль              |
-| `Subject`                         | `stream()`                     |                                  |
-| `switchMap(fetch)`                | `resource(e, fetch)`           | см. ниже                         |
-| `subscribe`                       | `listen` + `onCleanup`         | или вообще привязка в JSX        |
+| RxJS                              | Continuum                   | Комментарий                      |
+| --------------------------------- | --------------------------- | -------------------------------- |
+| `map`, `filter`                   | `e.map`, `e.filter`         | так же                           |
+| `scan(f, init)`                   | `e.accum(init, f)`          | результат — сразу State          |
+| `startWith(x)` + `shareReplay(1)` | `e.hold(x)`                 | одно слово вместо церемонии      |
+| `combineLatest`                   | `combine(a, b, f)`          | без глитчей                      |
+| `withLatestFrom(b$)`              | `s.at(e, f)`                | с точной одновременностью        |
+| `merge(a$, b$)`                   | `Stream.merge(a, b, f)`     | одновременные коалесцируются `f` |
+| `race(a$, b$)`-ish                | `a.or(b)`                   | лево-приоритетный                |
+| `debounceTime(ms)`                | `debounce(e, ms)`           | std                              |
+| `throttleTime(ms)`                | `throttle(e, ms)`           | std                              |
+| `delay(ms)`                       | `delay(e, ms)`              | std                              |
+| `interval(ms)`                    | `interval(ms)`              | std; `Stream<number>`            |
+| `distinctUntilChanged()`          | `distinct(e)` / `dedupe(b)` | std                              |
+| `pairwise()`                      | `pairwise(e)`               | std                              |
+| `take(1)` / `first()`             | `e.once()`                  |                                  |
+| `filter(() => flag)`              | `e.when(flag)`              | флаг — State, не замыкание       |
+| `BehaviorSubject`                 | `state(init)`               | _тип_, а не костыль              |
+| `Subject`                         | `stream()`                  |                                  |
+| `switchMap(fetch)`                | `resource(e, fetch)`        | см. ниже                         |
+| `subscribe`                       | `listen` + `onCleanup`      | или вообще привязка в JSX        |
 
 ## `switchMap` и асинхронность: наш ответ — данные
 

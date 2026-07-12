@@ -2,7 +2,7 @@
 // The React-parity story: ComponentProps<"button">, a typed currentTarget on
 // event handlers (our answer to React.MouseEvent<HTMLButtonElement>), and
 // Reactive<T> for component props that accept behaviors.
-import { newBehavior } from "@continuum-js/frp";
+import { state } from "@continuum-js/frp";
 import type { ComponentProps, Reactive, Ref } from "@continuum-js/dom";
 
 // ── ComponentProps ─────────────────────────────────────────────────────────
@@ -63,7 +63,7 @@ export function TypedCurrentTarget() {
 // ── Reactive / Ref ─────────────────────────────────────────────────────────
 
 export function ReactiveProp() {
-  const [loading] = newBehavior(false);
+  const loading = state(false);
   const staticOk: Reactive<boolean> = true;
   const liveOk: Reactive<boolean> = loading;
   void staticOk;
@@ -106,7 +106,7 @@ export function Button(props: ButtonProps) {
 }
 
 export function PolymorphicUsage() {
-  const [saving] = newBehavior(false);
+  const saving = state(false);
   return (
     <div>
       {/* as a button: button props are accepted */}
