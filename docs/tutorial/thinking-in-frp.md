@@ -1,4 +1,4 @@
-# Thinking in Wires and Streams
+# Thinking in States and Streams
 
 ::: info The engine room
 You don't need this page to build with Continuum — the
@@ -38,7 +38,7 @@ the network maintains it from then on.
 
 The whole model is two types:
 
-- **`Wire<A>`** — a value that _exists at every moment in time_.
+- **`State<A>`** — a value that _exists at every moment in time_.
   Denotationally `Time → A`: you can't ask it "did it arrive?", only "what is
   it now?". The mouse position, the text of an input, the current count, the
   URL.
@@ -51,10 +51,10 @@ event?**
 
 | You are asking yourself                          | Type     |
 | ------------------------------------------------ | -------- |
-| "What is _currently_ typed / selected / loaded?" | `Wire`   |
+| "What is _currently_ typed / selected / loaded?" | `State`  |
 | "_Did_ a click / submit / response happen?"      | `Stream` |
 
-Choosing wrong always takes revenge: an event stuffed into a wire (a
+Choosing wrong always takes revenge: an event stuffed into a state (a
 `justClicked` flag) needs manual resetting; a value smeared across events
 needs manual synchronization — right back where we started.
 
@@ -119,13 +119,13 @@ takes a coalescing function and folds simultaneous occurrences into one:
 const either = Stream.merge(left, right, (a, b) => a + b);
 ```
 
-A wire's `updates` obeys the same discipline: however many writes land in a
-moment, a wire delivers exactly **one** coalesced occurrence per moment.
+A state's `updates` obeys the same discipline: however many writes land in a
+moment, a state delivers exactly **one** coalesced occurrence per moment.
 
 ## Why `hold` is delayed: the past is available, the present is not
 
-`e.hold(init)` turns an event into a wire: "the latest value of `e`". The
-key rule: **a wire updates at the moment's boundary**. Within the very
+`e.hold(init)` turns an event into a state: "the latest value of `e`". The
+key rule: **a state updates at the moment's boundary**. Within the very
 moment an occurrence arrives, `hold` still shows the _old_ value.
 
 Why? So that "the current value" is well-defined even when you look at it
@@ -149,7 +149,7 @@ is still forming.
 
 The handler-centric habit is "I'll read whatever I need from variables inside
 the callback". The FRP equivalent is `at`: an event _captures_ a
-wire's value at its own moment:
+state's value at its own moment:
 
 ```ts
 // "on submit, take the text and clear the field"
@@ -162,10 +162,10 @@ order.
 
 ## Rendering: the DOM is wired to the network
 
-A wire in JSX is a binding, not a value:
+A state in JSX is a binding, not a value:
 
 - `{count}` as a child — a text node patched on change;
-- `class={cls}` with a wire — an attribute that updates itself;
+- `class={cls}` with a state — an attribute that updates itself;
 - `bindInput(b, set)` — a two-way input binding.
 
 As long as only _values_ change, the DOM structure stands still. When the
@@ -216,7 +216,7 @@ function Clock() {
 ```
 
 State belongs to this tree too: the `hold` here is owned by the component's
-scope, and when the subtree is disposed it detaches — the wire freezes at
+scope, and when the subtree is disposed it detaches — the state freezes at
 its final value. Pure derivations (`map`, `combine`) need no owner at all:
 they are formulas, attaching when listened to and sleeping when not.
 
@@ -239,7 +239,7 @@ const results = perform(queries, async (q): Promise<Page> => fetchPage(q));
 ```
 
 For the typical "load and show" there is `resource` in `@continuum-js/std`:
-a wire with `idle | loading | ok | error` states rendered by a plain
+a state with `idle | loading | ok | error` states rendered by a plain
 `dyn` — no Suspense machinery, it's just data.
 
 ## Where to go next

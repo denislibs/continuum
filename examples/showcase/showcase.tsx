@@ -1,4 +1,4 @@
-import { wire } from "@continuum-js/frp";
+import { state } from "@continuum-js/frp";
 import { Dynamic, Show, Portal } from "@continuum-js/dom";
 
 type Tab = "home" | "about";
@@ -9,8 +9,8 @@ type Tab = "home" | "about";
  * - `<Show>` + `<Portal>` render a modal into `document.body` and tear it down.
  */
 export function Showcase() {
-  const tab = wire<Tab>("home");
-  const modalOpen = wire(false);
+  const tab = state<Tab>("home");
+  const modalOpen = state(false);
 
   return (
     <div class="showcase">

@@ -8,7 +8,7 @@
 
 > **advanceTimers**(`ms`): `Promise`\<`void`\>
 
-Defined in: [index.ts:75](https://github.com/denislibs/continuum/blob/06378b217e7ab47a03a557199f3b883e3c7e30c6/packages/test/src/index.ts#L75)
+Defined in: [index.ts:75](https://github.com/denislibs/continuum/blob/f5ae47f16f3158ab3acf341a203852240d621e88/packages/test/src/index.ts#L75)
 
 Advance vitest fake timers by `ms` and flush microtasks, so time-based
 combinators (`debounce`, `throttle`, `interval`, `delay`) fire and their

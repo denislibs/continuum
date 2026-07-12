@@ -57,7 +57,7 @@ subscriptions, timers, DOM.
 Open `src/App.tsx` and make the counter count double:
 
 ```tsx
-const count = wire(0);
+const count = state(0);
 const doubled = count.map((n) => n * 2); // [!code ++]
 ```
 
@@ -67,6 +67,6 @@ by construction.
 
 ## Next
 
-- [Thinking in Wires and Streams](/tutorial/thinking-in-frp) — the model
+- [Thinking in States and Streams](/tutorial/thinking-in-frp) — the model
   behind what you just wrote.
 - [Concepts → Components](/concepts/components) — what a component is here.

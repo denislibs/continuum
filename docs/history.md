@@ -71,7 +71,7 @@ semantics**: a precise mathematical meaning for every construct.
 - **`Behavior a`** — a value at every moment: a function `Time → a`. And
   Elliott's time is _continuous_, like in physics — an animation is an
   equation, not a frame loop.
-- **`Stream a`** — a set of moments with values: `[(Time, a)]`.
+- **`Event a`** — a set of moments with values: `[(Time, a)]` (the name Continuum later renamed to `Stream`).
 
 Composition acquires the character of algebra: `map`, `merge`, `switch`,
 `snapshot` are defined by equations, not by describing an implementation.
@@ -160,7 +160,7 @@ By the 2020s, two main traditions of UI reactivity remain:
 | Time         | "the current value"            | a value _over time_; past and present distinct (`hold`) |
 | Lineage      | Knockout → MobX → Solid        | Fran → Sodium → here                                    |
 
-Continuum deliberately picks the second: **Wires + Streams +
+Continuum deliberately picks the second: **States + Streams +
 transactions** from discrete FRP (Sodium), **run-once components and a
 fine-grained DOM** whose practicality Solid proved, and an **ownership
 tree** for lifecycle. Elliott's continuous time is here too —
@@ -175,11 +175,18 @@ expressible.
 
 A footnote to our own history: through the 0.x releases the value-across-time
 type carried its literature name, `Behavior`. In July 2026 it was renamed
-`Wire` (the old name survives as a deprecated alias until 1.0), and the
-ownership model was made explicit at the same time: values are formulas,
-while state and effects belong to a scope — a component's scope
-automatically, or an explicit `root()` at module level. The semantics is the
-same discrete FRP; only the words got closer to what the types do.
+`Wire`, and the ownership model was made explicit at the same time: values
+are formulas, while state and effects belong to a scope — a component's
+scope automatically, or an explicit `root()` at module level. The semantics
+is the same discrete FRP; only the words got closer to what the types do.
+
+`Wire` itself lasted only weeks. The word had zero recognition outside the
+project, while "state" is the word React, Vue and Svelte developers already
+think in — so later that same July, `Wire` became `State`. `Signal` was
+considered and rejected: Continuum has no auto-tracking, and that name would
+promise Solid semantics the library deliberately doesn't have. The old
+names — `Event`/`newEvent`, `Behavior`, `Wire`/`wire`/`WireSource` — remain
+deprecated aliases until 1.0, when they are all removed.
 
 ## Further reading
 

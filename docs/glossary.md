@@ -5,27 +5,28 @@ grouped by theme; pages link to them by anchor.
 
 ## The model of time
 
-### Wire {#wire}
+### State {#state}
 
-**A value across time.** At any moment you can ask a Wire "what are you
+**A value across time.** At any moment you can ask a State "what are you
 right now?" — and there is always an answer: `sample()` responds whether or
 not anybody is listening. The text of an input, the current user, the mouse
 position: they _exist_ at every moment, even when nobody is looking.
-Formally, a function from time to value (`Time → A`).
-A source wire (`wire(init)`) is written with `.set(value)` and
+Formally, a function from time to value (`Time → A`). Called _Behavior_ in
+the FRP literature; previously named _Wire_ in Continuum.
+A source state (`state(init)`) is written with `.set(value)` and
 `.update((state) => next)` — the updater folds over the value staged by
 the current moment, so several updates in one `batch` compose.
-More: [Wires](/concepts/behaviors).
+More: [States](/concepts/behaviors).
 
 ### Behavior {#behavior}
 
-**Deprecated alias for [Wire](#wire)** — the FRP-literature name for a value
+**Deprecated alias for [State](#state)** — the FRP-literature name for a value
 across time (Elliott & Hudak, 1997; the Sodium book). The alias still works
 today and will be removed in 1.0.
 
 ### Stream {#event}
 
-**A stream of happenings.** Unlike a Wire, you cannot ask an event "what
+**A stream of happenings.** Unlike a State, you cannot ask an event "what
 are you now" — between firings it simply _isn't_. A click, a keypress, a
 server response: not values that exist, but things that _happen_. More:
 [Streams](/concepts/events).
@@ -65,7 +66,7 @@ you to say what to do with the pair.
 **Folding simultaneous occurrences into one.** When two events happen in the
 same moment but one must come out, the coalescing function (`(a, b) => …` in
 `Stream.merge`) combines them. Without it you'd have to pick "who was first" —
-which is a race. A wire's `updates` works the same way: however much happens
+which is a race. A state's `updates` works the same way: however much happens
 inside a moment, it delivers exactly one coalesced occurrence for it.
 
 ### Glitch {#glitch}
@@ -86,7 +87,7 @@ correctly.
 
 ### The `hold` delay {#hold-delay}
 
-**The rule: a Wire updates at the moment's boundary.** Within the moment
+**The rule: a State updates at the moment's boundary.** Within the moment
 an occurrence arrives, `hold`/`accum` still show the _old_ value. Sounds
 odd, but this is exactly what makes "the current value" well-defined when
 you look at it from the event that is changing it: the past is stable, the
@@ -103,7 +104,7 @@ instead of over an array.
 ### push / pull {#push-pull}
 
 **Two ways of delivering values.** Streams _push_: something happened — it
-propagates through the graph. Wires _pull_: the value is computed when
+propagates through the graph. States _pull_: the value is computed when
 asked. Continuum is a hybrid: changes propagate by pushing, `sample()` reads
 by pulling.
 
@@ -112,7 +113,7 @@ by pulling.
 **Values are formulas; state and effects belong to a scope.** A pure derived
 value (`map`, `combine`) is a recipe: it computes on demand, sleeps while
 nobody listens, and `sample()` still always answers. Anything that
-_remembers_ or _does_ — `hold`, `accum`, `wire`, `perform`, `.on` — needs an
+_remembers_ or _does_ — `hold`, `accum`, `state`, `perform`, `.on` — needs an
 owner: inside a component the [scope](#scope) is automatic; at module level
 you spell the lifetime out with [root()](#root).
 
@@ -120,7 +121,7 @@ you spell the lifetime out with [root()](#root).
 
 ### Network / dependency graph {#network}
 
-**Everything you built out of Wires and Streams.** `map`, `combine`,
+**Everything you built out of States and Streams.** `map`, `combine`,
 `merge`, `at` connect quantities into a directed graph: nodes are values
 and events, edges are "computed from". A component builds its piece of the
 graph once; updates flow through it afterwards.
@@ -143,7 +144,7 @@ calls this `snapshot`.
 
 ### `sample` {#sample}
 
-**Read a Wire's current value directly.** `w.sample()` always answers — it
+**Read a State's current value directly.** `s.sample()` always answers — it
 is for code _outside_ the network: initialization, tests, integrating
 foreign code. Inside the network prefer [at](#snapshot) — its simultaneity
 is defined.
@@ -151,7 +152,7 @@ is defined.
 ### Hatch {#hatch}
 
 **An explicit door between the pure network and the outside world.** In:
-`stream()` / `wire()` (inject a value). Out: `listen` (run a side
+`stream()` / `state()` (inject a value). Out: `listen` (run a side
 effect), `perform` (do IO and return the result as an event). The word
 emphasizes that the network's boundaries are visible in the code, not
 smeared everywhere.
@@ -168,12 +169,12 @@ data.
 ### Fine-grained rendering {#fine-grained}
 
 **Exactly what depends on a value updates.** Not "re-render the component
-and diff", but "this text node is bound to this Wire — patch it". This
+and diff", but "this text node is bound to this State — patch it". This
 is why components run once and there is no virtual DOM.
 
 ### Binding {#binding}
 
-**A live link Wire → a piece of DOM.** `{count}` in JSX doesn't mean
+**A live link State → a piece of DOM.** `{count}` in JSX doesn't mean
 "insert the current value"; it means "this text node now shows count,
 forever". Same for attributes: `class={cls}`.
 
@@ -223,7 +224,7 @@ the parent. More: [Ownership and lifecycle](/concepts/ownership).
 
 **One node of the ownership tree — the owner of state and effects.** Every
 component, dynamic region and `<Each>` row creates its own scope: it has its
-own `onCleanup`/`onMount`, the state (`wire`, `hold`, `accum`) and processes
+own `onCleanup`/`onMount`, the state (`state`, `hold`, `accum`) and processes
 (`.on`, `perform`) created inside register with it, and it dies as a whole.
 Pure formulas need no scope — they are just recipes.
 

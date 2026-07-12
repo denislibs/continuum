@@ -3,9 +3,9 @@
 // keyed lists, an ownership tree for lifecycle, and context.
 
 import {
-  Wire,
+  State,
   Stream,
-  wire,
+  state,
   stream,
   Scope,
   getScope,
@@ -13,7 +13,7 @@ import {
   observe_,
   unobserve_,
 } from "@continuum-js/frp";
-import type { Unlisten, WireSource, ObserverHandle } from "@continuum-js/frp";
+import type { Unlisten, StateSource, ObserverHandle } from "@continuum-js/frp";
 
 // ---------------------------------------------------------------------------
 // Ownership tree (§9) — lifecycle, not dependency tracking.
@@ -33,7 +33,7 @@ class Owner extends Scope {
   /** Top-level nodes of a scoped build: the single-node fast path stores
    * the node itself — no array for the common one-element row. */
   nodes: Node | Node[] | null = null;
-  // Wire bindings as flat (updates, edge-handle) pairs — see bindWire.
+  // State bindings as flat (updates, edge-handle) pairs — see bindState.
   subs: unknown[] | null = null;
 
   /** Whether this subtree's onMount callbacks have run (bit 2 of Scope.flags). */
@@ -146,16 +146,16 @@ function bind(un: Unlisten): void {
   getScope()?.onDispose(un);
 }
 
-// Bind `h` to a wire — `w.listen(h)` semantics (current value now, then
+// Bind `h` to a state — `w.listen(h)` semantics (current value now, then
 // every change) without the closure tax: the subscription is an edge record
 // stored as a flat (stream, handle) pair on the Owner. A binding used to
 // cost two closures plus a cleanups slot; it is now two array slots.
-function bindWire<T>(w: Wire<T>, h: (v: T) => void): void {
+function bindState<T>(w: State<T>, h: (v: T) => void): void {
   const handle = observe_(w.updates, h);
   try {
     h(w.sampleNoTrans());
   } catch (err) {
-    unobserve_(w.updates, handle); // don't leak the subscription (see Wire.listen)
+    unobserve_(w.updates, handle); // don't leak the subscription (see State.listen)
     throw err;
   }
   const s = getScope();
@@ -165,7 +165,7 @@ function bindWire<T>(w: Wire<T>, h: (v: T) => void): void {
 }
 
 // Duck-typed Owner check (only Owner declares `subs`): an `instanceof
-// Owner` inside bindWire would drag the whole Owner/Scope machinery into
+// Owner` inside bindState would drag the whole Owner/Scope machinery into
 // the compiled-template bundle, which otherwise tree-shakes it away. The
 // guard mentions Owner as a TYPE only — erased at runtime.
 function hasSubs(s: Scope): s is Owner {
@@ -238,7 +238,14 @@ function createEl(tag: string): Element {
 
 /** Anything placeable in JSX: nodes, behaviors (live-bound), primitives, arrays. */
 export type Child =
-  Node | Wire<unknown> | string | number | boolean | null | undefined | Child[];
+  | Node
+  | State<unknown>
+  | string
+  | number
+  | boolean
+  | null
+  | undefined
+  | Child[];
 
 // Helper types for writing typed components (type-only: no runtime import
 // cycle — jsx-runtime imports our values, we re-export only its types).
@@ -267,10 +274,10 @@ export function insertChild(
   anchor: Node | null = null,
 ): void {
   if (child == null || child === false || child === true) return;
-  if (child instanceof Wire) {
+  if (child instanceof State) {
     // fine-grained: one text node bound to one behavior
     const text = document.createTextNode("");
-    bindWire(child, (v) => (text.data = toText(v)));
+    bindState(child, (v) => (text.data = toText(v)));
     parent.insertBefore(text, anchor);
     return;
   }
@@ -442,7 +449,7 @@ export function applyEvent(
   }
 }
 
-/** @internal Apply one prop: ref, event, wire binding or a plain value —
+/** @internal Apply one prop: ref, event, state binding or a plain value —
  * the semantics shared by the JSX factory and the compiled runtime. */
 export function applyProp(el: Element, key: string, value: unknown): void {
   if (key === "ref") {
@@ -453,17 +460,17 @@ export function applyProp(el: Element, key: string, value: unknown): void {
     applyEvent(el, key.slice(2).toLowerCase(), value as EventListener);
     return;
   }
-  if (value instanceof Wire) {
+  if (value instanceof State) {
     if (key === "style") {
       // Diff against the previous object: a key that disappears must be
       // cleared, not left painted on the element.
       let prevStyle: unknown;
-      bindWire(value, (v) => {
+      bindState(value, (v) => {
         setStyle(el, prevStyle, v);
         prevStyle = v;
       });
     } else {
-      bindWire(value, (v) => setProp(el, key, v));
+      bindState(value, (v) => setProp(el, key, v));
     }
     return;
   }
@@ -591,7 +598,7 @@ function needRegionOwner(what: string): void {
 }
 
 /** Conditional / switching subtree: rebuilds on each change of `b`. */
-export function dyn<T>(b: Wire<T>, render: (v: T) => Child): Node {
+export function dyn<T>(b: State<T>, render: (v: T) => Child): Node {
   needRegionOwner("dyn()");
   const owner = getScope();
   const start = document.createComment("dyn");
@@ -655,7 +662,7 @@ export function dyn<T>(b: Wire<T>, render: (v: T) => Child): Node {
     if (!(owner instanceof Owner) || owner.mounted) current.flush();
   };
 
-  bindWire(b, update);
+  bindState(b, update);
   onCleanup(() => current?.dispose());
   return frag;
 }
@@ -699,7 +706,7 @@ function lisIndices(seq: number[]): Set<number> {
 
 /** Keyed list: reuses rows by key, reorders with minimal moves (LIS). */
 export function each<T, K>(
-  items: Wire<T[]>,
+  items: State<T[]>,
   key: (item: T) => K,
   render: (item: T) => Child,
 ): Node {
@@ -796,7 +803,7 @@ export function each<T, K>(
       for (const f of freshFlushes) f.flush();
   };
 
-  bindWire(items, update);
+  bindState(items, update);
   onCleanup(() => {
     for (const r of rows) r.dispose();
   });
@@ -850,7 +857,7 @@ export function use<T>(ctx: Context<T>): T {
 // A behavior that only emits updates when its value actually changes.
 // The dedup memory is seeded with the current value, so re-emitting the
 // initial value does not trigger a rebuild.
-function distinctB<T>(b: Wire<T>): Wire<T> {
+function distinctB<T>(b: State<T>): State<T> {
   const out = new Stream<T>(b.updates.rank + 1);
   let prev = b.sampleNoTrans();
   let stagedTx: unknown = null;
@@ -881,12 +888,12 @@ function distinctB<T>(b: Wire<T>): Wire<T> {
     prev = b.sampleNoTrans();
     stagedTx = null;
   };
-  return new Wire<T>(() => b.sampleNoTrans(), out);
+  return new State<T>(() => b.sampleNoTrans(), out);
 }
 
 /** Conditional region driven by a boolean behavior (no rebuild on same value). */
 export function when(
-  cond: Wire<boolean>,
+  cond: State<boolean>,
   thenRender: () => Child,
   elseRender?: () => Child,
 ): Node {
@@ -896,20 +903,20 @@ export function when(
 }
 
 /** Two-way binding props for a text input. Spread onto an `<input>`. */
-export function bindInput(value: WireSource<string>): {
-  value: Wire<string>;
+export function bindInput(value: StateSource<string>): {
+  value: State<string>;
   onInput: (e: globalThis.Event) => void;
 };
 export function bindInput(
-  value: Wire<string>,
+  value: State<string>,
   set: (v: string) => void,
-): { value: Wire<string>; onInput: (e: globalThis.Event) => void };
+): { value: State<string>; onInput: (e: globalThis.Event) => void };
 export function bindInput(
-  value: Wire<string> | WireSource<string>,
+  value: State<string> | StateSource<string>,
   set?: (v: string) => void,
-): { value: Wire<string>; onInput: (e: globalThis.Event) => void } {
-  // a source wire carries its own setter — one argument is enough
-  const write = set ?? (value as WireSource<string>).set.bind(value);
+): { value: State<string>; onInput: (e: globalThis.Event) => void } {
+  // a source state carries its own setter — one argument is enough
+  const write = set ?? (value as StateSource<string>).set.bind(value);
   return {
     value,
     onInput: (e: globalThis.Event) =>
@@ -995,7 +1002,7 @@ function asRender<T>(children: unknown): (value: T) => Child {
  * ```
  */
 export function Show<T>(props: {
-  when: Wire<T>;
+  when: State<T>;
   children: (value: NonNullable<T>) => Child;
   fallback?: () => Child;
 }): Node {
@@ -1017,7 +1024,7 @@ export function Show<T>(props: {
  * ```
  */
 export function Each<T, K = T>(props: {
-  each: Wire<T[]>;
+  each: State<T[]>;
   by?: (item: T) => K;
   children: (item: T) => Child;
 }): Node {
@@ -1034,7 +1041,7 @@ export function Each<T, K = T>(props: {
  * ```
  */
 export function Dynamic<T>(props: {
-  value: Wire<T>;
+  value: State<T>;
   children: (value: T) => Child;
 }): Node {
   return dyn(props.value, asRender<T>(props.children));
@@ -1076,7 +1083,7 @@ export function Catch(props: {
   children: Child | (() => Child);
   fallback: (error: unknown, reset: () => void) => Child;
 }): Node {
-  const failure = wire<{ error: unknown } | null>(null);
+  const failure = state<{ error: unknown } | null>(null);
   const reset = () => failure.set(null);
   const build = asRender<void>(props.children);
   return dyn(failure, (f) => {

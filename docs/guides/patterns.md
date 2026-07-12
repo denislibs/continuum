@@ -7,7 +7,7 @@ Skim the headings, steal what you need.
 :::
 
 The recipes assume the basics: [state](/guides/state),
-[async](/guides/async), [events vs wires](/concepts/events). Imports are
+[async](/guides/async), [events vs states](/concepts/events). Imports are
 shown once per snippet; everything comes from `@continuum-js/frp`,
 `@continuum-js/dom` or `@continuum-js/std`.
 
@@ -18,17 +18,17 @@ shown once per snippet; everything comes from `@continuum-js/frp`,
 **When:** one piece of state, many kinds of changes (add / remove / toggle…).
 
 Give each kind of change its own event and declare the transitions right on
-the wire. Each reducer is `(state, event) => next` — `useReducer`, minus the
+the state. Each reducer is `(state, event) => next` — `useReducer`, minus the
 dispatch ceremony:
 
 ```tsx
-import { wire, stream } from "@continuum-js/frp";
+import { state, stream } from "@continuum-js/frp";
 
 const adds = stream<string>();
 const removes = stream<string>();
 const toggles = stream<string>();
 
-const todos = wire<Todo[]>([])
+const todos = state<Todo[]>([])
   .on(adds, (acc, text) => [...acc, createTodo(text)])
   .on(removes, (acc, id) => acc.filter((t) => t.id !== id))
   .on(toggles, (acc, id) =>
@@ -81,11 +81,11 @@ _source_ fact; compute the rest:
 
 ```ts
 // ❌ two sources of truth that must be kept in sync by hand
-const items = wire<Item[]>([]);
-const total = wire(0); // forget to update this once — bug
+const items = state<Item[]>([]);
+const total = state(0); // forget to update this once — bug
 
 // ✅ one source, the rest is arithmetic
-const items = wire<Item[]>([]);
+const items = state<Item[]>([]);
 const total = items.map((xs) => xs.reduce((s, i) => s + i.price, 0));
 const isEmpty = items.map((xs) => xs.length === 0);
 ```
@@ -96,7 +96,7 @@ Deriving is free: no dependency arrays, no memo keys, no staleness.
 
 **When:** several components across the app need the same state.
 
-Values are formulas; state belongs to a scope. A source `wire` and any pure
+Values are formulas; state belongs to a scope. A source `state` and any pure
 derivation are safe at module level as they are. A stateful fold (`.on`,
 `accum`, `hold`) starts a process, and at module level you must say who owns
 it — wrap it in `root()` (see [common
@@ -104,20 +104,20 @@ mistakes](/guides/common-mistakes) #7):
 
 ```ts
 // store.ts
-import { wire, stream, root } from "@continuum-js/frp";
+import { state, stream, root } from "@continuum-js/frp";
 
 export const adds = stream<Item>();
 
 // state with transitions — root() declares its lifetime (the page's)
 export const cart = root(() =>
-  wire<Item[]>([]).on(adds, (xs, item) => [...xs, item]),
+  state<Item[]>([]).on(adds, (xs, item) => [...xs, item]),
 );
 
 // a pure derivation is a formula: no owner, no ceremony
 export const cartTotal = cart.map((xs) => xs.reduce((s, i) => s + i.price, 0));
 ```
 
-A plain `wire()` that you only `.set` from handlers needs no `root()` —
+A plain `state()` that you only `.set` from handlers needs no `root()` —
 only stateful folds and effects do.
 
 ## Streams as algebra
@@ -141,7 +141,7 @@ value from _before_ the moment — that's what makes this composable.
 **When:** ignore input while something is in flight.
 
 ```ts
-const saving = wire(false);
+const saving = state(false);
 const effectiveClicks = saveClicks.when(saving.map((s) => !s));
 ```
 
@@ -157,7 +157,7 @@ import { distinct } from "@continuum-js/frp";
 import { distinctB } from "@continuum-js/std";
 
 const realMoves = distinct(moves); // Stream: drop consecutive equals
-const stableTheme = distinctB(theme); // Wire: suppress no-op updates
+const stableTheme = distinctB(theme); // State: suppress no-op updates
 ```
 
 `distinctB` is how you stop a `dyn`/`<Dynamic>` region from rebuilding on
@@ -174,7 +174,7 @@ import { pairwise, previous } from "@continuum-js/std";
 const direction = pairwise(scrollY).map(([prev, cur]) =>
   cur > prev ? "down" : "up",
 );
-const lastPrice = previous(price, 0); // Wire lagging one step behind
+const lastPrice = previous(price, 0); // State lagging one step behind
 const trend = combine(price, lastPrice, (now, before) =>
   Math.sign(now - before),
 );
@@ -221,10 +221,10 @@ const scrollSample = throttle(scrolls, 100); // at most 10/sec while active
 
 **When:** independent sources each change one value in their own way.
 
-Declare one transition per source, right on the wire:
+Declare one transition per source, right on the state:
 
 ```ts
-const counter = wire(0)
+const counter = state(0)
   .on(plusClicks, (n) => n + 1)
   .on(minusClicks, (n) => n - 1)
   .on(resetClicks, () => 0);
@@ -232,7 +232,7 @@ const counter = wire(0)
 
 No action types, no switch — each source carries its own semantics. If two
 sources fire in the same moment, the transitions fold sequentially in
-declaration order, and the wire still delivers a single coalesced update
+declaration order, and the state still delivers a single coalesced update
 for that moment.
 
 ## Async
@@ -261,7 +261,7 @@ import { resource } from "@continuum-js/std";
 const results = resource(debounce(queries, 300), (q) =>
   fetch(`/api/search?q=${encodeURIComponent(q)}`).then((r) => r.json()),
 );
-// Wire<Async<T>>: idle → loading → ok | error, last-request-wins built in
+// State<Async<T>>: idle → loading → ok | error, last-request-wins built in
 
 <Dynamic value={results}>
   {(r) =>
@@ -309,7 +309,7 @@ There's no cycle: `perform` re-enters the network in a _new_ moment.
 ```ts
 import { interval } from "@continuum-js/std";
 
-const live = wire(true);
+const live = state(true);
 const ticks = interval(30_000).when(live);
 const stats = resource(ticks, () => fetch("/api/stats").then((r) => r.json()));
 ```
@@ -327,7 +327,7 @@ stops as one.
 ```ts
 import { combine } from "@continuum-js/frp";
 
-const selectedId = wire<string | null>(null);
+const selectedId = state<string | null>(null);
 
 const selected = combine(
   selectedId,
@@ -351,7 +351,7 @@ trick of classic FRP.
 ```ts
 import { flatten } from "@continuum-js/frp";
 
-const source: Wire<Wire<Todo[]>> = mode.map((m) =>
+const source: State<State<Todo[]>> = mode.map((m) =>
   m === "local" ? localTodos : serverTodos,
 );
 const todos = flatten(source);
@@ -359,13 +359,13 @@ const todos = flatten(source);
 ```
 
 Everything built on `todos` — counts, filters, the `<Each>` — survives the
-swap untouched. The same call flattens a wire of event streams
-(`Wire<Stream<A>> → Stream<A>`) — e.g. "which WebSocket am I listening to".
+swap untouched. The same call flattens a state of event streams
+(`State<Stream<A>> → Stream<A>`) — e.g. "which WebSocket am I listening to".
 
 ### 19. Modal — `<Show>` + `<Portal>`
 
 ```tsx
-const open = wire(false);
+const open = state(false);
 
 <Show when={open}>
   {() => (
@@ -386,7 +386,7 @@ and every subscription inside it.
 **When:** wrapping a non-reactive library (a chart, a map, an editor).
 
 ```tsx
-function Chart(props: { data: Wire<number[]> }) {
+function Chart(props: { data: State<number[]> }) {
   let el!: HTMLDivElement;
   onMount(() => {
     const chart = new ThirdPartyChart(el); // DOM is in the document here
@@ -487,7 +487,7 @@ Notes worth stealing:
 - **children forward through the spread** — the runtime delivers them as
   `props.children`, so `{...rest}` carries them into the tag;
 - `loading` is `Reactive<boolean>`: callers pass a plain `true` or a live
-  `Wire<boolean>` and `disabled` tracks it — no wiring;
+  `State<boolean>` and `disabled` tracks it — no wiring;
 - handlers on the result are fully typed, including `e.currentTarget` (an
   `HTMLButtonElement` or `HTMLAnchorElement` per branch).
 

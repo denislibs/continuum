@@ -13,7 +13,7 @@ composable shares.
 them anywhere, name them like any function:
 
 ```ts
-const total = (items: Wire<Item[]>) =>
+const total = (items: State<Item[]>) =>
   items.map((xs) => xs.reduce((s, i) => s + i.price, 0));
 ```
 
@@ -41,12 +41,12 @@ creates something alive.
 Every composable is the same three moves:
 
 ```ts
-import { wire, type Wire } from "@continuum-js/frp";
+import { state, type State } from "@continuum-js/frp";
 import { onCleanup } from "@continuum-js/dom";
 
-export function createWindowSize(): Wire<{ w: number; h: number }> {
+export function createWindowSize(): State<{ w: number; h: number }> {
   // 1. create the live value
-  const size = wire({ w: innerWidth, h: innerHeight });
+  const size = state({ w: innerWidth, h: innerHeight });
 
   // 2. bridge the outside world into the network (at the boundary!)
   const onResize = () => size.set({ w: innerWidth, h: innerHeight });

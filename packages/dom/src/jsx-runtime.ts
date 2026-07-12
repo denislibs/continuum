@@ -6,7 +6,7 @@
 
 import { h, Fragment as Frag } from "./index.js";
 import type { Child } from "./index.js";
-import type { Wire } from "@continuum-js/frp";
+import type { State } from "@continuum-js/frp";
 
 export const Fragment = Frag;
 
@@ -44,14 +44,14 @@ export function jsxs(type: unknown, props: RuntimeProps | null): Node {
 
 // JSX type surface (resolved by the compiler from `<jsxImportSource>/jsx-runtime`).
 //
-// Attribute values may always be a `Wire<T>` in place of a plain `T` —
+// Attribute values may always be a `State<T>` in place of a plain `T` —
 // the renderer live-binds them (`Reactive<T>`). Stream props accept both
 // native casing (`onKeydown`) and React-style casing (`onKeyDown`): the
 // runtime lowercases the name before `addEventListener`, so the two are the
 // same listener; the aliases below only teach the type system about it.
 
-/** A plain value or a live-bound `Wire` of it. */
-export type Reactive<T> = T | Wire<T>;
+/** A plain value or a live-bound `State` of it. */
+export type Reactive<T> = T | State<T>;
 
 /** A ref prop: callback (typed to the tag's element) or an object cell. */
 export type Ref<E extends Element = Element> =

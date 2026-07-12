@@ -29,7 +29,7 @@ export default defineConfig({
 ```
 
 That's the whole migration: **no code changes**. Semantics are identical —
-the compiled output binds wires, events and children through the very same
+the compiled output binds states, events and children through the very same
 internals as the runtime factory (our CI runs the full dom test suite both
 ways). Whatever the compiler is not statically sure about — spreads on
 elements, dynamic tag names, SVG — is simply left to the runtime factory,

@@ -26,7 +26,7 @@ import { Each } from "@continuum-js/dom";
 
 - строка строится один раз → `render` получает элемент _на момент появления
   ключа_. Если содержимое строки должно меняться, внутрь нужно передавать
-  [Wire](/ru/concepts/behaviors) (см. ниже);
+  [State](/ru/concepts/behaviors) (см. ниже);
 - дубликаты ключей игнорируются (остаётся первый) — ключ обязан быть
   уникальным;
 - удаление ключа из списка уничтожает поддерево строки каскадно: подписки,
@@ -35,10 +35,10 @@ import { Each } from "@continuum-js/dom";
 ## Меняющееся содержимое строки
 
 Если элементы списка обновляются «на месте» (тот же id, другие поля),
-прокидывайте в строку wire её данных, а не снапшот:
+прокидывайте в строку state её данных, а не снапшот:
 
 ```tsx
-function TodoRow(props: { todo: Wire<Todo> }) {
+function TodoRow(props: { todo: State<Todo> }) {
   const done = props.todo.map((t) => t.done);
   const text = props.todo.map((t) => t.text);
   return <li class={done.map((d) => (d ? "done" : ""))}>{text}</li>;
@@ -82,7 +82,7 @@ const visible = combine(todos, filter, (xs, f) =>
 </ul>
 ```
 
-`<Each>` нужен только когда список — Wire.
+`<Each>` нужен только когда список — State.
 
 ---
 

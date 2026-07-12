@@ -9,7 +9,7 @@ Full docs for machines: https://denislibs.github.io/continuum/llms.txt
 
 1. A component is a plain function that runs **exactly once**. There are no
    re-renders, no hooks, no dependency arrays, no virtual DOM.
-2. State is a `Wire` (a reactive value). Put it directly into JSX —
+2. State is a `State` (a reactive value). Put it directly into JSX —
    `{count}`, `class={cls}` — and that binding updates by itself.
 3. Derived state is `w.map(fn)` / `combine(a, b, fn)` — never stored
    and synced by hand.
@@ -17,10 +17,10 @@ Full docs for machines: https://denislibs.github.io/continuum/llms.txt
 ## Never write these (React habits)
 
 - `useState` / `useEffect` / `useMemo` / `useCallback` / `useRef` — do not
-  exist. State: `wire`. Mount effects: `onMount`. Teardown:
+  exist. State: `state`. Mount effects: `onMount`. Teardown:
   `onCleanup`. Derived: `.map`.
 - Re-calling a component to "update" it — components never re-run.
-- `{cond && <A/>}` with a Wire — use `<Show when={b}>`.
+- `{cond && <A/>}` with a State — use `<Show when={b}>`.
 - `array.map` in JSX for a **changing** list — use `<Each each={b} by={key}>`
   (plain `array.map` is fine for static data).
 - Auto-tracking assumptions (Solid/Vue habits): dependencies are NOT
@@ -39,23 +39,23 @@ Format with `npm run format` (prettier). Tests: `npm test`.
 
 ```ts
 // @continuum-js/frp
-const w = wire<T>(init);                    // WireSource<T>: read like any Wire, write via w.set(v)
-w.set(v);                                    // set of an equal value is a no-op; custom eq as 2nd arg of wire()
+const w = state<T>(init);                    // StateSource<T>: read like any State, write via w.set(v)
+w.set(v);                                    // set of an equal value is a no-op; custom eq as 2nd arg of state()
 const e = stream<T>();                       // StreamSource<T>: occurrences enter via e.fire(v)
-const count = wire(0)                        // declarative state transitions:
+const count = state(0)                        // declarative state transitions:
   .on(inc, (n) => n + 1)                     //   (state, event) => next, useReducer order;
   .on(dec, (n) => n - 1);                    //   simultaneous sources fold sequentially
 batch(() => { a.set(1); b.set(2); });        // several sets/fires as ONE moment
 w.map(f); w.sample(); w.updates;            // updates: Stream<T> — ONE coalesced occurrence per moment
-combine(a, b, (av, bv) => r);               // pointwise join; data first, combiner last (2–5 wires)
+combine(a, b, (av, bv) => r);               // pointwise join; data first, combiner last (2–5 states)
 w.at(e);                                    // Stream of w's values at e's occurrences
 w.at(e, (value, event) => c);               // …with a combiner — note the (value, event) order
 e.map(f); e.filter(p); e.mapTo(v); e.once(); e.when(boolW);
 ea.or(eb);                                  // left-biased merge of same-typed streams
-e.hold(init);                               // Stream -> Wire (last value)
-e.accum(init, (a, acc) => next);            // Stream -> Wire (fold)
+e.hold(init);                               // Stream -> State (last value)
+e.accum(init, (a, acc) => next);            // Stream -> State (fold)
 Stream.merge(ea, eb, (l, r) => combined);    // TWO events + combiner. NOT an array.
-flatten(wireOfWires); flatten(wireOfStreams); // follow the currently selected inner Wire/Stream
+flatten(wireOfWires); flatten(wireOfStreams); // follow the currently selected inner State/Stream
 perform(e, async (a) => b);                 // -> Stream<Result<unknown, B>>
 // Result = { ok: true, value } | { ok: false, error }
 root(() => …);                              // explicit scope for module-level state (see rules below)
@@ -72,21 +72,21 @@ createContext(def); provide(ctx, v); use(ctx);
 
 // @continuum-js/std
 debounce(e, ms); throttle(e, ms); interval(ms); distinctB(b);
-resource(triggerEvent, async (arg) => data); // -> Wire<Async<T>>
+resource(triggerEvent, async (arg) => data); // -> State<Async<T>>
 // Async<T> discriminant is `status`: "idle" | "loading" | "ok" | "error"
 // s.status === "ok" -> s.value; s.status === "error" -> s.error
 
 // @continuum-js/router
 <Router routes={routes} fallback={() => <NotFound/>} />
 // RouteDef: { path, component?, children?, guard?: (params) => true | "/redirect" }
-<Outlet />; <Link href="/x">…</Link>; useParams(); // Wire<Params>
-navigate("/x"); navigate("/x", { replace: true }); location(); // Wire<URL>
+<Outlet />; <Link href="/x">…</Link>; useParams(); // State<Params>
+navigate("/x"); navigate("/x", { replace: true }); location(); // State<URL>
 lazy(() => import("./Page.js"), { fallback: () => <p>…</p> });
 ```
 
 ## Rules that prevent real bugs
 
-- State and effects require a scope: `hold` / `accum` / `wire().on()` /
+- State and effects require a scope: `hold` / `accum` / `state().on()` /
   `perform` / `resource` register their process with the ambient owner.
   Inside a component the scope exists automatically — do nothing. At
   MODULE level there is none and the call throws — wrap it explicitly:
@@ -101,7 +101,7 @@ lazy(() => import("./Page.js"), { fallback: () => <p>…</p> });
   (`onClick={() => count.update((n) => n + 1)}`). Inside event-stream
   logic use `w.at(e, …)`, not `sample` — `at` has exact semantics for
   simultaneous events.
-- A wire updates at the end of its transaction: inside the very event
+- A state updates at the end of its transaction: inside the very event
   that changes it, `hold`/`accum`/`at` still show the previous value. This
   is by design (see docs: Transactions and time).
 - A cell delivers ONE coalesced `updates` occurrence per moment: several
@@ -115,13 +115,13 @@ lazy(() => import("./Page.js"), { fallback: () => <p>…</p> });
 
 ## Package map
 
-| Import from            | What lives there                                                                            |
-| ---------------------- | ------------------------------------------------------------------------------------------- |
-| `@continuum-js/frp`    | wire, stream, combine, flatten, batch, root, Wire, Stream, perform, constant, integral/warp |
-| `@continuum-js/dom`    | mount, Show, Each, Dynamic, Portal, onMount, onCleanup, bindInput, context, animationFrames |
-| `@continuum-js/std`    | debounce, throttle, interval, distinctB, resource, Async                                    |
-| `@continuum-js/router` | Router, Outlet, Link, useParams, navigate, location, lazy                                   |
-| `@continuum-js/test`   | render, fire, click, type, flush (vitest helpers)                                           |
+| Import from            | What lives there                                                                              |
+| ---------------------- | --------------------------------------------------------------------------------------------- |
+| `@continuum-js/frp`    | state, stream, combine, flatten, batch, root, State, Stream, perform, constant, integral/warp |
+| `@continuum-js/dom`    | mount, Show, Each, Dynamic, Portal, onMount, onCleanup, bindInput, context, animationFrames   |
+| `@continuum-js/std`    | debounce, throttle, interval, distinctB, resource, Async                                      |
+| `@continuum-js/router` | Router, Outlet, Link, useParams, navigate, location, lazy                                     |
+| `@continuum-js/test`   | render, fire, click, type, flush (vitest helpers)                                             |
 
 JSX runtime is configured via `jsxImportSource: "@continuum-js/dom"` in
 tsconfig — do not add React.

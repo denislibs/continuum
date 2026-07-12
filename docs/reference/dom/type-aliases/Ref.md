@@ -8,7 +8,7 @@
 
 > **Ref**\<`E`\> = ((`el`) => `void`) \| \{ `current`: `Element` \| `null`; \}
 
-Defined in: [jsx-runtime.ts:57](https://github.com/denislibs/continuum/blob/06378b217e7ab47a03a557199f3b883e3c7e30c6/packages/dom/src/jsx-runtime.ts#L57)
+Defined in: [jsx-runtime.ts:57](https://github.com/denislibs/continuum/blob/f5ae47f16f3158ab3acf341a203852240d621e88/packages/dom/src/jsx-runtime.ts#L57)
 
 A ref prop: callback (typed to the tag's element) or an object cell.
 

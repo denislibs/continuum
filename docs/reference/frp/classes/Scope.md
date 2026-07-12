@@ -6,7 +6,7 @@
 
 # Class: Scope
 
-Defined in: [index.ts:37](https://github.com/denislibs/continuum/blob/06378b217e7ab47a03a557199f3b883e3c7e30c6/packages/frp/src/index.ts#L37)
+Defined in: [index.ts:45](https://github.com/denislibs/continuum/blob/f5ae47f16f3158ab3acf341a203852240d621e88/packages/frp/src/index.ts#L45)
 
 An owner for state and effects. Everything registered in a scope is torn
 down when it disposes: children first (reverse creation order), then this
@@ -21,7 +21,7 @@ component everything just works.
 
 > **new Scope**(`parent?`): `Scope`
 
-Defined in: [index.ts:48](https://github.com/denislibs/continuum/blob/06378b217e7ab47a03a557199f3b883e3c7e30c6/packages/frp/src/index.ts#L48)
+Defined in: [index.ts:62](https://github.com/denislibs/continuum/blob/f5ae47f16f3158ab3acf341a203852240d621e88/packages/frp/src/index.ts#L62)
 
 Attach to `parent`; defaults to the ambient scope.
 
@@ -41,7 +41,7 @@ Attach to `parent`; defaults to the ambient scope.
 
 > **children**: `Scope`[] \| `null` = `null`
 
-Defined in: [index.ts:41](https://github.com/denislibs/continuum/blob/06378b217e7ab47a03a557199f3b883e3c7e30c6/packages/frp/src/index.ts#L41)
+Defined in: [index.ts:49](https://github.com/denislibs/continuum/blob/f5ae47f16f3158ab3acf341a203852240d621e88/packages/frp/src/index.ts#L49)
 
 **`Internal`**
 
@@ -53,7 +53,7 @@ Child scopes (disposed first, reverse order); lazy.
 
 > **cleanups**: () => `void`[] \| `null` = `null`
 
-Defined in: [index.ts:39](https://github.com/denislibs/continuum/blob/06378b217e7ab47a03a557199f3b883e3c7e30c6/packages/frp/src/index.ts#L39)
+Defined in: [index.ts:47](https://github.com/denislibs/continuum/blob/f5ae47f16f3158ab3acf341a203852240d621e88/packages/frp/src/index.ts#L47)
 
 **`Internal`**
 
@@ -61,13 +61,16 @@ Teardowns to run on dispose (reverse order); lazy.
 
 ***
 
-### disposed
+### flags
 
-> **disposed**: `boolean` = `false`
+> **flags**: `number` = `0`
 
-Defined in: [index.ts:45](https://github.com/denislibs/continuum/blob/06378b217e7ab47a03a557199f3b883e3c7e30c6/packages/frp/src/index.ts#L45)
+Defined in: [index.ts:54](https://github.com/denislibs/continuum/blob/f5ae47f16f3158ab3acf341a203852240d621e88/packages/frp/src/index.ts#L54)
 
-True once `dispose()` has run.
+**`Internal`**
+
+Bit 1 — disposed; bit 2 belongs to subclasses (dom Owner's
+`mounted`): two booleans in one slot.
 
 ***
 
@@ -75,9 +78,25 @@ True once `dispose()` has run.
 
 > **parent**: `Scope` \| `null`
 
-Defined in: [index.ts:43](https://github.com/denislibs/continuum/blob/06378b217e7ab47a03a557199f3b883e3c7e30c6/packages/frp/src/index.ts#L43)
+Defined in: [index.ts:51](https://github.com/denislibs/continuum/blob/f5ae47f16f3158ab3acf341a203852240d621e88/packages/frp/src/index.ts#L51)
 
 **`Internal`**
+
+## Accessors
+
+### disposed
+
+#### Get Signature
+
+> **get** **disposed**(): `boolean`
+
+Defined in: [index.ts:57](https://github.com/denislibs/continuum/blob/f5ae47f16f3158ab3acf341a203852240d621e88/packages/frp/src/index.ts#L57)
+
+True once `dispose()` has run.
+
+##### Returns
+
+`boolean`
 
 ## Methods
 
@@ -85,7 +104,7 @@ Defined in: [index.ts:43](https://github.com/denislibs/continuum/blob/06378b217e
 
 > **dispose**(): `void`
 
-Defined in: [index.ts:59](https://github.com/denislibs/continuum/blob/06378b217e7ab47a03a557199f3b883e3c7e30c6/packages/frp/src/index.ts#L59)
+Defined in: [index.ts:73](https://github.com/denislibs/continuum/blob/f5ae47f16f3158ab3acf341a203852240d621e88/packages/frp/src/index.ts#L73)
 
 Tear down children, then own cleanups; detach from the parent. Idempotent.
 
@@ -99,7 +118,7 @@ Tear down children, then own cleanups; detach from the parent. Idempotent.
 
 > **onDispose**(`fn`): `void`
 
-Defined in: [index.ts:54](https://github.com/denislibs/continuum/blob/06378b217e7ab47a03a557199f3b883e3c7e30c6/packages/frp/src/index.ts#L54)
+Defined in: [index.ts:68](https://github.com/denislibs/continuum/blob/f5ae47f16f3158ab3acf341a203852240d621e88/packages/frp/src/index.ts#L68)
 
 Register a teardown to run when this scope disposes.
 

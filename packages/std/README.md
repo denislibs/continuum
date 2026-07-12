@@ -30,7 +30,7 @@ import { resource, debounce /* … */ } from "@continuum-js/std";
 | `filterMap(e, f)`        | map с отбрасыванием `null`/`undefined`          |
 | `pairwise(e)`            | `[prev, curr]`, начиная со второго происшествия |
 | `partition(e, pred)`     | разбить поток на `[подходящие, остальные]`      |
-| `count(e)`               | `Wire<number>` — сколько раз событие случилось  |
+| `count(e)`               | `State<number>` — сколько раз событие случилось |
 | `sampleWith(trigger, b)` | значение `b` в момент каждого `trigger`         |
 
 ## Поведения
@@ -45,7 +45,7 @@ import { resource, debounce /* … */ } from "@continuum-js/std";
 `perform` — граница IO (§6.5): эффект бежит после закрытия момента, результат
 возвращается в сеть как данные, ошибка завёрнута в `Result`, а не выброшена.
 
-- **`resource(trigger, fetcher): Wire<Async<T>>`** — конечный автомат
+- **`resource(trigger, fetcher): State<Async<T>>`** — конечный автомат
   `idle → loading → ok | error`. Запросы нумеруются, поэтому запоздавший ответ
   на устаревший запрос отбрасывается (last-request-wins) — декларативное решение
   классического бага гонки ответов.
@@ -57,7 +57,7 @@ const query = debounce(input.updates, 300).filter((s) => s.length > 0);
 const users = resource(query, (q) =>
   fetch(`/api?q=${q}`).then((r) => r.json()),
 );
-// users: Wire<Async<User[]>>  — рисуй по users.status
+// users: State<Async<User[]>>  — рисуй по users.status
 ```
 
 Живой пример — [`examples/data`](../../examples/data).

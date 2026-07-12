@@ -5,11 +5,11 @@
 import { describe, test, expect } from "vitest";
 import {
   stream,
-  wire,
+  state,
   distinct,
   flatten,
   Stream,
-  Wire,
+  State,
 } from "@continuum-js/frp";
 
 describe("merge is a formula", () => {
@@ -108,7 +108,7 @@ describe("flatten is a formula", () => {
       calls++;
       return x;
     });
-    const sel = wire<Stream<number>>(counted);
+    const sel = state<Stream<number>>(counted);
     flatten(sel);
     a.fire(1);
     expect(calls).toBe(0);
@@ -117,7 +117,7 @@ describe("flatten is a formula", () => {
   test("waking attaches the CURRENT selection, even one chosen while asleep", () => {
     const a = stream<number>();
     const b = stream<number>();
-    const sel = wire<Stream<number>>(a);
+    const sel = state<Stream<number>>(a);
     const flat = flatten(sel);
     const seen: number[] = [];
     const un = flat.listen((v) => seen.push(v));
@@ -134,15 +134,15 @@ describe("flatten is a formula", () => {
     expect(seen).toEqual([1]);
   });
 
-  test("flatten over wires: sample answers cold, push follows warm, sleep detaches the inner", () => {
-    const x = wire(1);
-    const y = wire(10);
+  test("flatten over states: sample answers cold, push follows warm, sleep detaches the inner", () => {
+    const x = state(1);
+    const y = state(10);
     let calls = 0;
     const yc = y.map((v) => {
       calls++;
       return v;
     });
-    const sel = wire<Wire<number>>(yc);
+    const sel = state<State<number>>(yc);
     const flat = flatten(sel);
     expect(flat.sample()).toBe(10); // pull through, fully cold
     expect(calls).toBe(1); // the pull recompute only
@@ -161,7 +161,7 @@ describe("flatten is a formula", () => {
   test("rewiring while warm keeps working (the classic switch)", () => {
     const a = stream<string>();
     const b = stream<string>();
-    const sel = wire<Stream<string>>(a);
+    const sel = state<Stream<string>>(a);
     const flat = flatten(sel);
     const seen: string[] = [];
     flat.listen((v) => seen.push(v));

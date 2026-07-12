@@ -99,7 +99,7 @@ tester.run("state-needs-scope", plugin.rules["state-needs-scope"], {
     // the documented idiom for app-level state
     `export const count = root(() => clicks.accum(0, (n) => n + 1));`,
     // sources are leaves — no owner needed
-    `export const cart = wire([]);`,
+    `export const cart = state([]);`,
     `export const clicks = stream();`,
     // inside a function/component the ambient scope owns it
     `function App() { const held = src.hold(0); return held; }`,
@@ -148,7 +148,7 @@ tester.run("prefer-oninput", plugin.rules["prefer-oninput"], {
 });
 
 describe("recommended config", () => {
-  test("wires every rule under the continuum namespace", () => {
+  test("states every rule under the continuum namespace", () => {
     const rec = plugin.configs.recommended;
     for (const name of Object.keys(plugin.rules)) {
       if (!rec.rules[`continuum/${name}`]) {

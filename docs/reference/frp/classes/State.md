@@ -2,18 +2,18 @@
 
 ***
 
-[@continuum-js/frp](../index.md) / Wire
+[@continuum-js/frp](../index.md) / State
 
-# Class: Wire\<A\>
+# Class: State\<A\>
 
-Defined in: [index.ts:759](https://github.com/denislibs/continuum/blob/06378b217e7ab47a03a557199f3b883e3c7e30c6/packages/frp/src/index.ts#L759)
+Defined in: [index.ts:981](https://github.com/denislibs/continuum/blob/f5ae47f16f3158ab3acf341a203852240d621e88/packages/frp/src/index.ts#L981)
 
 A value across time (pull) with discrete change notifications (push).
 Denotationally `Time → A`: it always has a value — `sample()` never misses.
 
 ## Extended by
 
-- [`WireSource`](../interfaces/WireSource.md)
+- [`StateSource`](../interfaces/StateSource.md)
 
 ## Type Parameters
 
@@ -25,9 +25,9 @@ Denotationally `Time → A`: it always has a value — `sample()` never misses.
 
 ### Constructor
 
-> **new Wire**\<`A`\>(`sampleNoTrans`, `updates`): `Wire`\<`A`\>
+> **new State**\<`A`\>(`sampleNoTrans`, `updates`): `State`\<`A`\>
 
-Defined in: [index.ts:760](https://github.com/denislibs/continuum/blob/06378b217e7ab47a03a557199f3b883e3c7e30c6/packages/frp/src/index.ts#L760)
+Defined in: [index.ts:982](https://github.com/denislibs/continuum/blob/f5ae47f16f3158ab3acf341a203852240d621e88/packages/frp/src/index.ts#L982)
 
 #### Parameters
 
@@ -45,7 +45,7 @@ Push notifications of discrete changes (empty for continuous behaviors).
 
 #### Returns
 
-`Wire`\<`A`\>
+`State`\<`A`\>
 
 ## Properties
 
@@ -53,7 +53,7 @@ Push notifications of discrete changes (empty for continuous behaviors).
 
 > **sampleNoTrans**: () => `A`
 
-Defined in: [index.ts:762](https://github.com/denislibs/continuum/blob/06378b217e7ab47a03a557199f3b883e3c7e30c6/packages/frp/src/index.ts#L762)
+Defined in: [index.ts:984](https://github.com/denislibs/continuum/blob/f5ae47f16f3158ab3acf341a203852240d621e88/packages/frp/src/index.ts#L984)
 
 Pull the current value without opening a transaction.
 
@@ -67,7 +67,7 @@ Pull the current value without opening a transaction.
 
 > **updates**: [`Stream`](Stream.md)\<`A`\>
 
-Defined in: [index.ts:764](https://github.com/denislibs/continuum/blob/06378b217e7ab47a03a557199f3b883e3c7e30c6/packages/frp/src/index.ts#L764)
+Defined in: [index.ts:986](https://github.com/denislibs/continuum/blob/f5ae47f16f3158ab3acf341a203852240d621e88/packages/frp/src/index.ts#L986)
 
 Push notifications of discrete changes (empty for continuous behaviors).
 
@@ -79,10 +79,10 @@ Push notifications of discrete changes (empty for continuous behaviors).
 
 > **at**\<`B`\>(`e`): [`Stream`](Stream.md)\<`A`\>
 
-Defined in: [index.ts:784](https://github.com/denislibs/continuum/blob/06378b217e7ab47a03a557199f3b883e3c7e30c6/packages/frp/src/index.ts#L784)
+Defined in: [index.ts:1006](https://github.com/denislibs/continuum/blob/f5ae47f16f3158ab3acf341a203852240d621e88/packages/frp/src/index.ts#L1006)
 
-Sample this wire at each occurrence of `e`: `draft.at(submits)` is the
-stream of the wire's values as of those moments (pre-moment, with exact
+Sample this state at each occurrence of `e`: `draft.at(submits)` is the
+stream of the state's values as of those moments (pre-moment, with exact
 simultaneity semantics). An optional combiner receives `(value, event)`.
 
 ##### Type Parameters
@@ -105,10 +105,10 @@ simultaneity semantics). An optional combiner receives `(value, event)`.
 
 > **at**\<`B`, `C`\>(`e`, `f`): [`Stream`](Stream.md)\<`C`\>
 
-Defined in: [index.ts:785](https://github.com/denislibs/continuum/blob/06378b217e7ab47a03a557199f3b883e3c7e30c6/packages/frp/src/index.ts#L785)
+Defined in: [index.ts:1007](https://github.com/denislibs/continuum/blob/f5ae47f16f3158ab3acf341a203852240d621e88/packages/frp/src/index.ts#L1007)
 
-Sample this wire at each occurrence of `e`: `draft.at(submits)` is the
-stream of the wire's values as of those moments (pre-moment, with exact
+Sample this state at each occurrence of `e`: `draft.at(submits)` is the
+stream of the state's values as of those moments (pre-moment, with exact
 simultaneity semantics). An optional combiner receives `(value, event)`.
 
 ##### Type Parameters
@@ -141,7 +141,7 @@ simultaneity semantics). An optional combiner receives `(value, event)`.
 
 > **dispose**(): `void`
 
-Defined in: [index.ts:812](https://github.com/denislibs/continuum/blob/06378b217e7ab47a03a557199f3b883e3c7e30c6/packages/frp/src/index.ts#L812)
+Defined in: [index.ts:1034](https://github.com/denislibs/continuum/blob/f5ae47f16f3158ab3acf341a203852240d621e88/packages/frp/src/index.ts#L1034)
 
 Detach this behavior's `updates` from the graph (see `Stream.dispose`).
 
@@ -155,7 +155,7 @@ Detach this behavior's `updates` from the graph (see `Stream.dispose`).
 
 > **listen**(`h`): [`Unlisten`](../type-aliases/Unlisten.md)
 
-Defined in: [index.ts:795](https://github.com/denislibs/continuum/blob/06378b217e7ab47a03a557199f3b883e3c7e30c6/packages/frp/src/index.ts#L795)
+Defined in: [index.ts:1017](https://github.com/denislibs/continuum/blob/f5ae47f16f3158ab3acf341a203852240d621e88/packages/frp/src/index.ts#L1017)
 
 Deliver the current value immediately, then every change.
 
@@ -173,9 +173,9 @@ Deliver the current value immediately, then every change.
 
 ### map()
 
-> **map**\<`B`\>(`f`): `Wire`\<`B`\>
+> **map**\<`B`\>(`f`): `State`\<`B`\>
 
-Defined in: [index.ts:775](https://github.com/denislibs/continuum/blob/06378b217e7ab47a03a557199f3b883e3c7e30c6/packages/frp/src/index.ts#L775)
+Defined in: [index.ts:997](https://github.com/denislibs/continuum/blob/f5ae47f16f3158ab3acf341a203852240d621e88/packages/frp/src/index.ts#L997)
 
 Pointwise transform (continuous-safe: recomputed on each sample).
 
@@ -193,7 +193,7 @@ Pointwise transform (continuous-safe: recomputed on each sample).
 
 #### Returns
 
-`Wire`\<`B`\>
+`State`\<`B`\>
 
 ***
 
@@ -201,7 +201,7 @@ Pointwise transform (continuous-safe: recomputed on each sample).
 
 > **retain**(): `this`
 
-Defined in: [index.ts:817](https://github.com/denislibs/continuum/blob/06378b217e7ab47a03a557199f3b883e3c7e30c6/packages/frp/src/index.ts#L817)
+Defined in: [index.ts:1039](https://github.com/denislibs/continuum/blob/f5ae47f16f3158ab3acf341a203852240d621e88/packages/frp/src/index.ts#L1039)
 
 Keep this behavior's update chain alive across listener churn (see `Stream.retain`).
 
@@ -215,7 +215,7 @@ Keep this behavior's update chain alive across listener churn (see `Stream.retai
 
 > **sample**(): `A`
 
-Defined in: [index.ts:767](https://github.com/denislibs/continuum/blob/06378b217e7ab47a03a557199f3b883e3c7e30c6/packages/frp/src/index.ts#L767)
+Defined in: [index.ts:989](https://github.com/denislibs/continuum/blob/f5ae47f16f3158ab3acf341a203852240d621e88/packages/frp/src/index.ts#L989)
 
 #### Returns
 
@@ -225,9 +225,9 @@ Defined in: [index.ts:767](https://github.com/denislibs/continuum/blob/06378b217
 
 ### ~~apply()~~
 
-> `static` **apply**\<`A`, `B`\>(`bf`, `ba`): `Wire`\<`B`\>
+> `static` **apply**\<`A`, `B`\>(`bf`, `ba`): `State`\<`B`\>
 
-Defined in: [index.ts:825](https://github.com/denislibs/continuum/blob/06378b217e7ab47a03a557199f3b883e3c7e30c6/packages/frp/src/index.ts#L825)
+Defined in: [index.ts:1047](https://github.com/denislibs/continuum/blob/f5ae47f16f3158ab3acf341a203852240d621e88/packages/frp/src/index.ts#L1047)
 
 #### Type Parameters
 
@@ -243,15 +243,15 @@ Defined in: [index.ts:825](https://github.com/denislibs/continuum/blob/06378b217
 
 ##### bf
 
-`Wire`\<(`a`) => `B`\>
+`State`\<(`a`) => `B`\>
 
 ##### ba
 
-`Wire`\<`A`\>
+`State`\<`A`\>
 
 #### Returns
 
-`Wire`\<`B`\>
+`State`\<`B`\>
 
 #### Deprecated
 
@@ -261,9 +261,9 @@ Use `combine(bf, ba, (f, a) => f(a))`. Removed in 1.0.
 
 ### fromPoll()
 
-> `static` **fromPoll**\<`A`\>(`poll`): `Wire`\<`A`\>
+> `static` **fromPoll**\<`A`\>(`poll`): `State`\<`A`\>
 
-Defined in: [index.ts:947](https://github.com/denislibs/continuum/blob/06378b217e7ab47a03a557199f3b883e3c7e30c6/packages/frp/src/index.ts#L947)
+Defined in: [index.ts:1172](https://github.com/denislibs/continuum/blob/f5ae47f16f3158ab3acf341a203852240d621e88/packages/frp/src/index.ts#L1172)
 
 Continuous behavior: sampled fresh on each read; no discrete updates.
 
@@ -281,15 +281,15 @@ Continuous behavior: sampled fresh on each read; no discrete updates.
 
 #### Returns
 
-`Wire`\<`A`\>
+`State`\<`A`\>
 
 ***
 
 ### lift2()
 
-> `static` **lift2**\<`A`, `B`, `C`\>(`f`, `ba`, `bb`): `Wire`\<`C`\>
+> `static` **lift2**\<`A`, `B`, `C`\>(`f`, `ba`, `bb`): `State`\<`C`\>
 
-Defined in: [index.ts:833](https://github.com/denislibs/continuum/blob/06378b217e7ab47a03a557199f3b883e3c7e30c6/packages/frp/src/index.ts#L833)
+Defined in: [index.ts:1055](https://github.com/denislibs/continuum/blob/f5ae47f16f3158ab3acf341a203852240d621e88/packages/frp/src/index.ts#L1055)
 
 **`Internal`**
 
@@ -318,23 +318,23 @@ deprecated `lift2` name until 1.0 — prefer `combine(a, b, f)`.
 
 ##### ba
 
-`Wire`\<`A`\>
+`State`\<`A`\>
 
 ##### bb
 
-`Wire`\<`B`\>
+`State`\<`B`\>
 
 #### Returns
 
-`Wire`\<`C`\>
+`State`\<`C`\>
 
 ***
 
 ### ~~lift3()~~
 
-> `static` **lift3**\<`A`, `B`, `C`, `D`\>(`f`, `ba`, `bb`, `bc`): `Wire`\<`D`\>
+> `static` **lift3**\<`A`, `B`, `C`, `D`\>(`f`, `ba`, `bb`, `bc`): `State`\<`D`\>
 
-Defined in: [index.ts:936](https://github.com/denislibs/continuum/blob/06378b217e7ab47a03a557199f3b883e3c7e30c6/packages/frp/src/index.ts#L936)
+Defined in: [index.ts:1161](https://github.com/denislibs/continuum/blob/f5ae47f16f3158ab3acf341a203852240d621e88/packages/frp/src/index.ts#L1161)
 
 #### Type Parameters
 
@@ -362,19 +362,19 @@ Defined in: [index.ts:936](https://github.com/denislibs/continuum/blob/06378b217
 
 ##### ba
 
-`Wire`\<`A`\>
+`State`\<`A`\>
 
 ##### bb
 
-`Wire`\<`B`\>
+`State`\<`B`\>
 
 ##### bc
 
-`Wire`\<`C`\>
+`State`\<`C`\>
 
 #### Returns
 
-`Wire`\<`D`\>
+`State`\<`D`\>
 
 #### Deprecated
 
@@ -384,17 +384,17 @@ Use `combine(a, b, c, f)`. Removed in 1.0.
 
 ### switchB()
 
-> `static` **switchB**\<`A`\>(`bb`): `Wire`\<`A`\>
+> `static` **switchB**\<`A`\>(`bb`): `State`\<`A`\>
 
-Defined in: [index.ts:959](https://github.com/denislibs/continuum/blob/06378b217e7ab47a03a557199f3b883e3c7e30c6/packages/frp/src/index.ts#L959)
+Defined in: [index.ts:1184](https://github.com/denislibs/continuum/blob/f5ae47f16f3158ab3acf341a203852240d621e88/packages/frp/src/index.ts#L1184)
 
 **`Internal`**
 
-The wire-of-wires switch behind `flatten`. Public under the
+The state-of-states switch behind `flatten`. Public under the
 deprecated `switchB` name until 1.0 — prefer `flatten(w)`.
 
 A formula: cold it is a recipe (pull samples straight through); waking
-attaches the outer wire AND the currently selected inner; sleeping
+attaches the outer state AND the currently selected inner; sleeping
 detaches both. Rewiring while warm commits at the moment boundary.
 
 #### Type Parameters
@@ -407,11 +407,11 @@ detaches both. Rewiring while warm commits at the moment boundary.
 
 ##### bb
 
-`Wire`\<`Wire`\<`A`\>\>
+`State`\<`State`\<`A`\>\>
 
 #### Returns
 
-`Wire`\<`A`\>
+`State`\<`A`\>
 
 ***
 
@@ -419,11 +419,11 @@ detaches both. Rewiring while warm commits at the moment boundary.
 
 > `static` **switchE**\<`A`\>(`be`): [`Stream`](Stream.md)\<`A`\>
 
-Defined in: [index.ts:1000](https://github.com/denislibs/continuum/blob/06378b217e7ab47a03a557199f3b883e3c7e30c6/packages/frp/src/index.ts#L1000)
+Defined in: [index.ts:1225](https://github.com/denislibs/continuum/blob/f5ae47f16f3158ab3acf341a203852240d621e88/packages/frp/src/index.ts#L1225)
 
 **`Internal`**
 
-The wire-of-streams switch behind `flatten`. Public under the
+The state-of-streams switch behind `flatten`. Public under the
 deprecated `switchE` name until 1.0 — prefer `flatten(w)`.
 
 A formula (see switchB): waking attaches the CURRENT selection, even
@@ -439,7 +439,7 @@ one chosen while asleep.
 
 ##### be
 
-`Wire`\<[`Stream`](Stream.md)\<`A`\>\>
+`State`\<[`Stream`](Stream.md)\<`A`\>\>
 
 #### Returns
 

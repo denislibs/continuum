@@ -31,13 +31,13 @@ function Toolbar() {
 ## Реактивный контекст
 
 Само значение контекста — обычное (ищется один раз, при построении). Для
-меняющегося значения кладите в контекст [**Wire**](/ru/concepts/behaviors):
+меняющегося значения кладите в контекст [**State**](/ru/concepts/behaviors):
 
 ```tsx
-const Theme = createContext<Wire<string>>(constant("light"));
+const Theme = createContext<State<string>>(constant("light"));
 
 function App() {
-  const theme = wire("dark");
+  const theme = state("dark");
   provide(Theme, theme);
   return <Toolbar />;
 }
@@ -48,7 +48,7 @@ function Toolbar() {
 ```
 
 «Ре-рендера по смене контекста» не существует и не нужно: потребители
-привязываются к Wire один раз.
+привязываются к State один раз.
 
 ## Практическое правило
 

@@ -28,12 +28,12 @@ forces you to say what that means:
 
 - `Stream.merge(ea, eb, combine)` — simultaneous occurrences are coalesced
   with `combine`, not ordered arbitrarily;
-- `at` sees Wires _as of the start of the moment_.
+- `at` sees States _as of the start of the moment_.
 
 ## The `hold` delay
 
-`hold`/`accum` update Wires **at the moment's boundary**. Inside the
-transaction that delivers the occurrence, the Wire still shows its
+`hold`/`accum` update States **at the moment's boundary**. Inside the
+transaction that delivers the occurrence, the State still shows its
 previous value:
 
 ```ts
@@ -71,7 +71,7 @@ existing.
 One rule: a stream carries **at most one occurrence per moment**, so firing
 the _same_ stream twice inside one batch throws (silently folding the second
 occurrence over pre-moment state would corrupt `accum`). Setting the same
-_wire_ repeatedly is fine — the last write wins, and its `updates` delivers
+_state_ repeatedly is fine — the last write wins, and its `updates` delivers
 a single coalesced occurrence carrying the final value.
 
 ## Effects run after

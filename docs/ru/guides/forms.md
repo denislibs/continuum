@@ -6,14 +6,14 @@
 
 ## Контролируемый инпут
 
-`bindInput` связывает `Wire<string>` (Wire — «провод», реактивное значение;
+`bindInput` связывает `State<string>` (State — реактивное значение;
 в FRP-литературе Behavior) с полем в обе стороны:
 
 ```tsx
-import { wire } from "@continuum-js/frp";
+import { state } from "@continuum-js/frp";
 import { bindInput } from "@continuum-js/dom";
 
-const name = wire("");
+const name = state("");
 <input {...bindInput(name, name.set)} />;
 ```
 
@@ -68,7 +68,7 @@ const results = perform(payload, (form) => api.register(form));
 
 Разбор по строкам:
 
-- `when(formValid)` — событие проходит, только пока Wire истинен;
+- `when(formValid)` — событие проходит, только пока State истинен;
   «дизейбл» продублирован семантически, а не только в атрибуте кнопки;
 - `at` берёт значения полей _на момент_ сабмита — никакого чтения
   из DOM или стейта в обработчике;

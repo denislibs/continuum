@@ -9,7 +9,7 @@ npm test         # vitest (jsdom)
 npm run build    # type-check + production bundle
 ```
 
-Continuum is classic FRP (Wires + Streams) with fine-grained rendering:
+Continuum is classic FRP (States + Streams) with fine-grained rendering:
 components run once, reactive values are objects you place directly in JSX.
 Docs: [PHILOSOPHY](https://github.com/denislibs/continuum/blob/main/PHILOSOPHY.md),
 [FRP-MODEL](https://github.com/denislibs/continuum/blob/main/FRP-MODEL.md).

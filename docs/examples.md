@@ -11,7 +11,7 @@ with `npm run dev` inside the example's folder.
 | **Todo**       | Keyed lists (`Each`/LIS), derived filtering, two-way input              | [StackBlitz](https://stackblitz.com/github/denislibs/continuum/tree/main/examples/todo) · [source](https://github.com/denislibs/continuum/tree/main/examples/todo)             |
 | **Data**       | `resource`: the async state machine, last-request-wins                  | [StackBlitz](https://stackblitz.com/github/denislibs/continuum/tree/main/examples/data) · [source](https://github.com/denislibs/continuum/tree/main/examples/data)             |
 | **Animation**  | Continuous time: `integral` over the rAF clock, `warp` running 2×       | [StackBlitz](https://stackblitz.com/github/denislibs/continuum/tree/main/examples/animation) · [source](https://github.com/denislibs/continuum/tree/main/examples/animation)   |
-| **Router app** | Nested routes, layouts, params-as-Wire, guards, `lazy` chunks           | [StackBlitz](https://stackblitz.com/github/denislibs/continuum/tree/main/examples/router-app) · [source](https://github.com/denislibs/continuum/tree/main/examples/router-app) |
+| **Router app** | Nested routes, layouts, params-as-State, guards, `lazy` chunks          | [StackBlitz](https://stackblitz.com/github/denislibs/continuum/tree/main/examples/router-app) · [source](https://github.com/denislibs/continuum/tree/main/examples/router-app) |
 | **Showcase**   | A mixed tour of bindings, regions, and context                          | [StackBlitz](https://stackblitz.com/github/denislibs/continuum/tree/main/examples/showcase) · [source](https://github.com/denislibs/continuum/tree/main/examples/showcase)     |
 
 ::: tip How the StackBlitz links work

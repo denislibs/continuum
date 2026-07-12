@@ -23,7 +23,7 @@ export default [
 | Rule                    | Default | Catches                                                                                                                                                                                                    |
 | ----------------------- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `no-impure-combinators` | error   | `fetch`/`localStorage`/`document`/`alert`/timers/setters/`dispatch`/`Date.now`/`Math.random` inside `accum`/`accumE` (and legacy `snapshot`/`lift2`/`lift3`) callbacks — combinator functions must be pure |
-| `no-sample-in-jsx`      | error   | `{count.sample()}` in JSX — renders once and freezes; bind the wire itself (handlers are fine)                                                                                                             |
+| `no-sample-in-jsx`      | error   | `{count.sample()}` in JSX — renders once and freezes; bind the state itself (handlers are fine)                                                                                                            |
 | `state-needs-scope`     | error   | module-level state (`hold`/`accum`/`accumE`/`perform`) outside `root()` — state lives as long as its scope, and at module level there is none, so it throws at runtime                                     |
 | `prefer-oninput`        | warn    | `onChange` on text fields — the native `change` event fires on blur; use `onInput` or `bindInput` (checkbox/radio/file/select are fine)                                                                    |
 

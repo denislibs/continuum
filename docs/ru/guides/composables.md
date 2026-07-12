@@ -12,7 +12,7 @@
 цикла, ни scope — зовите откуда угодно, называйте как любую функцию:
 
 ```ts
-const total = (items: Wire<Item[]>) =>
+const total = (items: State<Item[]>) =>
   items.map((xs) => xs.reduce((s, i) => s + i.price, 0));
 ```
 
@@ -21,7 +21,7 @@ const total = (items: Wire<Item[]>) =>
 предупреждающую этикетку — префикс **`create`**:
 
 ```ts
-const size = createWindowSize(); // «create» = вызови раз, получи живую проводку
+const size = createWindowSize(); // «create» = вызови раз, получи живое состояние
 ```
 
 ## Почему `createX`, а не `useX`
@@ -40,12 +40,12 @@ const size = createWindowSize(); // «create» = вызови раз, получ
 Каждый композабл — одни и те же три хода:
 
 ```ts
-import { wire, type Wire } from "@continuum-js/frp";
+import { state, type State } from "@continuum-js/frp";
 import { onCleanup } from "@continuum-js/dom";
 
-export function createWindowSize(): Wire<{ w: number; h: number }> {
+export function createWindowSize(): State<{ w: number; h: number }> {
   // 1. создать живое значение
-  const size = wire({ w: innerWidth, h: innerHeight });
+  const size = state({ w: innerWidth, h: innerHeight });
 
   // 2. связать внешний мир с сетью (на границе!)
   const onResize = () => size.set({ w: innerWidth, h: innerHeight });

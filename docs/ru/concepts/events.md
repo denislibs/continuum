@@ -3,16 +3,16 @@
 `Stream<A>` — поток **происшествий**: клики, нажатия клавиш, ответы сервера.
 Каждое срабатывание ([вхождение](/ru/glossary#occurrence)) несёт значение;
 между срабатываниями события просто нет — в отличие от
-[Wire](/ru/concepts/behaviors), у него нельзя прочитать «текущее значение».
+[State](/ru/concepts/behaviors), у него нельзя прочитать «текущее значение».
 
 ::: tip Возможно, Streams вам пока не нужны
-Для большинства UI-кода хватает `wire` + обычных колбэков
+Для большинства UI-кода хватает `state` + обычных колбэков
 (`onClick={() => x.set(…)}`). За Streams идите, когда суть задачи — сам
 поток: debounce ввода, слияние источников, захват формы на сабмите,
 подача запросов в `resource`.
 
 Проверка одной фразой: если это можно **нарисовать на экране** — это
-[Wire](/ru/concepts/behaviors); если на это можно **среагировать** —
+[State](/ru/concepts/behaviors); если на это можно **среагировать** —
 Stream. Длинная версия:
 [Чем Stream отличается от Behavior](/ru/frp-in-plain-words#event-vs-behavior).
 :::
@@ -37,7 +37,7 @@ const ids = clicks.map((e) => (e.target as HTMLElement).id);
 const lefts = clicks.filter((e) => e.button === 0);
 const ones = clicks.mapTo(1);
 const firstOnly = clicks.once();
-const whileOpen = keys.when(isOpen); // проходит, только пока Wire истинен
+const whileOpen = keys.when(isOpen); // проходит, только пока State истинен
 ```
 
 ## Комбинирование
@@ -52,7 +52,7 @@ const either = errors.or(fallbacks); // лево-приоритетное сок
 
 ## Захват состояния
 
-`b.at(e)` читает Wire в момент события; `when` фильтрует по нему:
+`b.at(e)` читает State в момент события; `when` фильтрует по нему:
 
 ```ts
 const submitted = draft.at(submits); // значение draft на момент сабмита
@@ -65,8 +65,8 @@ const submitted = draft.at(submits); // значение draft на момент
 
 ```ts
 // на уровне модуля состоянию нужен владелец — оберните определение в root()
-const latest = root(() => responses.hold(initial)); // Wire: последнее значение
-const count = root(() => clicks.accum(0, (_e, n) => n + 1)); // Wire: свёртка
+const latest = root(() => responses.hold(initial)); // State: последнее значение
+const count = root(() => clicks.accum(0, (_e, n) => n + 1)); // State: свёртка
 const totals = root(() => amounts.accumE(0, (a, s) => s + a)); // Stream шагов свёртки
 ```
 
@@ -75,7 +75,7 @@ const totals = root(() => amounts.accumE(0, (a, s) => s + a)); // Stream шаг�
 объявить переходы прямо на ней:
 
 ```ts
-const count = wire(0)
+const count = state(0)
   .on(inc, (n) => n + 1)
   .on(dec, (n) => n - 1)
   .on(reset, () => 0);
