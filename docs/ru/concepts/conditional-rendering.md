@@ -50,9 +50,9 @@ import { Dynamic } from "@continuum-js/dom";
 дубликаты:
 
 ```ts
-import { distinctB } from "@continuum-js/std";
+import { dedupe } from "@continuum-js/std";
 
-const status = distinctB(state.map((s) => s.status));
+const status = dedupe(state.map((s) => s.status));
 ```
 
 ## `dyn` — примитив

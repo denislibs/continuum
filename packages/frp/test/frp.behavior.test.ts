@@ -2,15 +2,17 @@ import { describe, test, expect } from "vitest";
 import {
   root,
   newStream,
-  newBehavior,
+  state,
   constant,
   batch,
-  Behavior,
+  State,
   Stream,
   time,
+  combine,
+  flatten,
 } from "@continuum-js/frp";
 
-describe("Behavior.map", () => {
+describe("State.map", () => {
   test("maps sampled value and updates", () => {
     const [n, fire] = newStream<number>();
     const b = root(() => n.hold(1)).map((x) => x * 3);
@@ -23,9 +25,10 @@ describe("Behavior.map", () => {
   });
 });
 
-describe("Behavior.listen", () => {
+describe("State.listen", () => {
   test("delivers current value immediately then on changes", () => {
-    const [b, set] = newBehavior(1);
+    const b = state(1);
+    const set = b.set;
     const seen: number[] = [];
     b.listen((v) => seen.push(v));
     set(2);
@@ -36,9 +39,11 @@ describe("Behavior.listen", () => {
 
 describe("lift2 / apply", () => {
   test("lift2 combines two behaviors pointwise", () => {
-    const [a, setA] = newBehavior(2);
-    const [b, setB] = newBehavior(10);
-    const sum = Behavior.lift2((x, y) => x + y, a, b);
+    const a = state(2);
+    const setA = a.set;
+    const b = state(10);
+    const setB = b.set;
+    const sum = combine(a, b, (x, y) => x + y);
     expect(sum.sample()).toBe(12);
     setA(5);
     expect(sum.sample()).toBe(15);
@@ -50,7 +55,7 @@ describe("lift2 / apply", () => {
     const [n, fire] = newStream<number>();
     const b = root(() => n.hold(1));
     const b2 = b.map((x) => x * 2);
-    const combined = Behavior.lift2((x, y) => x + y, b, b2);
+    const combined = combine(b, b2, (x, y) => x + y);
     const seen: number[] = [];
     combined.updates.listen((v) => seen.push(v));
     fire(5); // b=5, b2=10 in one moment -> single coalesced update 15
@@ -59,9 +64,11 @@ describe("lift2 / apply", () => {
   });
 
   test("apply applies a behavior-of-function to a behavior-of-value", () => {
-    const [bf, setF] = newBehavior<(n: number) => number>((n) => n + 1);
-    const [bx, setX] = newBehavior(10);
-    const out = Behavior.apply(bf, bx);
+    const bf = state<(n: number) => number>((n) => n + 1);
+    const setF = bf.set;
+    const bx = state(10);
+    const setX = bx.set;
+    const out = combine(bf, bx, (f, x) => f(x));
     expect(out.sample()).toBe(11);
     setF((n) => n * 2);
     expect(out.sample()).toBe(20);
@@ -70,20 +77,22 @@ describe("lift2 / apply", () => {
   });
 
   test("lift3 combines three behaviors", () => {
-    const [a] = newBehavior(1);
-    const [b] = newBehavior(2);
-    const [c] = newBehavior(3);
-    const out = Behavior.lift3((x, y, z) => x + y + z, a, b, c);
+    const a = state(1);
+    const b = state(2);
+    const c = state(3);
+    const out = combine(a, b, c, (x, y, z) => x + y + z);
     expect(out.sample()).toBe(6);
   });
 });
 
 describe("switchB", () => {
   test("follows the currently selected behavior (sample)", () => {
-    const [outer, setOuter] = newBehavior<Behavior<number>>(constant(1));
-    const sw = Behavior.switchB(outer);
+    const outer = state<State<number>>(constant(1));
+    const setOuter = outer.set;
+    const sw = flatten(outer);
     expect(sw.sample()).toBe(1);
-    const [b2, set2] = newBehavior(10);
+    const b2 = state(10);
+    const set2 = b2.set;
     setOuter(b2);
     expect(sw.sample()).toBe(10);
     set2(20);
@@ -91,11 +100,13 @@ describe("switchB", () => {
   });
 
   test("emits updates from the selected behavior and on switch", () => {
-    const [outer, setOuter] = newBehavior<Behavior<number>>(constant(1));
-    const sw = Behavior.switchB(outer);
+    const outer = state<State<number>>(constant(1));
+    const setOuter = outer.set;
+    const sw = flatten(outer);
     const seen: number[] = [];
     sw.listen((v) => seen.push(v)); // immediate 1
-    const [b2, set2] = newBehavior(10);
+    const b2 = state(10);
+    const set2 = b2.set;
     setOuter(b2); // switch -> emit new inner's current value 10
     set2(20); // inner update flows through
     expect(seen).toEqual([1, 10, 20]);
@@ -106,8 +117,9 @@ describe("switchE", () => {
   test("follows the currently selected event", () => {
     const [ea, fireA] = newStream<string>();
     const [eb, fireB] = newStream<string>();
-    const [sel, setSel] = newBehavior<Stream<string>>(ea);
-    const out = Behavior.switchE(sel);
+    const sel = state<Stream<string>>(ea);
+    const setSel = sel.set;
+    const out = flatten(sel);
     const seen: string[] = [];
     out.listen((v) => seen.push(v));
     fireA("a1");
@@ -122,7 +134,7 @@ describe("switchE", () => {
 describe("continuous behaviors", () => {
   test("fromPoll samples fresh each read", () => {
     let n = 0;
-    const b = Behavior.fromPoll(() => n);
+    const b = State.fromPoll(() => n);
     expect(b.sample()).toBe(0);
     n = 42;
     expect(b.sample()).toBe(42);
@@ -139,7 +151,8 @@ describe("continuous behaviors", () => {
 
 describe("listen registration order", () => {
   test("a set fired during the initial delivery is still delivered", () => {
-    const [b, set] = newBehavior(0);
+    const b = state(0);
+    const set = b.set;
     const seen: number[] = [];
     b.listen((v) => {
       seen.push(v);
@@ -149,7 +162,8 @@ describe("listen registration order", () => {
   });
 
   test("a throw in the initial delivery does not leak the subscription", () => {
-    const [b, set] = newBehavior(0);
+    const b = state(0);
+    const set = b.set;
     let delivered = 0;
     expect(() =>
       b.listen(() => {
@@ -164,7 +178,8 @@ describe("listen registration order", () => {
 
 describe("newBehavior equality skip", () => {
   test("setting an equal value does not wake subscribers", () => {
-    const [b, set] = newBehavior(5);
+    const b = state(5);
+    const set = b.set;
     const seen: number[] = [];
     b.listen((v) => seen.push(v));
     set(5); // no-op: same value
@@ -174,12 +189,14 @@ describe("newBehavior equality skip", () => {
   });
 
   test("equality is Object.is: NaN → NaN is a no-op, 0 → -0 is a change", () => {
-    const [b, set] = newBehavior(NaN);
+    const b = state(NaN);
+    const set = b.set;
     const seen: number[] = [];
     b.listen((v) => seen.push(v));
     set(NaN); // Object.is(NaN, NaN) — skipped
     expect(seen.length).toBe(1);
-    const [z, setZ] = newBehavior(0);
+    const z = state(0);
+    const setZ = z.set;
     const zs: number[] = [];
     z.listen((v) => zs.push(v));
     setZ(-0); // Object.is(0, -0) is false — delivered
@@ -187,7 +204,8 @@ describe("newBehavior equality skip", () => {
   });
 
   test("custom equality", () => {
-    const [b, set] = newBehavior({ id: 1 }, (p, n) => p.id === n.id);
+    const b = state({ id: 1 }, (p, n) => p.id === n.id);
+    const set = b.set;
     const seen: Array<{ id: number }> = [];
     b.listen((v) => seen.push(v));
     set({ id: 1 }); // equal by id — skipped
@@ -196,7 +214,8 @@ describe("newBehavior equality skip", () => {
   });
 
   test("equality can be disabled: every set is delivered", () => {
-    const [b, set] = newBehavior(1, () => false);
+    const b = state(1, () => false);
+    const set = b.set;
     const seen: number[] = [];
     b.listen((v) => seen.push(v));
     set(1);
@@ -205,7 +224,8 @@ describe("newBehavior equality skip", () => {
   });
 
   test("inside a batch the skip compares against the LAST set, not the pre-moment value", () => {
-    const [b, set] = newBehavior(4);
+    const b = state(4);
+    const set = b.set;
     const seen: number[] = [];
     b.listen((v) => seen.push(v));
     batch(() => {

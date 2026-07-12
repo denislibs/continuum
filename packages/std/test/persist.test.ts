@@ -1,5 +1,5 @@
 import { describe, test, expect } from "vitest";
-import { newBehavior } from "@continuum-js/frp";
+import { state } from "@continuum-js/frp";
 import { persist, loadPersisted } from "@continuum-js/std";
 
 // A minimal in-memory Storage double — persistence must be testable without
@@ -36,7 +36,8 @@ describe("loadPersisted", () => {
 describe("persist", () => {
   test("writes the current value immediately and on every update", () => {
     const s = memoryStorage();
-    const [b, set] = newBehavior(1);
+    const b = state(1);
+    const set = b.set;
     const un = persist("n", b, s);
 
     expect(s.data.get("n")).toBe("1"); // initial delivery
@@ -47,7 +48,8 @@ describe("persist", () => {
 
   test("the returned unlisten stops the writes", () => {
     const s = memoryStorage();
-    const [b, set] = newBehavior(1);
+    const b = state(1);
+    const set = b.set;
     const un = persist("n", b, s);
     un();
     set(99);
@@ -55,7 +57,7 @@ describe("persist", () => {
   });
 
   test("is a no-op without storage (SSR) and still returns an unlisten", () => {
-    const [b] = newBehavior(1);
+    const b = state(1);
     const un = persist("n", b, undefined);
     expect(typeof un).toBe("function");
     un(); // must not throw
@@ -68,7 +70,8 @@ describe("persist", () => {
         throw new Error("QuotaExceededError");
       },
     };
-    const [b, set] = newBehavior(1);
+    const b = state(1);
+    const set = b.set;
     const un = persist("n", b, s);
     expect(() => set(2)).not.toThrow(); // persistence is best-effort
     expect(b.sample()).toBe(2); // the value itself still updated

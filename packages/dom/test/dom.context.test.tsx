@@ -9,7 +9,7 @@ import {
   bindInput,
   portal,
 } from "@continuum-js/dom";
-import { newBehavior, constant } from "@continuum-js/frp";
+import { state, constant } from "@continuum-js/frp";
 
 describe("context", () => {
   test("use falls back to the default when nothing is provided", () => {
@@ -59,7 +59,8 @@ describe("context", () => {
       node = (<span>{theme}</span>) as HTMLElement;
       return node;
     }
-    const [theme, setTheme] = newBehavior("dark");
+    const theme = state("dark");
+    const setTheme = theme.set;
     const container = document.createElement("div");
     mount(container, () => {
       provide(ThemeCtx, theme);
@@ -67,13 +68,14 @@ describe("context", () => {
     });
     expect(node!.textContent).toBe("dark");
     setTheme("solarized");
-    expect(node!.textContent).toBe("solarized"); // dynamics flow through the Behavior
+    expect(node!.textContent).toBe("solarized"); // dynamics flow through the State
   });
 });
 
 describe("when", () => {
   test("shows the then/else branch and does not rebuild on same value", () => {
-    const [cond, set] = newBehavior(true);
+    const cond = state(true);
+    const set = cond.set;
     let thenRenders = 0;
     const container = document.createElement("div");
     mount(container, () =>
@@ -100,7 +102,8 @@ describe("when", () => {
 
 describe("bindInput", () => {
   test("two-way binds a text input", () => {
-    const [text, setText] = newBehavior("hi");
+    const text = state("hi");
+    const setText = text.set;
     const input = (<input {...bindInput(text, setText)} />) as HTMLInputElement;
     document.body.appendChild(input); // delegated events need a connected tree
     expect(input.value).toBe("hi");

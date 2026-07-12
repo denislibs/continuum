@@ -10,7 +10,7 @@
 
 > **selector**\<`K`\>(`w`): (`key`) => [`State`](../classes/State.md)\<`boolean`\>
 
-Defined in: [index.ts:1528](https://github.com/denislibs/continuum/blob/f5ae47f16f3158ab3acf341a203852240d621e88/packages/frp/src/index.ts#L1528)
+Defined in: [index.ts:1478](https://github.com/denislibs/continuum/blob/a6efe14ab8b1da85f964b151c4700e6197236815/packages/frp/src/index.ts#L1478)
 
 Keyed selection with O(2) updates. ONE process watches `w`; each key gets
 a tiny cell that flips only when the selection enters or leaves it —
@@ -45,7 +45,7 @@ selection.
 
 > **selector**\<`K`, `V`\>(`w`, `on`, `off`): (`key`) => [`State`](../classes/State.md)\<`V`\>
 
-Defined in: [index.ts:1529](https://github.com/denislibs/continuum/blob/f5ae47f16f3158ab3acf341a203852240d621e88/packages/frp/src/index.ts#L1529)
+Defined in: [index.ts:1479](https://github.com/denislibs/continuum/blob/a6efe14ab8b1da85f964b151c4700e6197236815/packages/frp/src/index.ts#L1479)
 
 Keyed selection with O(2) updates. ONE process watches `w`; each key gets
 a tiny cell that flips only when the selection enters or leaves it —

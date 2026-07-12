@@ -1,6 +1,6 @@
 # States
 
-> **State** is the type formerly named **Wire**, and **Behavior** before that — the FRP-literature term; both old names remain deprecated aliases until 1.0.
+> **State** is the type formerly named **Wire**, and **Behavior** before that — the FRP-literature term; the old names were removed in 1.0 (see [Migrating to 1.0](/migration-1.0)).
 
 `State<A>` is a **reactive value**: the text of an input, the current
 user, a counter. It always has a value you can read, JSX can bind to it, and

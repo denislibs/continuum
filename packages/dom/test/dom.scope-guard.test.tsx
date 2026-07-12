@@ -11,7 +11,7 @@ import {
   createContext,
   root,
 } from "@continuum-js/dom";
-import { newBehavior } from "@continuum-js/frp";
+import { state } from "@continuum-js/frp";
 
 describe("lifecycle functions outside any owner throw", () => {
   test("onCleanup", () => {
@@ -52,7 +52,7 @@ describe("owned code keeps working", () => {
   });
 
   test("building JSX with live bindings outside mount stays allowed", () => {
-    const [b] = newBehavior(0);
+    const b = state(0);
     expect(() => <div>{b}</div>).not.toThrow();
   });
 });

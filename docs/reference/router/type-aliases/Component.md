@@ -8,7 +8,7 @@
 
 > **Component** = () => `Child`
 
-Defined in: [match.ts:10](https://github.com/denislibs/continuum/blob/f5ae47f16f3158ab3acf341a203852240d621e88/packages/router/src/match.ts#L10)
+Defined in: [match.ts:10](https://github.com/denislibs/continuum/blob/a6efe14ab8b1da85f964b151c4700e6197236815/packages/router/src/match.ts#L10)
 
 A route component. Parameters are read reactively via `useParams()`.
 

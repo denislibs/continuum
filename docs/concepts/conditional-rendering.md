@@ -49,9 +49,9 @@ The region rebuilds when `value` changes (`Object.is`). To avoid rebuilding
 on irrelevant changes, narrow the State first and de-duplicate:
 
 ```ts
-import { distinctB } from "@continuum-js/std";
+import { dedupe } from "@continuum-js/std";
 
-const status = distinctB(state.map((s) => s.status));
+const status = dedupe(state.map((s) => s.status));
 ```
 
 ## `dyn` — the primitive

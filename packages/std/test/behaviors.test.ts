@@ -1,10 +1,11 @@
 import { describe, test, expect } from "vitest";
-import { root, newBehavior } from "@continuum-js/frp";
-import { previous, distinctB } from "@continuum-js/std";
+import { root, state } from "@continuum-js/frp";
+import { previous, dedupe } from "@continuum-js/std";
 
 describe("behavior combinators", () => {
   test("previous lags one step behind", () => {
-    const [b, setB] = newBehavior(0);
+    const b = state(0);
+    const setB = b.set;
     const prev = root(() => previous(b, -1));
     expect(prev.sample()).toBe(-1);
 
@@ -15,10 +16,11 @@ describe("behavior combinators", () => {
     expect(prev.sample()).toBe(5);
   });
 
-  test("distinctB suppresses updates that don't change the value", () => {
-    const [b, setB] = newBehavior(1);
+  test("dedupe suppresses updates that don't change the value", () => {
+    const b = state(1);
+    const setB = b.set;
     const seen: number[] = [];
-    const d = distinctB(b);
+    const d = dedupe(b);
     d.updates.listen((v) => seen.push(v));
 
     setB(1); // same value — suppressed
@@ -28,10 +30,11 @@ describe("behavior combinators", () => {
     expect(seen).toEqual([2, 3]);
   });
 
-  test("distinctB honours a custom equality", () => {
-    const [b, setB] = newBehavior({ id: 1 });
+  test("dedupe honours a custom equality", () => {
+    const b = state({ id: 1 });
+    const setB = b.set;
     const seen: number[] = [];
-    const d = distinctB(b, (x, y) => x.id === y.id);
+    const d = dedupe(b, (x, y) => x.id === y.id);
     d.updates.listen((v) => seen.push(v.id));
 
     setB({ id: 1 }); // equal by id — suppressed

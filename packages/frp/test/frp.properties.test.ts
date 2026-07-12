@@ -6,9 +6,10 @@ import fc from "fast-check";
 import {
   root,
   newStream,
-  newBehavior,
+  state,
   Stream,
-  Behavior,
+  State,
+  combine,
 } from "@continuum-js/frp";
 
 // A small pool of total unary functions to build random derivation chains.
@@ -41,7 +42,7 @@ describe("transactional invariants (property-based)", () => {
         const [src, fire] = newStream<number>();
         const a = root(() => buildChain(src, ca).hold(0));
         const b = root(() => buildChain(src, cb).hold(0));
-        const joined = Behavior.lift2((x, y) => [x, y] as const, a, b);
+        const joined = combine(a, b, (x, y) => [x, y] as const);
         const seen: Array<readonly [number, number]> = [];
         const un = joined.updates.listen((p) => seen.push(p));
 
@@ -84,7 +85,7 @@ describe("transactional invariants (property-based)", () => {
       fc.property(fc.integer(), arbFires, (init, fires) => {
         const [src, fire] = newStream<number>();
         const held = root(() => src.hold(init));
-        const pairs = src.snapshot(held, (now, prev) => [now, prev] as const);
+        const pairs = held.at(src, (prev, now) => [now, prev] as const);
         const seen: Array<readonly [number, number]> = [];
         const un = pairs.listen((p) => seen.push(p));
 
@@ -102,8 +103,12 @@ describe("transactional invariants (property-based)", () => {
   test("phase order: post-phase observers always see the committed value", () => {
     fc.assert(
       fc.property(fc.integer(), arbFires, arbChain, (init, fires, chain) => {
-        const [b, set] = newBehavior<number>(init);
-        const derived = chain.reduce((x, i) => x.map(FN_POOL[i]), b);
+        const b = state<number>(init);
+        const set = b.set;
+        const derived = chain.reduce<State<number>>(
+          (x, i) => x.map(FN_POOL[i]),
+          b,
+        );
         const seen: Array<[number, number]> = [];
         // By the time a post-phase listener runs, sample() must equal the
         // delivered value — a listener can never catch the moment half-done.

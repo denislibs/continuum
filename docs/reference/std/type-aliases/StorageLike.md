@@ -8,6 +8,6 @@
 
 > **StorageLike** = `Pick`\<`Storage`, `"getItem"` \| `"setItem"`\>
 
-Defined in: [index.ts:216](https://github.com/denislibs/continuum/blob/f5ae47f16f3158ab3acf341a203852240d621e88/packages/std/src/index.ts#L216)
+Defined in: [index.ts:217](https://github.com/denislibs/continuum/blob/a6efe14ab8b1da85f964b151c4700e6197236815/packages/std/src/index.ts#L217)
 
 The slice of the Storage interface persistence relies on.

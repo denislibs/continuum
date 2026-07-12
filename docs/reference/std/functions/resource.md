@@ -8,7 +8,7 @@
 
 > **resource**\<`A`, `T`\>(`trigger`, `fetcher`): `State`\<[`Async`](../type-aliases/Async.md)\<`T`\>\>
 
-Defined in: [index.ts:180](https://github.com/denislibs/continuum/blob/f5ae47f16f3158ab3acf341a203852240d621e88/packages/std/src/index.ts#L180)
+Defined in: [index.ts:181](https://github.com/denislibs/continuum/blob/a6efe14ab8b1da85f964b151c4700e6197236815/packages/std/src/index.ts#L181)
 
 Turn a stream of requests into a behavior tracking the async lifecycle
 (`idle → loading → ok | error`). Requests are stamped with a sequence number,

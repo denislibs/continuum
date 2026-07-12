@@ -20,9 +20,11 @@ The consequences follow: no re-renders → no deps arrays, no `memo`, no
 ## Why switch, honestly
 
 If all you want is "React but faster", Solid already does that — and
-switching frameworks for a benchmark is rarely worth it. Continuum earns the
-switch with the part the others don't have: **change is data**. Every user
-action is an occurrence in a stream; state is a fold over that stream. That
+switching frameworks for a benchmark is rarely worth it. Most people arrive
+here chasing less boilerplate — no deps arrays, no `memo`, no re-renders —
+and that part delivers on page one. But it's not why you stay. You stay for
+the part the others don't have: **change is data**. Every user action is an
+occurrence in a stream; state is a fold over that stream. That
 one idea turns whole libraries into one-liners — undo/redo is a second fold
 over the same actions, persistence is a mirror of the folded value,
 cross-tab sync is one more dispatcher into the same reducer, and search
@@ -50,6 +52,27 @@ this is the framework that treats the story as a first-class value.
 | `useSyncExternalStore`       | `State.fromPoll` / `state`            | the outside world enters as a state                                          |
 | `onClick={handler}`          | `onClick={clicks.fire}`               | the event flows into the FRP network, not into setState                      |
 | StrictMode double-render     | —                                     | nothing re-runs — nothing to double-check                                    |
+
+## What React has no column for
+
+The table maps constructs one-to-one. Three things have no left-hand side
+at all:
+
+- **A command stream.** `useReducer` gives you the reducer but never the
+  actions themselves as a value. Here `stream<Action>()` is a first-class
+  object: fold it into state, fold it _again_ into an undo history, mirror
+  it into storage, replay it in a test. One stream, as many folds as you
+  have features.
+- **Transactions.** React 18 batches updates as a performance detail. Here
+  `batch(() => { a.set(1); b.set(2); })` is a model of simultaneity: both
+  changes are one moment, every derived value updates in a single atomic
+  step, and no observer can see half of it — an engine law, not a best
+  practice.
+- **Time as data.** "The previous value", "the value once typing settles",
+  "the whole history" — in React each is a ref plus an effect plus a
+  cleanup. Here each is one expression: `previous(price, 0)`,
+  `debounce(query.updates, 300)`, `actions.accum(…)`. Time is something you
+  compute with, not something you fight.
 
 ---
 

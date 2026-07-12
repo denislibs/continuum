@@ -2,7 +2,7 @@
 // the first occurrence wins, later duplicates are ignored. Pinned here.
 import { describe, test, expect, afterEach } from "vitest";
 import { mount, Each } from "@continuum-js/dom";
-import { newBehavior } from "@continuum-js/frp";
+import { state } from "@continuum-js/frp";
 
 let unmounts: Array<() => void> = [];
 afterEach(() => {
@@ -12,8 +12,9 @@ afterEach(() => {
 
 type Item = { id: number; text: string };
 
-function render(items: Parameters<typeof newBehavior<Item[]>>[0]) {
-  const [list, setList] = newBehavior<Item[]>(items);
+function render(items: Item[]) {
+  const list = state<Item[]>(items);
+  const setList = list.set;
   const container = document.createElement("div");
   unmounts.push(
     mount(container, () => (

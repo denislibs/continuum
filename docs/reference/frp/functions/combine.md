@@ -10,7 +10,7 @@
 
 > **combine**\<`A`, `B`, `R`\>(`a`, `b`, `f`): [`State`](../classes/State.md)\<`R`\>
 
-Defined in: [index.ts:1581](https://github.com/denislibs/continuum/blob/f5ae47f16f3158ab3acf341a203852240d621e88/packages/frp/src/index.ts#L1581)
+Defined in: [index.ts:1535](https://github.com/denislibs/continuum/blob/a6efe14ab8b1da85f964b151c4700e6197236815/packages/frp/src/index.ts#L1535)
 
 Combine states pointwise — the join of the graph. Data first, the combiner
 last; simultaneous updates coalesce into ONE recompute per moment
@@ -52,7 +52,7 @@ last; simultaneous updates coalesce into ONE recompute per moment
 
 > **combine**\<`A`, `B`, `C`, `R`\>(`a`, `b`, `c`, `f`): [`State`](../classes/State.md)\<`R`\>
 
-Defined in: [index.ts:1586](https://github.com/denislibs/continuum/blob/f5ae47f16f3158ab3acf341a203852240d621e88/packages/frp/src/index.ts#L1586)
+Defined in: [index.ts:1540](https://github.com/denislibs/continuum/blob/a6efe14ab8b1da85f964b151c4700e6197236815/packages/frp/src/index.ts#L1540)
 
 Combine states pointwise — the join of the graph. Data first, the combiner
 last; simultaneous updates coalesce into ONE recompute per moment
@@ -102,7 +102,7 @@ last; simultaneous updates coalesce into ONE recompute per moment
 
 > **combine**\<`A`, `B`, `C`, `D`, `R`\>(`a`, `b`, `c`, `d`, `f`): [`State`](../classes/State.md)\<`R`\>
 
-Defined in: [index.ts:1592](https://github.com/denislibs/continuum/blob/f5ae47f16f3158ab3acf341a203852240d621e88/packages/frp/src/index.ts#L1592)
+Defined in: [index.ts:1546](https://github.com/denislibs/continuum/blob/a6efe14ab8b1da85f964b151c4700e6197236815/packages/frp/src/index.ts#L1546)
 
 Combine states pointwise — the join of the graph. Data first, the combiner
 last; simultaneous updates coalesce into ONE recompute per moment
@@ -160,7 +160,7 @@ last; simultaneous updates coalesce into ONE recompute per moment
 
 > **combine**\<`A`, `B`, `C`, `D`, `E`, `R`\>(`a`, `b`, `c`, `d`, `e`, `f`): [`State`](../classes/State.md)\<`R`\>
 
-Defined in: [index.ts:1599](https://github.com/denislibs/continuum/blob/f5ae47f16f3158ab3acf341a203852240d621e88/packages/frp/src/index.ts#L1599)
+Defined in: [index.ts:1553](https://github.com/denislibs/continuum/blob/a6efe14ab8b1da85f964b151c4700e6197236815/packages/frp/src/index.ts#L1553)
 
 Combine states pointwise — the join of the graph. Data first, the combiner
 last; simultaneous updates coalesce into ONE recompute per moment

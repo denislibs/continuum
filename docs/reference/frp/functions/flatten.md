@@ -10,7 +10,7 @@
 
 > **flatten**\<`A`\>(`w`): [`State`](../classes/State.md)\<`A`\>
 
-Defined in: [index.ts:1625](https://github.com/denislibs/continuum/blob/f5ae47f16f3158ab3acf341a203852240d621e88/packages/frp/src/index.ts#L1625)
+Defined in: [index.ts:1579](https://github.com/denislibs/continuum/blob/a6efe14ab8b1da85f964b151c4700e6197236815/packages/frp/src/index.ts#L1579)
 
 Follow the state (or stream) currently selected by an outer state —
 `State<State<A>> → State<A>` and `State<Stream<A>> → Stream<A>` under one
@@ -36,7 +36,7 @@ name. The switch commits at the moment boundary (see FRP-MODEL §6).
 
 > **flatten**\<`A`\>(`w`): [`Stream`](../classes/Stream.md)\<`A`\>
 
-Defined in: [index.ts:1626](https://github.com/denislibs/continuum/blob/f5ae47f16f3158ab3acf341a203852240d621e88/packages/frp/src/index.ts#L1626)
+Defined in: [index.ts:1580](https://github.com/denislibs/continuum/blob/a6efe14ab8b1da85f964b151c4700e6197236815/packages/frp/src/index.ts#L1580)
 
 Follow the state (or stream) currently selected by an outer state —
 `State<State<A>> → State<A>` and `State<Stream<A>> → Stream<A>` under one

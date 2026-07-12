@@ -4,7 +4,7 @@
 // `Stream`/`newStream` are the names; `Event`/`newEvent` stay as deprecated
 // aliases until 1.0.
 import { describe, test, expect } from "vitest";
-import { root, Stream, newStream, Event, newEvent } from "@continuum-js/frp";
+import { Stream, newStream } from "@continuum-js/frp";
 
 describe("Stream naming", () => {
   test("newStream creates a working source", () => {
@@ -25,20 +25,5 @@ describe("Stream naming", () => {
     fireA(7);
     un();
     expect(seen).toEqual([7]);
-  });
-
-  test("deprecated aliases are the same objects, not copies", () => {
-    expect(Event).toBe(Stream);
-    expect(newEvent).toBe(newStream);
-  });
-
-  test("old-name code keeps working until 1.0", () => {
-    const [e, fire] = newEvent<string>();
-    const held = root(() => e.hold("start"));
-    // the alias is usable in type position too
-    const typed: Event<string> = e;
-    void typed;
-    fire("next");
-    expect(held.sample()).toBe("next");
   });
 });

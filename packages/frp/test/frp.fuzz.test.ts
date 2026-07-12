@@ -14,11 +14,13 @@ import { describe, test, expect } from "vitest";
 import fc from "fast-check";
 import {
   newStream,
-  newBehavior,
+  state,
   batch,
   root,
   Stream,
-  Behavior,
+  State,
+  combine,
+  flatten,
 } from "@continuum-js/frp";
 
 // Pure pools — combinator callbacks must not close over mutable state.
@@ -74,7 +76,7 @@ type Op =
 interface Built {
   fires: Array<(v: number) => void>;
   sets: Array<(v: number) => void>;
-  states: Array<{ w: Behavior<number>; pure: boolean }>;
+  states: Array<{ w: State<number>; pure: boolean }>;
   streams: Array<{ s: Stream<number>; pure: boolean }>;
   /** Source indices that feed a boom node (abortFire targets). */
   boomSrcs: number[];
@@ -94,7 +96,8 @@ function build(spec: GraphSpec): Built {
     g.fires.push(fire);
   }
   for (let i = 0; i < spec.nCells; i++) {
-    const [w, set] = newBehavior(i);
+    const w = state(i);
+    const set = w.set;
     g.states.push({ w, pure: true }); // sources are pinned — churn-safe
     g.sets.push(set);
   }
@@ -128,7 +131,7 @@ function build(spec: GraphSpec): Built {
         const e = pickS(n.e);
         const w = pickW(n.w);
         g.streams.push({
-          s: e.s.snapshot(w.w, (a, b) => a * 17 + b),
+          s: w.w.at(e.s, (b, a) => a * 17 + b),
           pure: e.pure,
         });
         break;
@@ -167,7 +170,7 @@ function build(spec: GraphSpec): Built {
         const a = pickW(n.a);
         const b = pickW(n.b);
         g.states.push({
-          w: Behavior.lift2((x, y) => x * 13 + y, a.w, b.w),
+          w: combine(a.w, b.w, (x, y) => x * 13 + y),
           pure: a.pure && b.pure,
         });
         break;
@@ -180,7 +183,7 @@ function build(spec: GraphSpec): Built {
         const wb = pickW(n.b);
         const chooser = pickW(n.sel);
         const sel = chooser.w.map((v) => (v % 2 === 0 ? wa.w : wb.w));
-        g.states.push({ w: Behavior.switchB(sel), pure: true });
+        g.states.push({ w: flatten(sel), pure: true });
         break;
       }
     }
@@ -459,7 +462,8 @@ describe("fuzz seeds — known law violations (flip to test() in their phase)", 
   });
 
   test("[фаза 5 ✓] an aborted batch does not poison the cell's equality skip (law 2)", () => {
-    const [b, setB] = newBehavior(1);
+    const b = state(1);
+    const setB = b.set;
     const [other] = newStream<number>();
     let armed = true;
     const bomb = Stream.merge(b.updates, other, (l) => l).map((x) => {
@@ -476,10 +480,12 @@ describe("fuzz seeds — known law violations (flip to test() in their phase)", 
   });
 
   test("[фаза 5 ✓] a combine woken inside a batch body reseeds from committed values (law 1)", () => {
-    const [a, setA] = newBehavior(1);
-    const [b, setB] = newBehavior(10);
+    const a = state(1);
+    const setA = a.set;
+    const b = state(10);
+    const setB = b.set;
     setB(20);
-    const sum = Behavior.lift2((x, y) => x + y, a, b);
+    const sum = combine(a, b, (x, y) => x + y);
     const seen: number[] = [];
     batch(() => {
       sum.listen((v) => seen.push(v)); // wake mid-moment
@@ -490,10 +496,12 @@ describe("fuzz seeds — known law violations (flip to test() in their phase)", 
   });
 
   test("[фаза 6 ✓] flatten converges on simultaneous switch + inner update (law 1)", () => {
-    const [x] = newBehavior(1);
-    const [y, setY] = newBehavior(10);
-    const [sel, setSel] = newBehavior<Behavior<number>>(x);
-    const sw = Behavior.switchB(sel);
+    const x = state(1);
+    const y = state(10);
+    const setY = y.set;
+    const sel = state<State<number>>(x);
+    const setSel = sel.set;
+    const sw = flatten(sel);
     const seen: number[] = [];
     sw.listen((v) => seen.push(v));
     batch(() => {
@@ -504,7 +512,8 @@ describe("fuzz seeds — known law violations (flip to test() in their phase)", 
   });
 
   test("[фаза 6 ✓] a cell delivers ONE coalesced updates occurrence per moment", () => {
-    const [b, setB] = newBehavior(0);
+    const b = state(0);
+    const setB = b.set;
     const seen: number[] = [];
     b.updates.listen((v) => seen.push(v));
     batch(() => {

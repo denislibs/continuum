@@ -8,7 +8,7 @@
 
 > **time**(): [`State`](../classes/State.md)\<`number`\>
 
-Defined in: [index.ts:1646](https://github.com/denislibs/continuum/blob/f5ae47f16f3158ab3acf341a203852240d621e88/packages/frp/src/index.ts#L1646)
+Defined in: [index.ts:1600](https://github.com/denislibs/continuum/blob/a6efe14ab8b1da85f964b151c4700e6197236815/packages/frp/src/index.ts#L1600)
 
 Continuous wall-clock behavior (milliseconds), sampled on demand.
 

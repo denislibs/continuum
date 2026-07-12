@@ -1,10 +1,11 @@
 import { describe, test, expect } from "vitest";
 import { mount, dyn, each, onCleanup } from "@continuum-js/dom";
-import { newBehavior } from "@continuum-js/frp";
+import { state } from "@continuum-js/frp";
 
 describe("dyn", () => {
   test("swaps the subtree when the behavior changes", () => {
-    const [b, set] = newBehavior("a");
+    const b = state("a");
+    const set = b.set;
     const container = document.createElement("div");
     mount(container, () => dyn(b, (v) => <span>{v}</span>));
     expect(container.textContent).toBe("a");
@@ -13,7 +14,8 @@ describe("dyn", () => {
   });
 
   test("disposes the old subtree's cleanups on switch", () => {
-    const [b, set] = newBehavior("a");
+    const b = state("a");
+    const set = b.set;
     const log: string[] = [];
     const container = document.createElement("div");
     mount(container, () =>
@@ -30,7 +32,7 @@ describe("dyn", () => {
   });
 
   test("unmount disposes the active subtree", () => {
-    const [b] = newBehavior("a");
+    const b = state("a");
     const log: string[] = [];
     const container = document.createElement("div");
     const unmount = mount(container, () =>
@@ -46,7 +48,7 @@ describe("dyn", () => {
 
 describe("each", () => {
   test("renders a keyed list", () => {
-    const [items] = newBehavior([{ id: 1 }, { id: 2 }, { id: 3 }]);
+    const items = state([{ id: 1 }, { id: 2 }, { id: 3 }]);
     const container = document.createElement("div");
     mount(container, () =>
       each(
@@ -60,7 +62,8 @@ describe("each", () => {
   });
 
   test("adds and removes keys", () => {
-    const [items, setItems] = newBehavior([{ id: 1 }, { id: 2 }]);
+    const items = state([{ id: 1 }, { id: 2 }]);
+    const setItems = items.set;
     const container = document.createElement("div");
     mount(container, () =>
       each(
@@ -77,7 +80,8 @@ describe("each", () => {
   });
 
   test("reuses DOM nodes for kept keys across reorder", () => {
-    const [items, setItems] = newBehavior([{ id: 1 }, { id: 2 }, { id: 3 }]);
+    const items = state([{ id: 1 }, { id: 2 }, { id: 3 }]);
+    const setItems = items.set;
     const container = document.createElement("div");
     mount(container, () =>
       each(
@@ -95,7 +99,8 @@ describe("each", () => {
 
   test("renders each row's content only once (no re-render on reorder)", () => {
     let renders = 0;
-    const [items, setItems] = newBehavior([{ id: 1 }, { id: 2 }]);
+    const items = state([{ id: 1 }, { id: 2 }]);
+    const setItems = items.set;
     const container = document.createElement("div");
     mount(container, () =>
       each(
@@ -116,7 +121,8 @@ describe("each", () => {
 
   test("disposes cleanups of removed rows", () => {
     const log: string[] = [];
-    const [items, setItems] = newBehavior([{ id: 1 }, { id: 2 }, { id: 3 }]);
+    const items = state([{ id: 1 }, { id: 2 }, { id: 3 }]);
+    const setItems = items.set;
     const container = document.createElement("div");
     mount(container, () =>
       each(

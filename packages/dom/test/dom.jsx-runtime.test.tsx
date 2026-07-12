@@ -2,11 +2,12 @@ import { describe, test, expect } from "vitest";
 // NOTE: no `import { h }` — the automatic JSX runtime supplies it.
 import { mount, Show } from "@continuum-js/dom";
 import { jsx, jsxs, Fragment } from "@continuum-js/dom/jsx-runtime";
-import { newBehavior } from "@continuum-js/frp";
+import { state } from "@continuum-js/frp";
 
 describe("automatic JSX runtime", () => {
   test("JSX works without importing h", () => {
-    const [name, setName] = newBehavior("world");
+    const name = state("world");
+    const setName = name.set;
     const container = document.createElement("div");
     mount(container, () => <h1 class="title">hello {name}</h1>);
     const h1 = container.querySelector("h1")!;
@@ -17,7 +18,8 @@ describe("automatic JSX runtime", () => {
   });
 
   test("components and control-flow still work without h", () => {
-    const [on, setOn] = newBehavior(true);
+    const on = state(true);
+    const setOn = on.set;
     const container = document.createElement("div");
     mount(container, () => (
       <Show when={on} fallback={() => <span>off</span>}>

@@ -136,12 +136,13 @@ writeFileSync(
 // Hello-world touching all three packages + automatic JSX runtime.
 writeFileSync(
   join(app, "src", "main.tsx"),
-  `import { newBehavior, type Behavior } from "@continuum-js/frp";
+  `import { state, type State } from "@continuum-js/frp";
 import { mount } from "@continuum-js/dom";
 import { count } from "@continuum-js/std";
 
-const [n, setN] = newBehavior(0);
-const label: Behavior<string> = n.map((v) => \`clicks: \${v}\`);
+const n = state(0);
+const setN = n.set;
+const label: State<string> = n.map((v: number) => \`clicks: \${v}\`);
 
 function App() {
   return (
@@ -174,7 +175,7 @@ const nodeCheck = (pkg, name) =>
     ],
     app,
   );
-nodeCheck("@continuum-js/frp", "newBehavior");
+nodeCheck("@continuum-js/frp", "state");
 nodeCheck("@continuum-js/std", "debounce");
 
 // ─── 4. create-continuum-js e2e ────────────────────────────────────────────

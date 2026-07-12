@@ -8,7 +8,7 @@
 
 > **Show**\<`T`\>(`props`): `Node`
 
-Defined in: [index.tsx:997](https://github.com/denislibs/continuum/blob/f5ae47f16f3158ab3acf341a203852240d621e88/packages/dom/src/index.tsx#L997)
+Defined in: [index.tsx:1004](https://github.com/denislibs/continuum/blob/a6efe14ab8b1da85f964b151c4700e6197236815/packages/dom/src/index.tsx#L1004)
 
 Conditional region. Rebuilds only when the truthiness of `when` toggles; the
 (narrowed) value is passed to the children render function at build time.

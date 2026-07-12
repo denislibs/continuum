@@ -6,10 +6,11 @@ import { describe, test, expect } from "vitest";
 import {
   root,
   newStream,
-  newBehavior,
+  state,
   batch,
-  Behavior,
   Stream,
+  combine,
+  flatten,
 } from "@continuum-js/frp";
 
 describe("lazy activation — pure derivations", () => {
@@ -96,8 +97,9 @@ describe("lazy activation — pure derivations", () => {
     expect(calls).toBe(2); // nobody left
   });
 
-  test("sample() answers correctly on a completely cold Behavior chain", () => {
-    const [b, set] = newBehavior(2);
+  test("sample() answers correctly on a completely cold State chain", () => {
+    const b = state(2);
+    const set = b.set;
     const derived = b.map((x) => x * 10).map((x) => x + 1);
     expect(derived.sample()).toBe(21); // pull needs no subscription
     set(5);
@@ -168,9 +170,11 @@ describe("lazy activation — stateful nodes stay eager", () => {
 
 describe("lazy activation — lift caches reseed on wake", () => {
   test("inputs changed while cold are picked up when the node wakes", () => {
-    const [a, setA] = newBehavior(1);
-    const [b, setB] = newBehavior(10);
-    const sum = Behavior.lift2((x, y) => x + y, a, b);
+    const a = state(1);
+    const setA = a.set;
+    const b = state(10);
+    const setB = b.set;
+    const sum = combine(a, b, (x, y) => x + y);
     // change inputs while sum is COLD
     setA(2);
     setB(20);
@@ -184,10 +188,11 @@ describe("lazy activation — lift caches reseed on wake", () => {
   });
 
   test("glitch-freedom survives a sleep/wake cycle (diamond)", () => {
-    const [n, setN] = newBehavior(2);
+    const n = state(2);
+    const setN = n.set;
     const d = n.map((x) => x * 2);
     const s = n.map((x) => x * x);
-    const sum = Behavior.lift2((x, y) => x + y, d, s);
+    const sum = combine(d, s, (x, y) => x + y);
     const un = sum.listen(() => {});
     un(); // sleep
     setN(3); // changes while cold
@@ -212,14 +217,17 @@ describe("lazy activation — wake robustness", () => {
   test("a lift2 woken by a last-phase rewire reseeds from COMMITTED values", () => {
     // the input hold's commit is scheduled AFTER the switch rewire (its
     // rank is higher), so an eager reseed would read the pre-moment value
-    const [raw, setRaw] = newBehavior(1);
+    const raw = state(1);
+    const setRaw = raw.set;
     const derived = raw.map((x) => x);
-    const [other, setOther] = newBehavior(100);
-    const cold = Behavior.lift2((a, b) => a + b, derived, other);
+    const other = state(100);
+    const setOther = other.set;
+    const cold = combine(derived, other, (a, b) => a + b);
 
     const [dummy] = newStream<number>();
-    const [sel, setSel] = newBehavior<Stream<number>>(dummy);
-    const out = Behavior.switchE(sel);
+    const sel = state<Stream<number>>(dummy);
+    const setSel = sel.set;
+    const out = flatten(sel);
     const seen: number[] = [];
     out.listen((v) => seen.push(v));
 

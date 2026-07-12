@@ -148,19 +148,19 @@ const effectiveClicks = saveClicks.when(saving.map((s) => !s));
 The stream simply has no occurrences while the condition is false —
 downstream code doesn't need `if (saving) return` sprinkled everywhere.
 
-### 7. Only changes — `distinct` / `distinctB`
+### 7. Only changes — `distinct` / `dedupe`
 
 **When:** a noisy source repeats the same value.
 
 ```ts
 import { distinct } from "@continuum-js/frp";
-import { distinctB } from "@continuum-js/std";
+import { dedupe } from "@continuum-js/std";
 
 const realMoves = distinct(moves); // Stream: drop consecutive equals
-const stableTheme = distinctB(theme); // State: suppress no-op updates
+const stableTheme = dedupe(theme); // State: suppress no-op updates
 ```
 
-`distinctB` is how you stop a `dyn`/`<Dynamic>` region from rebuilding on
+`dedupe` is how you stop a `dyn`/`<Dynamic>` region from rebuilding on
 same-value writes.
 
 ### 8. Previous + current — `pairwise` and `previous`

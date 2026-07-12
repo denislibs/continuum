@@ -8,7 +8,7 @@
 
 > **newStream**\<`A`\>(): \[[`Stream`](../classes/Stream.md)\<`A`\>, (`a`) => `void`\]
 
-Defined in: [index.ts:1295](https://github.com/denislibs/continuum/blob/f5ae47f16f3158ab3acf341a203852240d621e88/packages/frp/src/index.ts#L1295)
+Defined in: [index.ts:1263](https://github.com/denislibs/continuum/blob/a6efe14ab8b1da85f964b151c4700e6197236815/packages/frp/src/index.ts#L1263)
 
 A source event plus its `fire`. Each `fire` opens a fresh moment.
 

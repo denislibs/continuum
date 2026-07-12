@@ -1,5 +1,5 @@
 import { describe, test, expect } from "vitest";
-import { Stream, newStream, newBehavior, Behavior } from "@continuum-js/frp";
+import { Stream, newStream, state, flatten } from "@continuum-js/frp";
 
 describe("rank maintenance (ensureBiggerThan)", () => {
   test("subscribing a low-rank node under a high-rank source bumps it and propagates", () => {
@@ -34,8 +34,9 @@ describe("rank maintenance (ensureBiggerThan)", () => {
       .map((x) => x)
       .map((x) => x); // rank ~4
 
-    const [sel, setSel] = newBehavior<Stream<number>>(shallow);
-    const out = Behavior.switchE(sel);
+    const sel = state<Stream<number>>(shallow);
+    const setSel = sel.set;
+    const out = flatten(sel);
 
     const seen: number[] = [];
     out.listen((v) => seen.push(v));
@@ -85,8 +86,9 @@ describe("long-run rank stability (§14 #6)", () => {
     let deep: Stream<number> = deepSrc;
     for (let i = 0; i < 40; i++) deep = deep.map((x) => x);
 
-    const [sel, setSel] = newBehavior<Stream<number>>(shallow);
-    const out = Behavior.switchE(sel);
+    const sel = state<Stream<number>>(shallow);
+    const setSel = sel.set;
+    const out = flatten(sel);
     const un = out.listen(() => {});
 
     setSel(deep); // rank must climb above the deep chain
@@ -101,10 +103,12 @@ describe("long-run rank stability (§14 #6)", () => {
     // output. Before dead targets were refcounted away, this ratcheted ranks
     // upward forever (each round +4, unbounded); with only live edges left,
     // the ordinary cycle detector sees the truth and throws immediately.
-    const [selA, setSelA] = newBehavior<Stream<number>>(newStream<number>()[0]);
-    const [selB, setSelB] = newBehavior<Stream<number>>(newStream<number>()[0]);
-    const swA = Behavior.switchE(selA);
-    const swB = Behavior.switchE(selB);
+    const selA = state<Stream<number>>(newStream<number>()[0]);
+    const setSelA = selA.set;
+    const selB = state<Stream<number>>(newStream<number>()[0]);
+    const setSelB = selB.set;
+    const swA = flatten(selA);
+    const swB = flatten(selB);
     const unA = swA.listen(() => {});
     const unB = swB.listen(() => {});
 

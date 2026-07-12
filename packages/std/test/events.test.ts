@@ -7,7 +7,7 @@ import {
   count,
   sampleWith,
 } from "@continuum-js/std";
-import { newBehavior } from "@continuum-js/frp";
+import { state } from "@continuum-js/frp";
 
 describe("event combinators", () => {
   test("filterMap maps and drops null/undefined results", () => {
@@ -61,7 +61,8 @@ describe("event combinators", () => {
   });
 
   test("sampleWith reads the behavior's value at each trigger", () => {
-    const [b, setB] = newBehavior("a");
+    const b = state("a");
+    const setB = b.set;
     const [trigger, fire] = newStream<void>();
     const seen: string[] = [];
     sampleWith(trigger, b).listen((v) => seen.push(v));

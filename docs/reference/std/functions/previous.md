@@ -8,7 +8,7 @@
 
 > **previous**\<`A`\>(`b`, `init`): `State`\<`A`\>
 
-Defined in: [index.ts:139](https://github.com/denislibs/continuum/blob/f5ae47f16f3158ab3acf341a203852240d621e88/packages/std/src/index.ts#L139)
+Defined in: [index.ts:139](https://github.com/denislibs/continuum/blob/a6efe14ab8b1da85f964b151c4700e6197236815/packages/std/src/index.ts#L139)
 
 A behavior lagging one step behind `b` (its value before the latest change).
 
