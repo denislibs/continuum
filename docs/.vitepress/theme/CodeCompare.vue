@@ -54,8 +54,8 @@ function Counter() {
     ><code>{{ tab === "react" ? react : continuum }}</code></pre>
     <p class="cn-cmp__note" v-if="tab === 'react'">
       <template v-if="ru"
-        >Перевыполняется сверху вниз на каждое изменение;
-        <code>double</code> пересчитывается, дерево диффится.</template
+        >React заново выполняет весь компонент на каждое изменение и сравнивает
+        старую разметку с новой.</template
       >
       <template v-else
         >Re-runs top to bottom on every change; <code>double</code> is
@@ -64,9 +64,9 @@ function Counter() {
     </p>
     <p class="cn-cmp__note" v-else>
       <template v-if="ru"
-        >Выполняется <strong>один раз</strong>. <code>double</code> — формула,
-        привязанная к <code>count</code>; клик патчит ровно два текстовых узла —
-        без ре-рендера и диффа.</template
+        >Выполняется <strong>один раз</strong>. <code>double</code> сам
+        пересчитывается из <code>count</code>, а по клику меняются ровно два
+        числа на экране — без перерисовки.</template
       >
       <template v-else
         >Runs <strong>once</strong>. <code>double</code> is a formula wired to
