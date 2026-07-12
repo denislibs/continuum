@@ -1,20 +1,20 @@
 # @continuum-js/dom
 
 Тонкий fine-grained рендерер поверх [`@continuum-js/frp`](../frp). Отображает
-`Wire`/`Stream` в реальные DOM-узлы с точечными обновлениями; работает с
+`State`/`Stream` в реальные DOM-узлы с точечными обновлениями; работает с
 обычным JSX через **автоматический рантайм** (`import { h }` не нужен).
 
 ```tsx
-import { wire } from "@continuum-js/frp";
+import { state } from "@continuum-js/frp";
 import { mount } from "@continuum-js/dom";
 
-const name = wire("world");
+const name = state("world");
 mount(document.body, () => <h1>hello {name}</h1>);
 name.set("continuum"); // патчится один текст-узел
 ```
 
-- **`h` / `Fragment`** — JSX-фабрика; компонент вызывается один раз. `Wire`
-  в детях → живой текст-узел; `Wire` в пропсах → живой атрибут/свойство;
+- **`h` / `Fragment`** — JSX-фабрика; компонент вызывается один раз. `State`
+  в детях → живой текст-узел; `State` в пропсах → живой атрибут/свойство;
   `on*` → DOM-слушатель.
 - **`dyn(b, render)`** — условное/переключаемое поддерево.
 - **`each(items, key, render)`** — keyed-список с LIS-диффингом и сохранением

@@ -14,7 +14,7 @@
 ## Общая родословная: пол-идеи FRP
 
 В 1997 году Конал Эллиотт и Пол Худак описали FRP: **два** типа —
-`Behavior` (значение во времени; в Continuum он называется Wire, «провод»)
+`Behavior` (значение во времени; в Continuum он называется State)
 и `Stream` (дискретные происшествия) — с точной математической семантикой
 композиции.
 
@@ -62,7 +62,7 @@ const count$ = clicks$.pipe(
 утечку от `shareReplay`, а баг «состояние сбросилось, потому что все
 отписались на мгновение» не чинит уже ничто — его просто ловят в проде.
 
-В Continuum «текущее значение» — это отдельный тип, `Wire` (тот самый
+В Continuum «текущее значение» — это отдельный тип, `State` (тот самый
 Behavior из FRP-литературы):
 
 ```ts
@@ -81,7 +81,7 @@ const count = clicks.accum(0, (_e, n) => n + 1);
 Правило перевода простое:
 
 > Если ваш поток заканчивается на `scan`/`startWith`/`shareReplay` или
-> начинается с `BehaviorSubject` — это был не поток. Это был Wire,
+> начинается с `BehaviorSubject` — это был не поток. Это был State,
 > который заставили притворяться потоком.
 
 ## Различие №2: глитчи — не баг вашего кода, а свойство модели Rx
@@ -180,10 +180,10 @@ function Ticker() {
 | RxJS                              | Continuum                      | Комментарий                      |
 | --------------------------------- | ------------------------------ | -------------------------------- |
 | `map`, `filter`                   | `e.map`, `e.filter`            | так же                           |
-| `scan(f, init)`                   | `e.accum(init, f)`             | результат — сразу Wire           |
+| `scan(f, init)`                   | `e.accum(init, f)`             | результат — сразу State          |
 | `startWith(x)` + `shareReplay(1)` | `e.hold(x)`                    | одно слово вместо церемонии      |
 | `combineLatest`                   | `combine(a, b, f)`             | без глитчей                      |
-| `withLatestFrom(b$)`              | `w.at(e, f)`                   | с точной одновременностью        |
+| `withLatestFrom(b$)`              | `s.at(e, f)`                   | с точной одновременностью        |
 | `merge(a$, b$)`                   | `Stream.merge(a, b, f)`        | одновременные коалесцируются `f` |
 | `race(a$, b$)`-ish                | `a.or(b)`                      | лево-приоритетный                |
 | `debounceTime(ms)`                | `debounce(e, ms)`              | std                              |
@@ -193,8 +193,8 @@ function Ticker() {
 | `distinctUntilChanged()`          | `distinct(e)` / `distinctB(b)` | std                              |
 | `pairwise()`                      | `pairwise(e)`                  | std                              |
 | `take(1)` / `first()`             | `e.once()`                     |                                  |
-| `filter(() => flag)`              | `e.when(flag)`                 | флаг — Wire, не замыкание        |
-| `BehaviorSubject`                 | `wire(init)`                   | _тип_, а не костыль              |
+| `filter(() => flag)`              | `e.when(flag)`                 | флаг — State, не замыкание       |
+| `BehaviorSubject`                 | `state(init)`                  | _тип_, а не костыль              |
 | `Subject`                         | `stream()`                     |                                  |
 | `switchMap(fetch)`                | `resource(e, fetch)`           | см. ниже                         |
 | `subscribe`                       | `listen` + `onCleanup`         | или вообще привязка в JSX        |
@@ -229,7 +229,7 @@ Continuum сворачивает весь этот узор в одну функ
 // Continuum
 const settled = debounce(query.updates, 300);
 const results = resource(settled, (q) => api.search(q));
-// Wire<Async<T>>: { status: "idle" | "loading" | "ok" | "error" }
+// State<Async<T>>: { status: "idle" | "loading" | "ok" | "error" }
 ```
 
 `resource` — это и есть «switchMap для UI»: последний запрос побеждает
@@ -289,7 +289,7 @@ Continuum — не «RxJS получше». Это UI-фреймворк, в к�
 
 - [Что такое FRP — на пальцах](/ru/frp-in-plain-words) — если хочется
   понять модель с нуля;
-- [Streams](/ru/concepts/events) и [Wires](/ru/concepts/behaviors) —
+- [Streams](/ru/concepts/events) и [States](/ru/concepts/behaviors) —
   строгие определения обеих половин;
 - [Транзакции и время](/ru/concepts/transactions) — как именно устроено
   «без глитчей»;

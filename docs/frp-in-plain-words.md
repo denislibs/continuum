@@ -39,12 +39,12 @@ FRP solves it the Excel way: **don't redraw — connect**.
 
 ## The three words you need
 
-**A reactive value** (in code: `Wire`). This is the Excel cell: it
+**A reactive value** (in code: `State`). This is the Excel cell: it
 always has a current value, and everything that depends on it updates by
 itself. The text of an input, a counter, the current user.
 
 ```ts
-const count = wire(0); // a cell holding 0
+const count = state(0); // a cell holding 0
 ```
 
 **A derived value** — the formula. Not stored, computed from others:
@@ -59,7 +59,7 @@ value" — it either happened or it didn't. As a beginner, plain callbacks
 (`onClick={() => …}`) are all you need; events become useful later, for
 streams like debounced search.
 
-## Stream vs Wire — as plainly as it gets {#event-vs-behavior}
+## Stream vs State — as plainly as it gets {#event-vs-behavior}
 
 Compare two things from everyday life:
 
@@ -70,17 +70,17 @@ Compare two things from everyday life:
   "what's the current knock?" is a meaningless question. What makes sense
   is "did someone knock?" and "what do we do when they knock?".
 
-The temperature is a **Wire**. The knock is a **Stream**. The whole
+The temperature is a **State**. The knock is a **Stream**. The whole
 difference is which question you are asking:
 
 | Question                                         | Type     | Examples                                                                 |
 | ------------------------------------------------ | -------- | ------------------------------------------------------------------------ |
-| "What is it **right now**?"                      | `Wire`   | text in a field, a counter, the selected tab, "logged in?", window width |
+| "What is it **right now**?"                      | `State`  | text in a field, a counter, the selected tab, "logged in?", window width |
 | "**Did** it happen? What do we do when it does?" | `Stream` | a click, Enter pressed, a server response arrived, a timer ticked        |
 
-The one-sentence test: **if you can draw it on the screen, it's a Wire.
+The one-sentence test: **if you can draw it on the screen, it's a State.
 If you can react to it, it's a Stream.** The number on a button gets drawn —
-Wire. The click itself can't be drawn — it gets reacted to — Stream.
+State. The click itself can't be drawn — it gets reacted to — Stream.
 
 Why not make do with one type? Try stuffing a click into a "cell": what
 value does it hold between clicks? You'd invent a `clicked = true` flag and
@@ -91,9 +91,9 @@ the first one arrives you have no answer at all. Each thing is awkward in
 the other one's skin — which is why there are two types.
 
 They cooperate and convert into each other: "the latest server response" is
-already a _value_ (`responses.hold(null)`: event → Wire), and "the
+already a _value_ (`responses.hold(null)`: event → State), and "the
 moments when the counter changed" is already an _event_ (`count.updates`:
-Wire → event, one occurrence per moment).
+State → event, one occurrence per moment).
 
 ## Where the "functional" comes in
 
@@ -124,7 +124,7 @@ bound to it updates (we call this pinpoint DOM updates).
 
 ```tsx
 function Counter() {
-  const count = wire(0); // a cell
+  const count = state(0); // a cell
   return (
     <button onClick={() => count.update((n) => n + 1)}>
       count: {count} {/* this text is bound to the cell, forever */}
@@ -141,7 +141,7 @@ it has no reason to.
 
 | Excel                           | Continuum               | In plain words                            |
 | ------------------------------- | ----------------------- | ----------------------------------------- |
-| a cell with a value             | `wire(0)`               | a reactive value                          |
+| a cell with a value             | `state(0)`              | a reactive value                          |
 | the formula `=A1*2`             | `count.map(n => n * 2)` | a derived value                           |
 | a formula over two cells        | `combine(a, b, f)`      | derived from several                      |
 | the whole sheet recalcs at once | a transaction           | changes land whole                        |
@@ -153,7 +153,7 @@ it has no reason to.
 - [Concepts](/concepts/components) — one idea per page, in the same plain
   language.
 - Curious how it works inside —
-  [Thinking in Wires and Streams](/tutorial/thinking-in-frp).
+  [Thinking in States and Streams](/tutorial/thinking-in-frp).
 
 ---
 

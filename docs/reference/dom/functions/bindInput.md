@@ -10,7 +10,7 @@
 
 > **bindInput**(`value`): `object`
 
-Defined in: [index.tsx:829](https://github.com/denislibs/continuum/blob/06378b217e7ab47a03a557199f3b883e3c7e30c6/packages/dom/src/index.tsx#L829)
+Defined in: [index.tsx:899](https://github.com/denislibs/continuum/blob/f5ae47f16f3158ab3acf341a203852240d621e88/packages/dom/src/index.tsx#L899)
 
 Two-way binding props for a text input. Spread onto an `<input>`.
 
@@ -18,7 +18,7 @@ Two-way binding props for a text input. Spread onto an `<input>`.
 
 #### value
 
-`WireSource`\<`string`\>
+`StateSource`\<`string`\>
 
 ### Returns
 
@@ -40,13 +40,13 @@ Two-way binding props for a text input. Spread onto an `<input>`.
 
 #### value
 
-> **value**: `Wire`\<`string`\>
+> **value**: `State`\<`string`\>
 
 ## Call Signature
 
 > **bindInput**(`value`, `set`): `object`
 
-Defined in: [index.tsx:833](https://github.com/denislibs/continuum/blob/06378b217e7ab47a03a557199f3b883e3c7e30c6/packages/dom/src/index.tsx#L833)
+Defined in: [index.tsx:903](https://github.com/denislibs/continuum/blob/f5ae47f16f3158ab3acf341a203852240d621e88/packages/dom/src/index.tsx#L903)
 
 Two-way binding props for a text input. Spread onto an `<input>`.
 
@@ -54,7 +54,7 @@ Two-way binding props for a text input. Spread onto an `<input>`.
 
 #### value
 
-`Wire`\<`string`\>
+`State`\<`string`\>
 
 #### set
 
@@ -80,4 +80,4 @@ Two-way binding props for a text input. Spread onto an `<input>`.
 
 #### value
 
-> **value**: `Wire`\<`string`\>
+> **value**: `State`\<`string`\>

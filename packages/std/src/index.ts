@@ -3,7 +3,7 @@
 // real apps: timing, async data, stream shaping, behavior helpers. Nothing here
 // touches internals the core doesn't already expose.
 
-import { Stream, Wire, stream, perform } from "@continuum-js/frp";
+import { Stream, State, stream, perform } from "@continuum-js/frp";
 import type { Unlisten } from "@continuum-js/frp";
 
 // ===========================================================================
@@ -122,21 +122,21 @@ export function partition<A>(
 }
 
 /** A behavior of how many times the event has occurred. */
-export function count(e: Stream<unknown>): Wire<number> {
+export function count(e: Stream<unknown>): State<number> {
   return e.accum(0, (_a, n) => n + 1);
 }
 
 /** Sample `b` at each occurrence of `trigger`, discarding the trigger's value. */
-export function sampleWith<A, B>(trigger: Stream<A>, b: Wire<B>): Stream<B> {
+export function sampleWith<A, B>(trigger: Stream<A>, b: State<B>): Stream<B> {
   return b.at(trigger);
 }
 
 // ===========================================================================
-// Wire helpers.
+// State helpers.
 // ===========================================================================
 
 /** A behavior lagging one step behind `b` (its value before the latest change). */
-export function previous<A>(b: Wire<A>, init: A): Wire<A> {
+export function previous<A>(b: State<A>, init: A): State<A> {
   // At the instant of an update, `b` still samples its pre-commit (prior) value,
   // since `hold` commits at the moment boundary.
   return b.at(b.updates, (old) => old).hold(init);
@@ -144,9 +144,9 @@ export function previous<A>(b: Wire<A>, init: A): Wire<A> {
 
 /** A behavior that suppresses updates equal to the current value (default `Object.is`). */
 export function distinctB<A>(
-  b: Wire<A>,
+  b: State<A>,
   eq: (x: A, y: A) => boolean = Object.is,
-): Wire<A> {
+): State<A> {
   const out = new Stream<A>(b.updates.rank + 1);
   let prev = b.sampleNoTrans();
   b.updates.listen_(out, (t, a) => {
@@ -155,7 +155,7 @@ export function distinctB<A>(
       out.send_(t, a);
     }
   });
-  return new Wire<A>(() => b.sampleNoTrans(), out);
+  return new State<A>(() => b.sampleNoTrans(), out);
 }
 
 // ===========================================================================
@@ -180,7 +180,7 @@ export type Async<T> =
 export function resource<A, T>(
   trigger: Stream<A>,
   fetcher: (arg: A) => Promise<T>,
-): Wire<Async<T>> {
+): State<Async<T>> {
   const requests = trigger.accumE({ seq: 0, arg: null as A }, (arg, prev) => ({
     seq: prev.seq + 1,
     arg,
@@ -241,7 +241,7 @@ export function loadPersisted<T>(
  */
 export function persist<T>(
   key: string,
-  b: Wire<T>,
+  b: State<T>,
   storage: StorageLike | undefined = globalThis.localStorage,
 ): Unlisten {
   if (!storage) return () => {};

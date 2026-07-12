@@ -49,10 +49,10 @@ type NodeSpec =
   | { k: "snapshot"; e: number; w: number }
   | { k: "hold"; src: number; init: number }
   | { k: "accum"; src: number; f: number; init: number }
-  | { k: "wmap"; src: number; f: number } // wire.map
+  | { k: "wmap"; src: number; f: number } // state.map
   | { k: "combine"; a: number; b: number; f: number } // lift2
   | { k: "boom"; src: number } // a map that throws while the bomb is armed
-  | { k: "swb"; sel: number; a: number; b: number }; // flatten over wires
+  | { k: "swb"; sel: number; a: number; b: number }; // flatten over states
 
 interface GraphSpec {
   nStreams: number; // source streams
@@ -74,7 +74,7 @@ type Op =
 interface Built {
   fires: Array<(v: number) => void>;
   sets: Array<(v: number) => void>;
-  wires: Array<{ w: Behavior<number>; pure: boolean }>;
+  states: Array<{ w: Behavior<number>; pure: boolean }>;
   streams: Array<{ s: Stream<number>; pure: boolean }>;
   /** Source indices that feed a boom node (abortFire targets). */
   boomSrcs: number[];
@@ -84,7 +84,7 @@ function build(spec: GraphSpec): Built {
   const g: Built = {
     fires: [],
     sets: [],
-    wires: [],
+    states: [],
     streams: [],
     boomSrcs: [],
   };
@@ -95,11 +95,11 @@ function build(spec: GraphSpec): Built {
   }
   for (let i = 0; i < spec.nCells; i++) {
     const [w, set] = newBehavior(i);
-    g.wires.push({ w, pure: true }); // sources are pinned — churn-safe
+    g.states.push({ w, pure: true }); // sources are pinned — churn-safe
     g.sets.push(set);
   }
   const pickS = (i: number) => g.streams[i % g.streams.length];
-  const pickW = (i: number) => g.wires[i % g.wires.length];
+  const pickW = (i: number) => g.states[i % g.states.length];
   for (const n of spec.nodes) {
     switch (n.k) {
       case "smap": {
@@ -135,12 +135,12 @@ function build(spec: GraphSpec): Built {
       }
       case "hold": {
         const src = pickS(n.src);
-        g.wires.push({ w: src.s.hold(n.init), pure: false });
+        g.states.push({ w: src.s.hold(n.init), pure: false });
         break;
       }
       case "accum": {
         const src = pickS(n.src);
-        g.wires.push({
+        g.states.push({
           w: src.s.accum(n.init ?? 0, (a, acc) => FN[n.f % FN.length](acc + a)),
           pure: false,
         });
@@ -148,7 +148,7 @@ function build(spec: GraphSpec): Built {
       }
       case "wmap": {
         const src = pickW(n.src);
-        g.wires.push({ w: src.w.map(FN[n.f % FN.length]), pure: src.pure });
+        g.states.push({ w: src.w.map(FN[n.f % FN.length]), pure: src.pure });
         break;
       }
       case "boom": {
@@ -166,21 +166,21 @@ function build(spec: GraphSpec): Built {
       case "combine": {
         const a = pickW(n.a);
         const b = pickW(n.b);
-        g.wires.push({
+        g.states.push({
           w: Behavior.lift2((x, y) => x * 13 + y, a.w, b.w),
           pure: a.pure && b.pure,
         });
         break;
       }
       case "swb": {
-        // a numeric wire chooses between two existing wires; flatten follows.
+        // a numeric state chooses between two existing states; flatten follows.
         // Simultaneous switch + inner update in one batch exercises the
         // phase-6 semantics (post-commit emission).
         const wa = pickW(n.a);
         const wb = pickW(n.b);
         const chooser = pickW(n.sel);
         const sel = chooser.w.map((v) => (v % 2 === 0 ? wa.w : wb.w));
-        g.wires.push({ w: Behavior.switchB(sel), pure: true });
+        g.states.push({ w: Behavior.switchB(sel), pure: true });
         break;
       }
     }
@@ -311,10 +311,10 @@ function runTwinsIn(spec: GraphSpec, ops: Op[]): void {
   const cold = build(spec);
 
   // The warm twin observes EVERYTHING from the start; `last[i]` is the most
-  // recent pushed value per wire — the push side of law 1.
+  // recent pushed value per state — the push side of law 1.
   const last: number[] = [];
   const undos: Array<() => void> = [];
-  warm.wires.forEach(({ w }, i) => {
+  warm.states.forEach(({ w }, i) => {
     undos.push(w.listen((v) => (last[i] = v)));
   });
   warm.streams.forEach(({ s }) => {
@@ -325,11 +325,11 @@ function runTwinsIn(spec: GraphSpec, ops: Op[]): void {
   const coldHandles: Array<() => void> = [];
 
   const checkLaws = () => {
-    for (let i = 0; i < warm.wires.length; i++) {
+    for (let i = 0; i < warm.states.length; i++) {
       // law 1, push ≡ pull (on the warm twin)
-      expect(last[i]).toBe(warm.wires[i].w.sample());
+      expect(last[i]).toBe(warm.states[i].w.sample());
       // law 1, cold ≡ warm (across twins)
-      expect(cold.wires[i].w.sample()).toBe(warm.wires[i].w.sample());
+      expect(cold.states[i].w.sample()).toBe(warm.states[i].w.sample());
     }
   };
 
@@ -360,7 +360,7 @@ function runTwinsIn(spec: GraphSpec, ops: Op[]): void {
       }
       case "listen": {
         // phase 3 made stateful nodes churn-safe: listen anywhere
-        const w = cold.wires[op.node % cold.wires.length].w;
+        const w = cold.states[op.node % cold.states.length].w;
         coldHandles.push(w.listen(() => {}));
         break;
       }

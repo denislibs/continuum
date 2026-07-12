@@ -1,7 +1,7 @@
 // The compiled-template runtime, tested directly (the vite plugin emits
 // exactly these calls). Semantics must match the runtime JSX factory.
 import { describe, test, expect, afterEach } from "vitest";
-import { wire } from "@continuum-js/frp";
+import { state } from "@continuum-js/frp";
 import { root } from "@continuum-js/dom";
 import { tmpl, insert, prop, event } from "@continuum-js/dom/compiled";
 
@@ -20,9 +20,9 @@ describe("compiled runtime", () => {
     expect((a as HTMLElement).tagName).toBe("TR"); // table parts parse fine
   });
 
-  test("insert binds a wire as a live text node at an anchor", () => {
+  test("insert binds a state as a live text node at an anchor", () => {
     root((dispose) => {
-      const w = wire("a");
+      const w = state("a");
       const t = tmpl(`<div>[<!>]</div>`)();
       const marker = t.firstChild!.nextSibling!; // the <!> comment
       insert(t, w, marker);
@@ -33,9 +33,9 @@ describe("compiled runtime", () => {
     });
   });
 
-  test("prop binds a wire attribute and applies plain values once", () => {
+  test("prop binds a state attribute and applies plain values once", () => {
     root((dispose) => {
-      const cls = wire("danger");
+      const cls = state("danger");
       const el = tmpl(`<tr></tr>`)();
       prop(el, "class", cls);
       prop(el, "data-id", 7);

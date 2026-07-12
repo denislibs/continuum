@@ -39,7 +39,7 @@ export function insert(
   insertChild(parent, value, anchor);
 }
 
-/** @internal Bind one dynamic prop (wire, ref, style, value/checked, attr). */
+/** @internal Bind one dynamic prop (state, ref, style, value/checked, attr). */
 export function prop(el: Element, key: string, value: unknown): void {
   applyProp(el, key, value);
 }

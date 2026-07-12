@@ -8,11 +8,11 @@
 
 ## Call Signature
 
-> **combine**\<`A`, `B`, `R`\>(`a`, `b`, `f`): [`Wire`](../classes/Wire.md)\<`R`\>
+> **combine**\<`A`, `B`, `R`\>(`a`, `b`, `f`): [`State`](../classes/State.md)\<`R`\>
 
-Defined in: [index.ts:1299](https://github.com/denislibs/continuum/blob/06378b217e7ab47a03a557199f3b883e3c7e30c6/packages/frp/src/index.ts#L1299)
+Defined in: [index.ts:1581](https://github.com/denislibs/continuum/blob/f5ae47f16f3158ab3acf341a203852240d621e88/packages/frp/src/index.ts#L1581)
 
-Combine wires pointwise — the join of the graph. Data first, the combiner
+Combine states pointwise — the join of the graph. Data first, the combiner
 last; simultaneous updates coalesce into ONE recompute per moment
 (glitch-free, see FRP-MODEL §3).
 
@@ -34,11 +34,11 @@ last; simultaneous updates coalesce into ONE recompute per moment
 
 #### a
 
-[`Wire`](../classes/Wire.md)\<`A`\>
+[`State`](../classes/State.md)\<`A`\>
 
 #### b
 
-[`Wire`](../classes/Wire.md)\<`B`\>
+[`State`](../classes/State.md)\<`B`\>
 
 #### f
 
@@ -46,15 +46,15 @@ last; simultaneous updates coalesce into ONE recompute per moment
 
 ### Returns
 
-[`Wire`](../classes/Wire.md)\<`R`\>
+[`State`](../classes/State.md)\<`R`\>
 
 ## Call Signature
 
-> **combine**\<`A`, `B`, `C`, `R`\>(`a`, `b`, `c`, `f`): [`Wire`](../classes/Wire.md)\<`R`\>
+> **combine**\<`A`, `B`, `C`, `R`\>(`a`, `b`, `c`, `f`): [`State`](../classes/State.md)\<`R`\>
 
-Defined in: [index.ts:1304](https://github.com/denislibs/continuum/blob/06378b217e7ab47a03a557199f3b883e3c7e30c6/packages/frp/src/index.ts#L1304)
+Defined in: [index.ts:1586](https://github.com/denislibs/continuum/blob/f5ae47f16f3158ab3acf341a203852240d621e88/packages/frp/src/index.ts#L1586)
 
-Combine wires pointwise — the join of the graph. Data first, the combiner
+Combine states pointwise — the join of the graph. Data first, the combiner
 last; simultaneous updates coalesce into ONE recompute per moment
 (glitch-free, see FRP-MODEL §3).
 
@@ -80,15 +80,15 @@ last; simultaneous updates coalesce into ONE recompute per moment
 
 #### a
 
-[`Wire`](../classes/Wire.md)\<`A`\>
+[`State`](../classes/State.md)\<`A`\>
 
 #### b
 
-[`Wire`](../classes/Wire.md)\<`B`\>
+[`State`](../classes/State.md)\<`B`\>
 
 #### c
 
-[`Wire`](../classes/Wire.md)\<`C`\>
+[`State`](../classes/State.md)\<`C`\>
 
 #### f
 
@@ -96,15 +96,15 @@ last; simultaneous updates coalesce into ONE recompute per moment
 
 ### Returns
 
-[`Wire`](../classes/Wire.md)\<`R`\>
+[`State`](../classes/State.md)\<`R`\>
 
 ## Call Signature
 
-> **combine**\<`A`, `B`, `C`, `D`, `R`\>(`a`, `b`, `c`, `d`, `f`): [`Wire`](../classes/Wire.md)\<`R`\>
+> **combine**\<`A`, `B`, `C`, `D`, `R`\>(`a`, `b`, `c`, `d`, `f`): [`State`](../classes/State.md)\<`R`\>
 
-Defined in: [index.ts:1310](https://github.com/denislibs/continuum/blob/06378b217e7ab47a03a557199f3b883e3c7e30c6/packages/frp/src/index.ts#L1310)
+Defined in: [index.ts:1592](https://github.com/denislibs/continuum/blob/f5ae47f16f3158ab3acf341a203852240d621e88/packages/frp/src/index.ts#L1592)
 
-Combine wires pointwise — the join of the graph. Data first, the combiner
+Combine states pointwise — the join of the graph. Data first, the combiner
 last; simultaneous updates coalesce into ONE recompute per moment
 (glitch-free, see FRP-MODEL §3).
 
@@ -134,19 +134,19 @@ last; simultaneous updates coalesce into ONE recompute per moment
 
 #### a
 
-[`Wire`](../classes/Wire.md)\<`A`\>
+[`State`](../classes/State.md)\<`A`\>
 
 #### b
 
-[`Wire`](../classes/Wire.md)\<`B`\>
+[`State`](../classes/State.md)\<`B`\>
 
 #### c
 
-[`Wire`](../classes/Wire.md)\<`C`\>
+[`State`](../classes/State.md)\<`C`\>
 
 #### d
 
-[`Wire`](../classes/Wire.md)\<`D`\>
+[`State`](../classes/State.md)\<`D`\>
 
 #### f
 
@@ -154,15 +154,15 @@ last; simultaneous updates coalesce into ONE recompute per moment
 
 ### Returns
 
-[`Wire`](../classes/Wire.md)\<`R`\>
+[`State`](../classes/State.md)\<`R`\>
 
 ## Call Signature
 
-> **combine**\<`A`, `B`, `C`, `D`, `E`, `R`\>(`a`, `b`, `c`, `d`, `e`, `f`): [`Wire`](../classes/Wire.md)\<`R`\>
+> **combine**\<`A`, `B`, `C`, `D`, `E`, `R`\>(`a`, `b`, `c`, `d`, `e`, `f`): [`State`](../classes/State.md)\<`R`\>
 
-Defined in: [index.ts:1317](https://github.com/denislibs/continuum/blob/06378b217e7ab47a03a557199f3b883e3c7e30c6/packages/frp/src/index.ts#L1317)
+Defined in: [index.ts:1599](https://github.com/denislibs/continuum/blob/f5ae47f16f3158ab3acf341a203852240d621e88/packages/frp/src/index.ts#L1599)
 
-Combine wires pointwise — the join of the graph. Data first, the combiner
+Combine states pointwise — the join of the graph. Data first, the combiner
 last; simultaneous updates coalesce into ONE recompute per moment
 (glitch-free, see FRP-MODEL §3).
 
@@ -196,23 +196,23 @@ last; simultaneous updates coalesce into ONE recompute per moment
 
 #### a
 
-[`Wire`](../classes/Wire.md)\<`A`\>
+[`State`](../classes/State.md)\<`A`\>
 
 #### b
 
-[`Wire`](../classes/Wire.md)\<`B`\>
+[`State`](../classes/State.md)\<`B`\>
 
 #### c
 
-[`Wire`](../classes/Wire.md)\<`C`\>
+[`State`](../classes/State.md)\<`C`\>
 
 #### d
 
-[`Wire`](../classes/Wire.md)\<`D`\>
+[`State`](../classes/State.md)\<`D`\>
 
 #### e
 
-[`Wire`](../classes/Wire.md)\<`E`\>
+[`State`](../classes/State.md)\<`E`\>
 
 #### f
 
@@ -220,4 +220,4 @@ last; simultaneous updates coalesce into ONE recompute per moment
 
 ### Returns
 
-[`Wire`](../classes/Wire.md)\<`R`\>
+[`State`](../classes/State.md)\<`R`\>

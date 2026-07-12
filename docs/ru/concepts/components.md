@@ -9,7 +9,7 @@
 не функция рендера.
 
 ```tsx
-function Greeting(props: { name: Wire<string> }) {
+function Greeting(props: { name: State<string> }) {
   return <p>Привет, {props.name}!</p>;
 }
 ```
@@ -23,11 +23,11 @@ function Greeting(props: { name: Wire<string> }) {
 Пропсы читаются один раз, в теле. Конвенция, которая держит компоненты
 честными:
 
-- **меняется во времени** → принимайте [`Wire<T>`](/ru/concepts/behaviors);
+- **меняется во времени** → принимайте [`State<T>`](/ru/concepts/behaviors);
 - **фиксировано на всю жизнь поддерева** → принимайте просто `T`.
 
 ```tsx
-function Price(props: { amount: Wire<number>; currency: string }) {
+function Price(props: { amount: State<number>; currency: string }) {
   return (
     <span>
       {props.amount.map((a) => a.toFixed(2))} {props.currency}
@@ -37,12 +37,12 @@ function Price(props: { amount: Wire<number>; currency: string }) {
 ```
 
 Механизма «пропсы изменились» нет: если родитель хочет менять то, что
-показывает ребёнок, он передаёт ему Wire. Деструктурировать пропсы
+показывает ребёнок, он передаёт ему State. Деструктурировать пропсы
 безопасно — это обычные значения.
 
 ## Дети
 
-`children` — всё, что JSX туда положил: узлы, строки, Wires, массивы или
+`children` — всё, что JSX туда положил: узлы, строки, States, массивы или
 функция (render prop), если компоненту так удобнее:
 
 ```tsx
@@ -76,7 +76,7 @@ return <form>{input}</form>;
 Создавайте состояние в условии, в цикле, на уровне модуля (модульные
 свёртки вроде `accum` оборачивайте в `root()` — состоянию нужен владелец,
 см. [Владение](/ru/concepts/ownership)); выносите «кастомные хуки» как
-функции, возвращающие Wires/Streams — без правил порядка и линт-плагинов.
+функции, возвращающие States/Streams — без правил порядка и линт-плагинов.
 
 ---
 

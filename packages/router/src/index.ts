@@ -1,8 +1,8 @@
-// Continuum router — the URL is a Wire, a route change is a change of a
+// Continuum router — the URL is a State, a route change is a change of a
 // dynamic region. Nesting renders through <Outlet>; ownership destroys the
 // subtree of the page you leave.
 
-import { constant, wire, type Wire } from "@continuum-js/frp";
+import { constant, state, type State } from "@continuum-js/frp";
 import {
   h,
   dyn,
@@ -27,7 +27,7 @@ export { matchChain } from "./match.js";
 export type { RouteDef, Params, Component, MatchEntry } from "./match.js";
 
 interface RouterCtx {
-  chain: Wire<MatchEntry[] | null>;
+  chain: State<MatchEntry[] | null>;
   depth: number;
 }
 
@@ -45,7 +45,7 @@ const shallowEq = (a: Params, b: Params): boolean => {
  * behavior updates (the fine-grained promise, applied to routing).
  */
 function renderLevel(
-  chain: Wire<MatchEntry[] | null>,
+  chain: State<MatchEntry[] | null>,
   depth: number,
   fallback?: () => Child,
 ): Node {
@@ -63,7 +63,7 @@ function renderLevel(
 // `null` at depth 0 means "nothing matched" → fallback; deeper it just means
 // the chain is shorter than the outlet nesting → render nothing.
 function chainOrNull(
-  chain: Wire<MatchEntry[] | null>,
+  chain: State<MatchEntry[] | null>,
   fallback?: () => Child,
 ): Child {
   return fallback && chain.sampleNoTrans() === null ? fallback() : null;
@@ -99,7 +99,7 @@ export function Outlet(): Node {
  * Path parameters of the current route as a behavior (own + ancestors'
  * merged). Updates in place on same-route navigation — no rebuild.
  */
-export function useParams(): Wire<Params> {
+export function useParams(): State<Params> {
   const ctx = use(RouterContext);
   if (!ctx) return constant({});
   const d = ctx.depth;
@@ -160,16 +160,16 @@ export function lazy(
   let cached: Component | null = null;
   return () => {
     if (cached) return cached();
-    type State = { ok?: Component; err?: unknown } | null;
-    const state = wire<State>(null);
+    type LoadState = { ok?: Component; err?: unknown } | null;
+    const status = state<LoadState>(null);
     loader().then(
       (m) => {
         cached = (m as { default?: Component }).default ?? (m as Component);
-        state.set({ ok: cached });
+        status.set({ ok: cached });
       },
-      (err) => state.set({ err }),
+      (err) => status.set({ err }),
     );
-    return dyn(state, (s) => {
+    return dyn(status, (s) => {
       if (!s) return opts?.fallback ? opts.fallback() : null;
       if (s.ok) return s.ok();
       return opts?.error ? opts.error(s.err) : null;

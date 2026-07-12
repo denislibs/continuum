@@ -6,13 +6,13 @@ Inputs, validation, submit: field values are reactive, errors are computed, the 
 
 ## A controlled input
 
-`bindInput` wires a `Wire<string>` to a field both ways:
+`bindInput` binds a `State<string>` to a field both ways:
 
 ```tsx
-import { wire } from "@continuum-js/frp";
+import { state } from "@continuum-js/frp";
 import { bindInput } from "@continuum-js/dom";
 
-const name = wire("");
+const name = state("");
 <input {...bindInput(name, name.set)} />;
 ```
 
@@ -70,7 +70,7 @@ const results = perform(payload, (form) => api.register(form));
 
 Line by line:
 
-- `when(formValid)` — the event passes only while the wire is true; the
+- `when(formValid)` — the event passes only while the state is true; the
   "disabled" is duplicated semantically, not just in the button attribute;
 - `at` takes the field values _at the moment_ of submit — no reading
   from the DOM or from state inside a handler;

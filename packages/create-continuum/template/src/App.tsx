@@ -1,10 +1,10 @@
-import { wire } from "@continuum-js/frp";
+import { state } from "@continuum-js/frp";
 
 // A Continuum component runs ONCE — there are no re-renders. `count` is a
 // reactive value: putting it in JSX binds a text node to it, and clicking
 // patches exactly that node.
 export function App() {
-  const count = wire(0);
+  const count = state(0);
 
   return (
     <main>

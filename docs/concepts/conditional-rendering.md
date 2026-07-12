@@ -17,13 +17,13 @@ import { Show } from "@continuum-js/dom";
 </Show>;
 ```
 
-`when` takes a `Wire<T | null | undefined | false>`. The subtree is
+`when` takes a `State<T | null | undefined | false>`. The subtree is
 rebuilt only when **truthiness flips** — updates of an already-truthy value
 do not rebuild anything (the child receives the value as of the flip; pass
-Wires inside for live parts).
+States inside for live parts).
 
 The functional form for JSX-free code is `when(cond, then, else?)` with a
-`Wire<boolean>`.
+`State<boolean>`.
 
 ## `<Dynamic>` — switch on a value
 
@@ -46,7 +46,7 @@ import { Dynamic } from "@continuum-js/dom";
 ```
 
 The region rebuilds when `value` changes (`Object.is`). To avoid rebuilding
-on irrelevant changes, narrow the Wire first and de-duplicate:
+on irrelevant changes, narrow the State first and de-duplicate:
 
 ```ts
 import { distinctB } from "@continuum-js/std";
@@ -56,9 +56,9 @@ const status = distinctB(state.map((s) => s.status));
 
 ## `dyn` — the primitive
 
-`Show` and `Dynamic` are sugar over `dyn(wire, render)`: a region
+`Show` and `Dynamic` are sugar over `dyn(state, render)`: a region
 bounded by comment markers that disposes the old subtree and builds the new
-one when the wire's value changes. Reach for `dyn` directly when
+one when the state's value changes. Reach for `dyn` directly when
 building your own control-flow component — the router's `Outlet` is exactly
 that, keyed by route identity.
 

@@ -3,7 +3,7 @@
 // dispose-cascade and the reaper are gone — nothing guesses liveness.
 import { describe, test, expect } from "vitest";
 import {
-  wire,
+  state,
   stream,
   root,
   batch,
@@ -70,13 +70,13 @@ describe("owned state — hold/accum live with their scope, not their listeners"
   });
 });
 
-describe("wire().on() — declarative state transitions", () => {
+describe("state().on() — declarative state transitions", () => {
   test("a counter reads as a spec", () => {
     root(() => {
       const inc = stream<null>();
       const dec = stream<null>();
       const reset = stream<null>();
-      const count = wire(0)
+      const count = state(0)
         .on(inc, (n) => n + 1)
         .on(dec, (n) => n - 1)
         .on(reset, () => 0);
@@ -92,16 +92,16 @@ describe("wire().on() — declarative state transitions", () => {
   test("the reducer receives (state, event)", () => {
     root(() => {
       const add = stream<number>();
-      const total = wire(10).on(add, (n, x) => n + x);
+      const total = state(10).on(add, (n, x) => n + x);
       add.fire(5);
       expect(total.sample()).toBe(15);
     });
   });
 
-  test("an occurrence and the wire's update share ONE moment (snapshot sees the past)", () => {
+  test("an occurrence and the state's update share ONE moment (snapshot sees the past)", () => {
     root(() => {
       const clicks = stream<null>();
-      const count = wire(0).on(clicks, (n) => n + 1);
+      const count = state(0).on(clicks, (n) => n + 1);
       const before = count.at(clicks);
       const seen: number[] = [];
       before.listen((v) => seen.push(v));
@@ -116,7 +116,7 @@ describe("wire().on() — declarative state transitions", () => {
     root(() => {
       const a = stream<null>();
       const b = stream<null>();
-      const n = wire(0)
+      const n = state(0)
         .on(a, (x) => x + 1)
         .on(b, (x) => x * 10);
       const un = n.listen(() => {});
@@ -132,7 +132,7 @@ describe("wire().on() — declarative state transitions", () => {
 
   test(".on outside any scope throws the teaching error", () => {
     const clicks = stream<null>();
-    expect(() => wire(0).on(clicks, (n) => n + 1)).toThrow(/scope|root\(\)/);
+    expect(() => state(0).on(clicks, (n) => n + 1)).toThrow(/scope|root\(\)/);
   });
 });
 

@@ -8,12 +8,12 @@
 [![docs](https://img.shields.io/badge/docs-denislibs.github.io-blue)](https://denislibs.github.io/continuum/)
 [![license](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
-A reactive UI framework built on **classic FRP** (Wires + Streams) with
+A reactive UI framework built on **classic FRP** (States + Streams) with
 fine-grained rendering. The discrete branch of Elliott's tradition, Sodium
 style: transactions, rank-ordered propagation, the `hold` delay at the moment
 boundary.
 
-The key decision: a `Wire` is a **value**, not a read function. A reactive
+The key decision: a `State` is a **value**, not a read function. A reactive
 quantity is passed around as an object (`<div>{count}</div>`), so the renderer
 needs no build-time transform.
 
@@ -39,10 +39,10 @@ before you add a state library.
 ```
 continuum/
 ├─ packages/
-│  ├─ frp/        @continuum-js/frp   — core: Stream, Wire, scheduler
+│  ├─ frp/        @continuum-js/frp   — core: Stream, State, scheduler
 │  ├─ dom/        @continuum-js/dom   — renderer: h, dyn, each, ownership, context
 │  ├─ std/        @continuum-js/std   — combinators: resource, debounce, throttle, …
-│  ├─ router/     @continuum-js/router — the URL as a Wire: nested routes, lazy pages
+│  ├─ router/     @continuum-js/router — the URL as a State: nested routes, lazy pages
 │  └─ test/       @continuum-js/test  — test utilities: render, fire, flush
 ├─ examples/                       — runnable examples (Vite), one folder each
 │  ├─ counter/    @continuum-js/example-counter    — the §1.1 counter + test
@@ -98,17 +98,17 @@ Size (brotli, with dependencies): `@continuum-js/frp` ≈ **2.1 kB**,
 ### A counter in 10 lines (`examples/counter`)
 
 ```tsx
-import { stream, wire } from "@continuum-js/frp";
+import { stream, state } from "@continuum-js/frp";
 
 export function Counter() {
   const clicks = stream<MouseEvent>();
-  const count = wire(0).on(clicks, (n) => n + 1);
+  const count = state(0).on(clicks, (n) => n + 1);
   return <button onClick={clicks.fire}>count: {count}</button>;
 }
 ```
 
 A component runs **once**. The click flows into the FRP network, the `.on`
-transition folds it into the wire, and exactly one text node is patched — no
+transition folds it into the state, and exactly one text node is patched — no
 virtual DOM, no diffing.
 
 > JSX works through the **automatic runtime** — components don't need
@@ -121,16 +121,16 @@ virtual DOM, no diffing.
 **Core (`@continuum-js/frp`).** Transactions (prioritized/last/post phases), a
 rank min-heap with glitch-free propagation, coalescing of simultaneous
 occurrences, the `hold` delay. Combinators: `map`, `mapTo`, `filter`, `when`,
-`merge`, `or`, `accum`/`accumE`, `hold`, `once`, `listen`; for wires — `map`,
-`at` (sample a wire at a stream's occurrences), `combine` (pointwise join),
-`flatten` (wire-of-wires / wire-of-streams switch), `fromPoll`, `time`,
-`listen`; sources — `wire(init)` with `.set`/`.on` and `stream()` with
+`merge`, `or`, `accum`/`accumE`, `hold`, `once`, `listen`; for states — `map`,
+`at` (sample a state at a stream's occurrences), `combine` (pointwise join),
+`flatten` (state-of-states / state-of-streams switch), `fromPoll`, `time`,
+`listen`; sources — `state(init)` with `.set`/`.on` and `stream()` with
 `.fire`. From the roadmap: `distinct`, `perform` (the IO boundary
 with `Result`), error isolation in the post phase and "atomic or dropped
 moment" via transaction-identity staging; **rank maintenance**
 (`ensureBiggerThan` + cycle detection) for correct `switch` in dense graphs;
 **continuous time** — `integral`/`derivative`/`warp` (numerically sampled over
-a discrete clock); **explicit `dispose`** on `Stream`/`Wire` with an upward
+a discrete clock); **explicit `dispose`** on `Stream`/`State` with an upward
 cascade through unused derived nodes (for long-lived non-UI graphs).
 
 **Renderer (`@continuum-js/dom`).** JSX factory `h`/`Fragment`, fine-grained
@@ -144,7 +144,7 @@ frame clock for continuous time), SVG namespaces (`<svg>` subtrees via
 
 ## Continuous time
 
-`integral`/`derivative`/`warp` from the core work over a discrete clock (an
+`integral`/`derivative`/`warp` from the core work over a discrete clock (a
 `Stream<number>` of timestamps) — in the browser that's `animationFrames()`.
 The implementation is numerical (forward Euler / finite differences),
 deterministic, and independent of the observer count: accumulation happens
@@ -154,14 +154,14 @@ approximates it. Demo — [`examples/animation`](examples/animation)
 
 ## Working with data (HTTP)
 
-IO lives at the **boundary** of the network. `perform` takes an `Stream` of
+IO lives at the **boundary** of the network. `perform` takes a `Stream` of
 requests, runs the async effect in the post phase (after the moment closes)
 and returns the result as a new occurrence — as data, with the error wrapped
 in a `Result` rather than thrown. On top of it,
 [`@continuum-js/std`](packages/std) provides ready-made building blocks (and
 [`examples/data`](examples/data) shows them in action):
 
-- `resource(trigger, fetcher): Wire<Async<T>>` — a state machine
+- `resource(trigger, fetcher): State<Async<T>>` — a state machine
   (`idle → loading → ok | error`). Requests are numbered, so a late response
   to a superseded request is dropped (last-request-wins) — the classic
   response-race bug solved declaratively.

@@ -1,5 +1,5 @@
 // Continuum — FRP core (frp).
-// Classic FRP (Wires + Streams), discrete branch (Sodium style):
+// Classic FRP (States + Streams), discrete branch (Sodium style):
 // transactions, rank-ordered propagation, `hold` delay at the moment boundary.
 //
 // The two laws (FRP-MODEL §12): values are formulas (demand-driven, sleep
@@ -425,7 +425,7 @@ export class Stream<A> {
   // unrelated removal (same as Solid's slots); effects still run in
   // delivery order within a moment.
   // typed `any` so Edge's contravariant handler slot does not make
-  // Stream invariant in A (Wire<string> must stay a Wire<unknown>)
+  // Stream invariant in A (State<string> must stay a State<unknown>)
   private obs: Array<Edge<any>> | null = null;
   /** Cached delivery snapshot of `obs`; invalidated on mutation. */
   private snap: Array<Edge<any>> | null = null;
@@ -748,10 +748,10 @@ export class Stream<A> {
   }
 
   /**
-   * @deprecated Use `wire.at(stream, (value, event) => …)` — same semantics,
+   * @deprecated Use `state.at(stream, (value, event) => …)` — same semantics,
    * data first. Removed in 1.0.
    */
-  snapshot<B, C>(b: Wire<B>, f: (a: A, b: B) => C): Stream<C> {
+  snapshot<B, C>(b: State<B>, f: (a: A, b: B) => C): Stream<C> {
     return b.at(this, (value, event: A) => f(event, value));
   }
 
@@ -759,9 +759,9 @@ export class Stream<A> {
    * Step function: hold the last occurrence, committing at the moment
    * boundary. State — so it needs an owner: the process that keeps the value
    * current is registered in the ambient scope and detaches when the scope
-   * disposes (the wire then answers with its final value).
+   * disposes (the state then answers with its final value).
    */
-  hold(init: A): Wire<A> {
+  hold(init: A): State<A> {
     const scope = requireScope("hold()", "src.hold(init)");
     let value = init;
     // Staging is keyed by transaction identity, so an aborted (dropped)
@@ -787,7 +787,7 @@ export class Stream<A> {
       updates.send_(t, a);
     });
     scope.onDispose(un);
-    return new Wire<A>(() => value, updates);
+    return new State<A>(() => value, updates);
   }
 
   /**
@@ -825,7 +825,7 @@ export class Stream<A> {
    * Fold occurrences into a behavior. Fused: one node and one edge instead
    * of the accumE + hold pair — every counter in every app pays half.
    */
-  accum<B>(init: B, f: (a: A, acc: B) => B): Wire<B> {
+  accum<B>(init: B, f: (a: A, acc: B) => B): State<B> {
     const scope = requireScope("accum()", "src.accum(init, f)");
     const out = new Stream<B>(this.rank + 1);
     let value = init;
@@ -847,7 +847,7 @@ export class Stream<A> {
       out.send_(t, staged);
     });
     scope.onDispose(un);
-    return new Wire<B>(() => value, out);
+    return new State<B>(() => value, out);
   }
 
   /**
@@ -876,8 +876,8 @@ export class Stream<A> {
     return out;
   }
 
-  /** Pass occurrences only while the wire is true. */
-  when(b: Wire<boolean>): Stream<A> {
+  /** Pass occurrences only while the state is true. */
+  when(b: State<boolean>): Stream<A> {
     const out = new Stream<A>(this.rank + 1);
     out.source(this, (t, a) => {
       if (b.sampleNoTrans()) out.send_(t, a);
@@ -886,7 +886,7 @@ export class Stream<A> {
   }
 
   /** @deprecated Renamed to `when` — same semantics. Removed in 1.0. */
-  gate(b: Wire<boolean>): Stream<A> {
+  gate(b: State<boolean>): Stream<A> {
     return this.when(b);
   }
 
@@ -971,14 +971,14 @@ export class Stream<A> {
 const POST = new Stream<any>(0);
 
 // ---------------------------------------------------------------------------
-// Wire<A> — a value across time (pull) + discrete `updates` (push).
+// State<A> — a value across time (pull) + discrete `updates` (push).
 // ---------------------------------------------------------------------------
 
 /**
  * A value across time (pull) with discrete change notifications (push).
  * Denotationally `Time → A`: it always has a value — `sample()` never misses.
  */
-export class Wire<A> {
+export class State<A> {
   constructor(
     /** Pull the current value without opening a transaction. */
     public sampleNoTrans: () => A,
@@ -994,13 +994,13 @@ export class Wire<A> {
   }
 
   /** Pointwise transform (continuous-safe: recomputed on each sample). */
-  map<B>(f: (a: A) => B): Wire<B> {
-    return new Wire<B>(() => f(this.sampleNoTrans()), this.updates.map(f));
+  map<B>(f: (a: A) => B): State<B> {
+    return new State<B>(() => f(this.sampleNoTrans()), this.updates.map(f));
   }
 
   /**
-   * Sample this wire at each occurrence of `e`: `draft.at(submits)` is the
-   * stream of the wire's values as of those moments (pre-moment, with exact
+   * Sample this state at each occurrence of `e`: `draft.at(submits)` is the
+   * stream of the state's values as of those moments (pre-moment, with exact
    * simultaneity semantics). An optional combiner receives `(value, event)`.
    */
   at<B>(e: Stream<B>): Stream<A>;
@@ -1044,8 +1044,8 @@ export class Wire<A> {
   // --- static combinators -----------------------------------------------
 
   /** @deprecated Use `combine(bf, ba, (f, a) => f(a))`. Removed in 1.0. */
-  static apply<A, B>(bf: Wire<(a: A) => B>, ba: Wire<A>): Wire<B> {
-    return Wire.lift2((f, a) => f(a), bf, ba);
+  static apply<A, B>(bf: State<(a: A) => B>, ba: State<A>): State<B> {
+    return State.lift2((f, a) => f(a), bf, ba);
   }
 
   /**
@@ -1054,9 +1054,9 @@ export class Wire<A> {
    */
   static lift2<A, B, C>(
     f: (a: A, b: B) => C,
-    ba: Wire<A>,
-    bb: Wire<B>,
-  ): Wire<C> {
+    ba: State<A>,
+    bb: State<B>,
+  ): State<C> {
     const rank = Math.max(ba.updates.rank, bb.updates.rank) + 1;
     const out = new Stream<C>(rank);
     // Committed caches + per-moment staging: the engine's own bookkeeping
@@ -1154,37 +1154,37 @@ export class Wire<A> {
         }),
       );
     };
-    return new Wire<C>(() => f(ba.sampleNoTrans(), bb.sampleNoTrans()), out);
+    return new State<C>(() => f(ba.sampleNoTrans(), bb.sampleNoTrans()), out);
   }
 
   /** @deprecated Use `combine(a, b, c, f)`. Removed in 1.0. */
   static lift3<A, B, C, D>(
     f: (a: A, b: B, c: C) => D,
-    ba: Wire<A>,
-    bb: Wire<B>,
-    bc: Wire<C>,
-  ): Wire<D> {
-    const partial = Wire.lift2((a: A, b: B) => (c: C) => f(a, b, c), ba, bb);
-    return Wire.lift2((g, c) => g(c), partial, bc);
+    ba: State<A>,
+    bb: State<B>,
+    bc: State<C>,
+  ): State<D> {
+    const partial = State.lift2((a: A, b: B) => (c: C) => f(a, b, c), ba, bb);
+    return State.lift2((g, c) => g(c), partial, bc);
   }
 
   /** Continuous behavior: sampled fresh on each read; no discrete updates. */
-  static fromPoll<A>(poll: () => A): Wire<A> {
-    return new Wire<A>(poll, new Stream<A>(0));
+  static fromPoll<A>(poll: () => A): State<A> {
+    return new State<A>(poll, new Stream<A>(0));
   }
 
   /**
-   * @internal The wire-of-wires switch behind `flatten`. Public under the
+   * @internal The state-of-states switch behind `flatten`. Public under the
    * deprecated `switchB` name until 1.0 — prefer `flatten(w)`.
    *
    * A formula: cold it is a recipe (pull samples straight through); waking
-   * attaches the outer wire AND the currently selected inner; sleeping
+   * attaches the outer state AND the currently selected inner; sleeping
    * detaches both. Rewiring while warm commits at the moment boundary.
    */
-  static switchB<A>(bb: Wire<Wire<A>>): Wire<A> {
+  static switchB<A>(bb: State<State<A>>): State<A> {
     const out = new Stream<A>(bb.updates.rank + 1);
     let innerUn: Unlisten | null = null;
-    const attach = (b: Wire<A>) => {
+    const attach = (b: State<A>) => {
       innerUn = out.subscribe(b.updates, (t, a) => out.send_(t, a));
     };
     out.source(bb.updates, (t, nb) => {
@@ -1212,17 +1212,17 @@ export class Wire<A> {
         innerUn = null;
       }
     };
-    return new Wire<A>(() => bb.sampleNoTrans().sampleNoTrans(), out);
+    return new State<A>(() => bb.sampleNoTrans().sampleNoTrans(), out);
   }
 
   /**
-   * @internal The wire-of-streams switch behind `flatten`. Public under the
+   * @internal The state-of-streams switch behind `flatten`. Public under the
    * deprecated `switchE` name until 1.0 — prefer `flatten(w)`.
    *
    * A formula (see switchB): waking attaches the CURRENT selection, even
    * one chosen while asleep.
    */
-  static switchE<A>(be: Wire<Stream<A>>): Stream<A> {
+  static switchE<A>(be: State<Stream<A>>): Stream<A> {
     const out = new Stream<A>(be.updates.rank + 1);
     let innerUn: Unlisten | null = null;
     const attach = (e: Stream<A>) => {
@@ -1300,23 +1300,23 @@ export function newStream<A>(): [Stream<A>, (a: A) => void] {
 // A source cell: a value committed at the moment boundary plus its updates
 // stream, fused into one leaf node (no internal hold, no subscriptions of
 // its own — a cell needs no owner). `stage` is the in-transaction writer
-// used by processes (`wire().on()`); `set` is the public entry that opens a
+// used by processes (`state().on()`); `set` is the public entry that opens a
 // moment.
 
 // The shared pull for every cell: one function object for ALL cells instead
 // of a `() => this.value` closure per cell. Only ever called method-style
 // (`w.sampleNoTrans()`), so `this` is the cell; the stored view is the
-// plain `() => A` that Wire declares — a this-typed function has no subtype
+// plain `() => A` that State declares — a this-typed function has no subtype
 // relation to it, hence the one widening cast HERE and nowhere else.
 const cellSample = function (this: Cell<unknown>): unknown {
   return this.value;
 } as () => unknown;
 
-// A source cell fused INTO its wire: one object carries the committed value,
-// the staging slot and the whole Wire surface. Round 4 cut the cell from ~7
-// allocations to 4 (Cell + Wire + Stream + pull closure); this round fuses
+// A source cell fused INTO its state: one object carries the committed value,
+// the staging slot and the whole State surface. Round 4 cut the cell from ~7
+// allocations to 4 (Cell + State + Stream + pull closure); this round fuses
 // the first two and shares the pull — a cell is now Stream + this object.
-class Cell<A> extends Wire<A> {
+class Cell<A> extends State<A> {
   /** @internal The committed value (read by `cellSample`). */
   value: A;
   /** @internal */
@@ -1398,18 +1398,18 @@ class Cell<A> extends Wire<A> {
  * A source behavior plus its setter.
  *
  * Setting a value equal to the current one (by `eq`, default `Object.is`)
- * is a no-op: no moment opens, no subscriber wakes. A wire is a value
+ * is a no-op: no moment opens, no subscriber wakes. A state is a value
  * across time — "changing" it to the same value is not a change. Pass a
  * custom `eq` for structural comparison, or `() => false` to deliver every
  * set.
  *
- * @deprecated Use `wire(init, eq?)` — the same cell as one value with
+ * @deprecated Use `state(init, eq?)` — the same cell as one value with
  * `.set` (and `.on` for declarative transitions). Removed in 1.0.
  */
 export function newBehavior<A>(
   init: A,
   eq: (prev: A, next: A) => boolean = Object.is,
-): [Wire<A>, (a: A) => void] {
+): [State<A>, (a: A) => void] {
   const c = new Cell(init, eq);
   return [c, (a: A) => c.write(a)];
 }
@@ -1450,8 +1450,8 @@ export function unobserve_(e: Stream<unknown>, handle: ObserverHandle): void {
 // until 1.0.
 // ---------------------------------------------------------------------------
 
-/** A source wire: a cell you read like any wire and write via `.set`. */
-export interface WireSource<A> extends Wire<A> {
+/** A source state: a cell you read like any state and write via `.set`. */
+export interface StateSource<A> extends State<A> {
   /** Set the current value; equal values (by the cell's `eq`) are a no-op. */
   set(a: A): void;
   /**
@@ -1465,7 +1465,7 @@ export interface WireSource<A> extends Wire<A> {
   /**
    * Declare a state transition: on each occurrence of `e`, fold the reducer
    * over the current value — `(state, event) => next`, `useReducer` order.
-   * The occurrence and the wire's update share ONE moment (snapshot
+   * The occurrence and the state's update share ONE moment (snapshot
    * semantics hold), and several `.on` sources firing simultaneously fold
    * sequentially. The transition process belongs to the ambient scope.
    */
@@ -1479,21 +1479,21 @@ export interface StreamSource<A> extends Stream<A> {
 }
 
 /**
- * A source cell: the everyday way to create state. Reads like any wire
+ * A source cell: the everyday way to create state. Reads like any state
  * (`sample`, `map`, JSX binding), writes via `.set` — setting an equal value
  * (by `eq`, default `Object.is`) is a no-op.
  */
-// The public source cell behind `wire()`. `set`/`update` are per-instance
+// The public source cell behind `state()`. `set`/`update` are per-instance
 // arrows because the examples pass them detached (`bindInput(draft,
 // draft.set)`); everything else lives on the prototype. The old shape was
-// `Object.assign` onto a plain Wire — three closures plus a hidden-class
+// `Object.assign` onto a plain State — three closures plus a hidden-class
 // fork on the hottest read path.
-class SourceCell<A> extends Cell<A> implements WireSource<A> {
+class SourceCell<A> extends Cell<A> implements StateSource<A> {
   set: (a: A) => void = (a) => this.write(a);
   update: (f: (state: A) => A) => void = (f) => this.modify(f);
 
   on<E>(e: Stream<E>, f: (state: A, event: E) => A): this {
-    const scope = requireScope("wire(...).on(...)", "wire(0).on(e, f)");
+    const scope = requireScope("state(...).on(...)", "state(0).on(e, f)");
     const un = e.listen_(this.updates, (t, ev) => {
       const next = f(this.pending(t), ev);
       if (this.eq(this.pending(t), next)) return;
@@ -1504,10 +1504,10 @@ class SourceCell<A> extends Cell<A> implements WireSource<A> {
   }
 }
 
-export function wire<A>(
+export function state<A>(
   init: A,
   eq: (prev: A, next: A) => boolean = Object.is,
-): WireSource<A> {
+): StateSource<A> {
   return new SourceCell(init, eq);
 }
 
@@ -1517,7 +1517,7 @@ export function wire<A>(
  * selecting a row in a 10k list updates two cells instead of recomputing
  * 10k derivations. Both flips share the moment of the selection change.
  *
- * `selector(selected)` yields `(key) => Wire<boolean>`; the value form
+ * `selector(selected)` yields `(key) => State<boolean>`; the value form
  * `selector(selected, on, off)` yields ready-to-bind values
  * (`class={cls(row.id)}`). The watching process belongs to the ambient
  * scope. A key's cell lives while anything listens to it and is evicted
@@ -1525,13 +1525,17 @@ export function wire<A>(
  * re-requesting the key hands out a fresh cell seeded from the current
  * selection.
  */
-export function selector<K>(w: Wire<K>): (key: K) => Wire<boolean>;
-export function selector<K, V>(w: Wire<K>, on: V, off: V): (key: K) => Wire<V>;
+export function selector<K>(w: State<K>): (key: K) => State<boolean>;
 export function selector<K, V>(
-  w: Wire<K>,
+  w: State<K>,
+  on: V,
+  off: V,
+): (key: K) => State<V>;
+export function selector<K, V>(
+  w: State<K>,
   on?: V,
   off?: V,
-): (key: K) => Wire<boolean | V> {
+): (key: K) => State<boolean | V> {
   const scope = requireScope("selector()", "selector(selected)");
   const onVal = arguments.length >= 3 ? (on as V) : (true as boolean | V);
   const offVal = arguments.length >= 3 ? (off as V) : (false as boolean | V);
@@ -1574,67 +1578,67 @@ export function stream<A>(): StreamSource<A> {
 }
 
 /**
- * Combine wires pointwise — the join of the graph. Data first, the combiner
+ * Combine states pointwise — the join of the graph. Data first, the combiner
  * last; simultaneous updates coalesce into ONE recompute per moment
  * (glitch-free, see FRP-MODEL §3).
  */
 export function combine<A, B, R>(
-  a: Wire<A>,
-  b: Wire<B>,
+  a: State<A>,
+  b: State<B>,
   f: (a: A, b: B) => R,
-): Wire<R>;
+): State<R>;
 export function combine<A, B, C, R>(
-  a: Wire<A>,
-  b: Wire<B>,
-  c: Wire<C>,
+  a: State<A>,
+  b: State<B>,
+  c: State<C>,
   f: (a: A, b: B, c: C) => R,
-): Wire<R>;
+): State<R>;
 export function combine<A, B, C, D, R>(
-  a: Wire<A>,
-  b: Wire<B>,
-  c: Wire<C>,
-  d: Wire<D>,
+  a: State<A>,
+  b: State<B>,
+  c: State<C>,
+  d: State<D>,
   f: (a: A, b: B, c: C, d: D) => R,
-): Wire<R>;
+): State<R>;
 export function combine<A, B, C, D, E, R>(
-  a: Wire<A>,
-  b: Wire<B>,
-  c: Wire<C>,
-  d: Wire<D>,
-  e: Wire<E>,
+  a: State<A>,
+  b: State<B>,
+  c: State<C>,
+  d: State<D>,
+  e: State<E>,
   f: (a: A, b: B, c: C, d: D, e: E) => R,
-): Wire<R>;
-export function combine(...args: unknown[]): Wire<unknown> {
+): State<R>;
+export function combine(...args: unknown[]): State<unknown> {
   const f = args[args.length - 1] as (...xs: unknown[]) => unknown;
-  const ws = args.slice(0, -1) as Array<Wire<unknown>>;
-  if (ws.length === 2) return Wire.lift2(f, ws[0], ws[1]);
+  const ws = args.slice(0, -1) as Array<State<unknown>>;
+  if (ws.length === 2) return State.lift2(f, ws[0], ws[1]);
   // Wider joins fold through pair nodes; coalescing keeps it one recompute
   // per moment regardless of arity.
-  let acc: Wire<unknown[]> = Wire.lift2((x, y) => [x, y], ws[0], ws[1]);
+  let acc: State<unknown[]> = State.lift2((x, y) => [x, y], ws[0], ws[1]);
   for (let i = 2; i < ws.length; i++) {
-    acc = Wire.lift2((xs, y) => [...(xs as unknown[]), y], acc, ws[i]);
+    acc = State.lift2((xs, y) => [...(xs as unknown[]), y], acc, ws[i]);
   }
   return acc.map((xs) => f(...xs));
 }
 
 /**
- * Follow the wire (or stream) currently selected by an outer wire —
- * `Wire<Wire<A>> → Wire<A>` and `Wire<Stream<A>> → Stream<A>` under one
+ * Follow the state (or stream) currently selected by an outer state —
+ * `State<State<A>> → State<A>` and `State<Stream<A>> → Stream<A>` under one
  * name. The switch commits at the moment boundary (see FRP-MODEL §6).
  */
-export function flatten<A>(w: Wire<Wire<A>>): Wire<A>;
-export function flatten<A>(w: Wire<Stream<A>>): Stream<A>;
+export function flatten<A>(w: State<State<A>>): State<A>;
+export function flatten<A>(w: State<Stream<A>>): Stream<A>;
 export function flatten<A>(
-  w: Wire<Wire<A>> | Wire<Stream<A>>,
-): Wire<A> | Stream<A> {
-  return w.sampleNoTrans() instanceof Wire
-    ? Wire.switchB(w as Wire<Wire<A>>)
-    : Wire.switchE(w as Wire<Stream<A>>);
+  w: State<State<A>> | State<Stream<A>>,
+): State<A> | Stream<A> {
+  return w.sampleNoTrans() instanceof State
+    ? State.switchB(w as State<State<A>>)
+    : State.switchE(w as State<Stream<A>>);
 }
 
 /** The behavior that is `v` at every moment (applicative `pure`). */
-export function constant<A>(v: A): Wire<A> {
-  return new Wire<A>(() => v, new Stream<A>(0));
+export function constant<A>(v: A): State<A> {
+  return new State<A>(() => v, new Stream<A>(0));
 }
 
 /** The event with no occurrences (identity of `merge`). */
@@ -1643,8 +1647,8 @@ export function never<A>(): Stream<A> {
 }
 
 /** Continuous wall-clock behavior (milliseconds), sampled on demand. */
-export function time(): Wire<number> {
-  return Wire.fromPoll(() => Date.now());
+export function time(): State<number> {
+  return State.fromPoll(() => Date.now());
 }
 
 // ---------------------------------------------------------------------------
@@ -1737,11 +1741,13 @@ export function perform<A, B>(
 export { integral, derivative, warp } from "./continuous.js";
 
 // ---------------------------------------------------------------------------
-// Deprecated aliases. Two renames, same playbook, removed in 1.0:
+// Deprecated aliases. Three renames, same playbook, removed in 1.0:
 //  - Event → Stream (an "event" reads as ONE occurrence, the type is the
 //    whole stream of them — and it collided with DOM's Event);
-//  - Behavior → Wire (theory jargon nobody outside FRP literature reads;
-//    a wire is a live value you plug things into).
+//  - Behavior → Wire (theory jargon nobody outside FRP literature reads);
+//  - Wire → State (a metaphor nobody recognized; "state" is the word every
+//    React/Vue/Svelte person already thinks in — see the naming discussion
+//    in the docs).
 // ---------------------------------------------------------------------------
 
 /** @deprecated Renamed to `Stream` — same class, new name. Removed in 1.0. */
@@ -1750,7 +1756,15 @@ export const Event = Stream;
 export type Event<A> = Stream<A>;
 /** @deprecated Renamed to `newStream`. Removed in 1.0. */
 export const newEvent = newStream;
-/** @deprecated Renamed to `Wire` — same class, new name. Removed in 1.0. */
-export const Behavior = Wire;
-/** @deprecated Renamed to `Wire`. Removed in 1.0. */
-export type Behavior<A> = Wire<A>;
+/** @deprecated Renamed to `State` — same class, new name. Removed in 1.0. */
+export const Behavior = State;
+/** @deprecated Renamed to `State`. Removed in 1.0. */
+export type Behavior<A> = State<A>;
+/** @deprecated Renamed to `State` — same class, new name. Removed in 1.0. */
+export const Wire = State;
+/** @deprecated Renamed to `State`. Removed in 1.0. */
+export type Wire<A> = State<A>;
+/** @deprecated Renamed to `state` — the same source cell. Removed in 1.0. */
+export const wire = state;
+/** @deprecated Renamed to `StateSource`. Removed in 1.0. */
+export type WireSource<A> = StateSource<A>;

@@ -25,7 +25,7 @@ preserved.
 What follows from this:
 
 - a row is built once → `render` receives the item _as of the key's
-  appearance_. If the row's content must change, pass a Wire inside
+  appearance_. If the row's content must change, pass a State inside
   (see below);
 - duplicate keys are ignored (the first wins) — keys must be unique;
 - removing a key destroys the row's subtree in a cascade: subscriptions,
@@ -34,10 +34,10 @@ What follows from this:
 ## Row content that changes
 
 If list items update "in place" (same id, different fields), pass the row a
-wire of its data, not a snapshot:
+state of its data, not a snapshot:
 
 ```tsx
-function TodoRow(props: { todo: Wire<Todo> }) {
+function TodoRow(props: { todo: State<Todo> }) {
   const done = props.todo.map((t) => t.done);
   const text = props.todo.map((t) => t.text);
   return <li class={done.map((d) => (d ? "done" : ""))}>{text}</li>;
@@ -81,7 +81,7 @@ A static list (data never changes during the subtree's life) is a plain
 </ul>
 ```
 
-`<Each>` is only for lists that are Wires.
+`<Each>` is only for lists that are States.
 
 ---
 

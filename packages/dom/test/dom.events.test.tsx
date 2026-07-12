@@ -117,9 +117,9 @@ describe("event handlers — characterization", () => {
 
 describe("each() focus restore — only when a move actually stole it", () => {
   test("no focus() calls when focus is outside the list", async () => {
-    const { wire } = await import("@continuum-js/frp");
+    const { state } = await import("@continuum-js/frp");
     const { each } = await import("@continuum-js/dom");
-    const items = wire([1, 2, 3]);
+    const items = state([1, 2, 3]);
     const outside = document.createElement("input");
     document.body.appendChild(outside);
     const el = attach(() =>
@@ -139,9 +139,9 @@ describe("each() focus restore — only when a move actually stole it", () => {
   });
 
   test("focus IS restored when the focused row was moved", async () => {
-    const { wire } = await import("@continuum-js/frp");
+    const { state } = await import("@continuum-js/frp");
     const { each } = await import("@continuum-js/dom");
-    const items = wire([1, 2, 3]);
+    const items = state([1, 2, 3]);
     const el = attach(() =>
       each(
         items,

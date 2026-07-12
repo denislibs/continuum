@@ -1,4 +1,4 @@
-import { stream, wire, type Wire } from "@continuum-js/frp";
+import { stream, state, type State } from "@continuum-js/frp";
 import { Show, Each, bindInput } from "@continuum-js/dom";
 
 export interface Todo {
@@ -13,10 +13,10 @@ export interface Todo {
  */
 export function TodoApp() {
   let nextId = 1;
-  const draft = wire("");
+  const draft = state("");
   const submit = stream<void>();
 
-  const todos: Wire<Todo[]> = draft
+  const todos: State<Todo[]> = draft
     .at(submit, (text) => text.trim())
     .filter((text) => text.length > 0)
     .accum<Todo[]>([], (text, list) => [...list, { id: nextId++, text }]);

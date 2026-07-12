@@ -8,7 +8,7 @@
 
 > **ComponentProps**\<`T`\> = `T` *extends* keyof `JSX.IntrinsicElements` ? `JSX.IntrinsicElements`\[`T`\] : `T` *extends* (`props`) => `unknown` ? `P` : `never`
 
-Defined in: [jsx-runtime.ts:64](https://github.com/denislibs/continuum/blob/06378b217e7ab47a03a557199f3b883e3c7e30c6/packages/dom/src/jsx-runtime.ts#L64)
+Defined in: [jsx-runtime.ts:64](https://github.com/denislibs/continuum/blob/f5ae47f16f3158ab3acf341a203852240d621e88/packages/dom/src/jsx-runtime.ts#L64)
 
 Props of an intrinsic tag (`ComponentProps<"button">`) or of a component
 function (`ComponentProps<typeof Card>`) — for wrapping and forwarding.

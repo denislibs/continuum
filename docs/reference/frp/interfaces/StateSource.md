@@ -2,17 +2,17 @@
 
 ***
 
-[@continuum-js/frp](../index.md) / WireSource
+[@continuum-js/frp](../index.md) / StateSource
 
-# Interface: WireSource\<A\>
+# Interface: StateSource\<A\>
 
-Defined in: [index.ts:1182](https://github.com/denislibs/continuum/blob/06378b217e7ab47a03a557199f3b883e3c7e30c6/packages/frp/src/index.ts#L1182)
+Defined in: [index.ts:1454](https://github.com/denislibs/continuum/blob/f5ae47f16f3158ab3acf341a203852240d621e88/packages/frp/src/index.ts#L1454)
 
-A source wire: a cell you read like any wire and write via `.set`.
+A source state: a cell you read like any state and write via `.set`.
 
 ## Extends
 
-- [`Wire`](../classes/Wire.md)\<`A`\>
+- [`State`](../classes/State.md)\<`A`\>
 
 ## Type Parameters
 
@@ -26,7 +26,7 @@ A source wire: a cell you read like any wire and write via `.set`.
 
 > **sampleNoTrans**: () => `A`
 
-Defined in: [index.ts:762](https://github.com/denislibs/continuum/blob/06378b217e7ab47a03a557199f3b883e3c7e30c6/packages/frp/src/index.ts#L762)
+Defined in: [index.ts:984](https://github.com/denislibs/continuum/blob/f5ae47f16f3158ab3acf341a203852240d621e88/packages/frp/src/index.ts#L984)
 
 Pull the current value without opening a transaction.
 
@@ -36,7 +36,7 @@ Pull the current value without opening a transaction.
 
 #### Inherited from
 
-[`Wire`](../classes/Wire.md).[`sampleNoTrans`](../classes/Wire.md#samplenotrans)
+[`State`](../classes/State.md).[`sampleNoTrans`](../classes/State.md#samplenotrans)
 
 ***
 
@@ -44,13 +44,13 @@ Pull the current value without opening a transaction.
 
 > **updates**: [`Stream`](../classes/Stream.md)\<`A`\>
 
-Defined in: [index.ts:764](https://github.com/denislibs/continuum/blob/06378b217e7ab47a03a557199f3b883e3c7e30c6/packages/frp/src/index.ts#L764)
+Defined in: [index.ts:986](https://github.com/denislibs/continuum/blob/f5ae47f16f3158ab3acf341a203852240d621e88/packages/frp/src/index.ts#L986)
 
 Push notifications of discrete changes (empty for continuous behaviors).
 
 #### Inherited from
 
-[`Wire`](../classes/Wire.md).[`updates`](../classes/Wire.md#updates)
+[`State`](../classes/State.md).[`updates`](../classes/State.md#updates)
 
 ## Methods
 
@@ -60,10 +60,10 @@ Push notifications of discrete changes (empty for continuous behaviors).
 
 > **at**\<`B`\>(`e`): [`Stream`](../classes/Stream.md)\<`A`\>
 
-Defined in: [index.ts:784](https://github.com/denislibs/continuum/blob/06378b217e7ab47a03a557199f3b883e3c7e30c6/packages/frp/src/index.ts#L784)
+Defined in: [index.ts:1006](https://github.com/denislibs/continuum/blob/f5ae47f16f3158ab3acf341a203852240d621e88/packages/frp/src/index.ts#L1006)
 
-Sample this wire at each occurrence of `e`: `draft.at(submits)` is the
-stream of the wire's values as of those moments (pre-moment, with exact
+Sample this state at each occurrence of `e`: `draft.at(submits)` is the
+stream of the state's values as of those moments (pre-moment, with exact
 simultaneity semantics). An optional combiner receives `(value, event)`.
 
 ##### Type Parameters
@@ -84,16 +84,16 @@ simultaneity semantics). An optional combiner receives `(value, event)`.
 
 ##### Inherited from
 
-[`Wire`](../classes/Wire.md).[`at`](../classes/Wire.md#at)
+[`State`](../classes/State.md).[`at`](../classes/State.md#at)
 
 #### Call Signature
 
 > **at**\<`B`, `C`\>(`e`, `f`): [`Stream`](../classes/Stream.md)\<`C`\>
 
-Defined in: [index.ts:785](https://github.com/denislibs/continuum/blob/06378b217e7ab47a03a557199f3b883e3c7e30c6/packages/frp/src/index.ts#L785)
+Defined in: [index.ts:1007](https://github.com/denislibs/continuum/blob/f5ae47f16f3158ab3acf341a203852240d621e88/packages/frp/src/index.ts#L1007)
 
-Sample this wire at each occurrence of `e`: `draft.at(submits)` is the
-stream of the wire's values as of those moments (pre-moment, with exact
+Sample this state at each occurrence of `e`: `draft.at(submits)` is the
+stream of the state's values as of those moments (pre-moment, with exact
 simultaneity semantics). An optional combiner receives `(value, event)`.
 
 ##### Type Parameters
@@ -122,7 +122,7 @@ simultaneity semantics). An optional combiner receives `(value, event)`.
 
 ##### Inherited from
 
-[`Wire`](../classes/Wire.md).[`at`](../classes/Wire.md#at)
+[`State`](../classes/State.md).[`at`](../classes/State.md#at)
 
 ***
 
@@ -130,7 +130,7 @@ simultaneity semantics). An optional combiner receives `(value, event)`.
 
 > **dispose**(): `void`
 
-Defined in: [index.ts:812](https://github.com/denislibs/continuum/blob/06378b217e7ab47a03a557199f3b883e3c7e30c6/packages/frp/src/index.ts#L812)
+Defined in: [index.ts:1034](https://github.com/denislibs/continuum/blob/f5ae47f16f3158ab3acf341a203852240d621e88/packages/frp/src/index.ts#L1034)
 
 Detach this behavior's `updates` from the graph (see `Stream.dispose`).
 
@@ -140,7 +140,7 @@ Detach this behavior's `updates` from the graph (see `Stream.dispose`).
 
 #### Inherited from
 
-[`Wire`](../classes/Wire.md).[`dispose`](../classes/Wire.md#dispose)
+[`State`](../classes/State.md).[`dispose`](../classes/State.md#dispose)
 
 ***
 
@@ -148,7 +148,7 @@ Detach this behavior's `updates` from the graph (see `Stream.dispose`).
 
 > **listen**(`h`): [`Unlisten`](../type-aliases/Unlisten.md)
 
-Defined in: [index.ts:795](https://github.com/denislibs/continuum/blob/06378b217e7ab47a03a557199f3b883e3c7e30c6/packages/frp/src/index.ts#L795)
+Defined in: [index.ts:1017](https://github.com/denislibs/continuum/blob/f5ae47f16f3158ab3acf341a203852240d621e88/packages/frp/src/index.ts#L1017)
 
 Deliver the current value immediately, then every change.
 
@@ -164,15 +164,15 @@ Deliver the current value immediately, then every change.
 
 #### Inherited from
 
-[`Wire`](../classes/Wire.md).[`listen`](../classes/Wire.md#listen)
+[`State`](../classes/State.md).[`listen`](../classes/State.md#listen)
 
 ***
 
 ### map()
 
-> **map**\<`B`\>(`f`): [`Wire`](../classes/Wire.md)\<`B`\>
+> **map**\<`B`\>(`f`): [`State`](../classes/State.md)\<`B`\>
 
-Defined in: [index.ts:775](https://github.com/denislibs/continuum/blob/06378b217e7ab47a03a557199f3b883e3c7e30c6/packages/frp/src/index.ts#L775)
+Defined in: [index.ts:997](https://github.com/denislibs/continuum/blob/f5ae47f16f3158ab3acf341a203852240d621e88/packages/frp/src/index.ts#L997)
 
 Pointwise transform (continuous-safe: recomputed on each sample).
 
@@ -190,11 +190,11 @@ Pointwise transform (continuous-safe: recomputed on each sample).
 
 #### Returns
 
-[`Wire`](../classes/Wire.md)\<`B`\>
+[`State`](../classes/State.md)\<`B`\>
 
 #### Inherited from
 
-[`Wire`](../classes/Wire.md).[`map`](../classes/Wire.md#map)
+[`State`](../classes/State.md).[`map`](../classes/State.md#map)
 
 ***
 
@@ -202,11 +202,11 @@ Pointwise transform (continuous-safe: recomputed on each sample).
 
 > **on**\<`E`\>(`e`, `f`): `this`
 
-Defined in: [index.ts:1200](https://github.com/denislibs/continuum/blob/06378b217e7ab47a03a557199f3b883e3c7e30c6/packages/frp/src/index.ts#L1200)
+Defined in: [index.ts:1472](https://github.com/denislibs/continuum/blob/f5ae47f16f3158ab3acf341a203852240d621e88/packages/frp/src/index.ts#L1472)
 
 Declare a state transition: on each occurrence of `e`, fold the reducer
 over the current value — `(state, event) => next`, `useReducer` order.
-The occurrence and the wire's update share ONE moment (snapshot
+The occurrence and the state's update share ONE moment (snapshot
 semantics hold), and several `.on` sources firing simultaneously fold
 sequentially. The transition process belongs to the ambient scope.
 
@@ -236,7 +236,7 @@ sequentially. The transition process belongs to the ambient scope.
 
 > **retain**(): `this`
 
-Defined in: [index.ts:817](https://github.com/denislibs/continuum/blob/06378b217e7ab47a03a557199f3b883e3c7e30c6/packages/frp/src/index.ts#L817)
+Defined in: [index.ts:1039](https://github.com/denislibs/continuum/blob/f5ae47f16f3158ab3acf341a203852240d621e88/packages/frp/src/index.ts#L1039)
 
 Keep this behavior's update chain alive across listener churn (see `Stream.retain`).
 
@@ -246,7 +246,7 @@ Keep this behavior's update chain alive across listener churn (see `Stream.retai
 
 #### Inherited from
 
-[`Wire`](../classes/Wire.md).[`retain`](../classes/Wire.md#retain)
+[`State`](../classes/State.md).[`retain`](../classes/State.md#retain)
 
 ***
 
@@ -254,7 +254,7 @@ Keep this behavior's update chain alive across listener churn (see `Stream.retai
 
 > **sample**(): `A`
 
-Defined in: [index.ts:767](https://github.com/denislibs/continuum/blob/06378b217e7ab47a03a557199f3b883e3c7e30c6/packages/frp/src/index.ts#L767)
+Defined in: [index.ts:989](https://github.com/denislibs/continuum/blob/f5ae47f16f3158ab3acf341a203852240d621e88/packages/frp/src/index.ts#L989)
 
 #### Returns
 
@@ -262,7 +262,7 @@ Defined in: [index.ts:767](https://github.com/denislibs/continuum/blob/06378b217
 
 #### Inherited from
 
-[`Wire`](../classes/Wire.md).[`sample`](../classes/Wire.md#sample)
+[`State`](../classes/State.md).[`sample`](../classes/State.md#sample)
 
 ***
 
@@ -270,7 +270,7 @@ Defined in: [index.ts:767](https://github.com/denislibs/continuum/blob/06378b217
 
 > **set**(`a`): `void`
 
-Defined in: [index.ts:1184](https://github.com/denislibs/continuum/blob/06378b217e7ab47a03a557199f3b883e3c7e30c6/packages/frp/src/index.ts#L1184)
+Defined in: [index.ts:1456](https://github.com/denislibs/continuum/blob/f5ae47f16f3158ab3acf341a203852240d621e88/packages/frp/src/index.ts#L1456)
 
 Set the current value; equal values (by the cell's `eq`) are a no-op.
 
@@ -290,7 +290,7 @@ Set the current value; equal values (by the cell's `eq`) are a no-op.
 
 > **update**(`f`): `void`
 
-Defined in: [index.ts:1192](https://github.com/denislibs/continuum/blob/06378b217e7ab47a03a557199f3b883e3c7e30c6/packages/frp/src/index.ts#L1192)
+Defined in: [index.ts:1464](https://github.com/denislibs/continuum/blob/f5ae47f16f3158ab3acf341a203852240d621e88/packages/frp/src/index.ts#L1464)
 
 Read-modify-write: fold the updater over the current value —
 `count.update((n) => n + 1)`. Inside a `batch` the updater sees the

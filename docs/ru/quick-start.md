@@ -57,7 +57,7 @@ mount(document.getElementById("app")!, () => <App />);
 Откройте `src/App.tsx` и заставьте счётчик считать вдвое:
 
 ```tsx
-const count = wire(0);
+const count = state(0);
 const doubled = count.map((n) => n * 2); // [!code ++]
 ```
 
@@ -67,7 +67,7 @@ const doubled = count.map((n) => n * 2); // [!code ++]
 
 ## Дальше
 
-- [Мышление в Wires и Streams](/ru/tutorial/thinking-in-frp) — модель,
+- [Мышление в States и Streams](/ru/tutorial/thinking-in-frp) — модель,
   стоящая за только что написанным.
 - [Понятия → Компоненты](/ru/concepts/components) — что здесь такое
   компонент.

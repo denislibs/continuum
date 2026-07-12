@@ -2,12 +2,12 @@
 // keys. Both were found by executable probes (see REFACTOR-PLAN, independent
 // track).
 import { describe, test, expect } from "vitest";
-import { wire } from "@continuum-js/frp";
+import { state } from "@continuum-js/frp";
 import { mount, when, h, bindInput } from "@continuum-js/dom";
 
 describe("when/Show release the condition chain on unmount", () => {
   test("after unmounts, the condition's map chain sleeps", () => {
-    const flag = wire(false);
+    const flag = state(false);
     let mapCalls = 0;
     // a module-level condition shared across mounts
     const cond = flag.map((v) => {
@@ -47,9 +47,9 @@ describe("when/Show release the condition chain on unmount", () => {
   });
 });
 
-describe("style={wire} clears keys that disappear", () => {
+describe("style={state} clears keys that disappear", () => {
   test("a dropped property is removed, not left behind", () => {
-    const style = wire<Record<string, string>>({ color: "red" });
+    const style = state<Record<string, string>>({ color: "red" });
     const el = document.createElement("div");
     const unmount = mount(el, () => h("div", { style }));
     const target = el.firstChild as HTMLElement;
@@ -63,9 +63,9 @@ describe("style={wire} clears keys that disappear", () => {
   });
 });
 
-describe("bindInput accepts a source wire alone", () => {
-  test("one-argument form writes through the wire's own setter", () => {
-    const text = wire("a");
+describe("bindInput accepts a source state alone", () => {
+  test("one-argument form writes through the state's own setter", () => {
+    const text = state("a");
     const el = document.createElement("div");
     document.body.appendChild(el); // delegated events need a connected tree
     const unmount = mount(el, () => h("input", { ...bindInput(text) }));

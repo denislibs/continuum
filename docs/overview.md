@@ -6,11 +6,11 @@ the DOM in sync by itself.
 ## The 30-second version
 
 ```tsx
-import { wire } from "@continuum-js/frp";
+import { state } from "@continuum-js/frp";
 import { mount } from "@continuum-js/dom";
 
 function Counter() {
-  const count = wire(0);
+  const count = state(0);
   const double = count.map((n) => n * 2);
   return (
     <div>
@@ -27,13 +27,13 @@ mount(document.getElementById("app")!, () => <Counter />);
 
 Three moves, and they are the whole core model:
 
-1. **Create state** — `wire(0)` gives you a reactive value with a `.set`
+1. **Create state** — `state(0)` gives you a reactive value with a `.set`
    method. Like `useState`, but the component never re-runs. The component's
    scope owns the state: unmount the component and the state goes with it.
 2. **Derive** — `count.map(n => n * 2)` is a formula computed from another
    value. No dependency array: `double` depends on `count` because it is
    built from it.
-3. **Bind** — putting a value in JSX (`{count}`, `class={cls}`) wires that
+3. **Bind** — putting a value in JSX (`{count}`, `class={cls}`) binds that
    exact text node or attribute to it. Change the value, and only that node
    updates.
 
@@ -64,18 +64,18 @@ features that usually cost a library each cost **one more fold** each:
   solved once, in the library
   ([recipe](/guides/patterns#14-race-free-search-resource)).
 
-The rule of thumb for which tool to reach for: **no history — `wire`;
-a history worth keeping — a stream.** `wire` is itself just sugar over
+The rule of thumb for which tool to reach for: **no history — `state`;
+a history worth keeping — a stream.** `state` is itself just sugar over
 `stream` + `hold`: perfect for form fields, toggles and everything you
 simply overwrite. The moment you catch yourself wanting "how did this value
 get here" — undo, audit, sync — the stream form is the same state with its
 story attached.
 
 And when one value has several sources, don't scatter `.set` calls — declare
-the transitions on the wire itself:
+the transitions on the state itself:
 
 ```tsx
-const count = wire(0)
+const count = state(0)
   .on(inc, (n) => n + 1)
   .on(dec, (n) => n - 1)
   .on(reset, () => 0);
@@ -83,7 +83,7 @@ const count = wire(0)
 
 Each `.on(event, reducer)` is a `(state, event) => state` step, registered
 as a process in the current scope. The single-source counter above could be
-a fold too — `clicks.accum(0, (_e, n) => n + 1)` — but `wire(0).on(…)` is the
+a fold too — `clicks.accum(0, (_e, n) => n + 1)` — but `state(0).on(…)` is the
 idiomatic form the moment sources multiply.
 
 ## Why trust it
@@ -123,7 +123,7 @@ to know _why_ it works: see [the deep dive](/tutorial/thinking-in-frp).
 3. [Concepts](/concepts/components) — one idea per page.
 4. [From React](/from-react) — a construct-by-construct migration map.
 5. When you're curious about the engine:
-   [Thinking in Wires and Streams](/tutorial/thinking-in-frp).
+   [Thinking in States and Streams](/tutorial/thinking-in-frp).
 
 ---
 

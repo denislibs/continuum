@@ -8,7 +8,7 @@
 
 > **runInScope**\<`T`\>(`scope`, `fn`): `T`
 
-Defined in: [index.ts:93](https://github.com/denislibs/continuum/blob/06378b217e7ab47a03a557199f3b883e3c7e30c6/packages/frp/src/index.ts#L93)
+Defined in: [index.ts:107](https://github.com/denislibs/continuum/blob/f5ae47f16f3158ab3acf341a203852240d621e88/packages/frp/src/index.ts#L107)
 
 Run `fn` with `scope` as the ambient owner; restores the previous one.
 

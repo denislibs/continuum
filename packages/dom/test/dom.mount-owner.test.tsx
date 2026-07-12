@@ -39,7 +39,7 @@ describe("onMount runs under its owner", () => {
       <Show when={visible}>
         {() => {
           onMount(() => {
-            // the real-world shape: wire a listener on mount, tear it down
+            // the real-world shape: state a listener on mount, tear it down
             // with the region
             onCleanup(() => cleaned++);
           });
@@ -53,7 +53,7 @@ describe("onMount runs under its owner", () => {
     setVisible(false); // the region is disposed → its mount-cleanup runs
     expect(cleaned).toBe(1);
 
-    setVisible(true); // and a fresh region wires a fresh cleanup
+    setVisible(true); // and a fresh region states a fresh cleanup
     setVisible(false);
     expect(cleaned).toBe(2);
     dispose();

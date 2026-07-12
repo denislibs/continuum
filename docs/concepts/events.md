@@ -3,18 +3,18 @@
 `Stream<A>` is a stream of **things that happen**: clicks, key presses,
 server responses. Each firing (an [occurrence](/glossary#occurrence))
 carries a value; between firings the event simply isn't there — unlike a
-Wire, it has no "current value" to read.
+State, it has no "current value" to read.
 
 ::: tip You may not need Streams yet
-For most UI code, `wire` + plain callbacks
+For most UI code, `state` + plain callbacks
 (`onClick={() => x.set(…)}`) is all you need. Reach for Streams when the flow
 itself is the point: debouncing input, merging sources, capturing form state at
 submit, feeding requests into `resource`.
 
 The one-sentence test: if you can **draw it on the screen**, it is a
-[Wire](/concepts/behaviors); if you can **react to it**, it is a
+[State](/concepts/behaviors); if you can **react to it**, it is a
 Stream. The longer version:
-[Stream vs Wire](/frp-in-plain-words#event-vs-behavior).
+[Stream vs State](/frp-in-plain-words#event-vs-behavior).
 :::
 
 ## Creating
@@ -37,7 +37,7 @@ const ids = clicks.map((e) => (e.target as HTMLElement).id);
 const lefts = clicks.filter((e) => e.button === 0);
 const ones = clicks.mapTo(1);
 const firstOnly = clicks.once();
-const whileOpen = keys.when(isOpen); // passes only while the Wire is true
+const whileOpen = keys.when(isOpen); // passes only while the State is true
 ```
 
 ## Combining
@@ -52,7 +52,7 @@ const either = errors.or(fallbacks); // left-biased shorthand
 
 ## Capturing state
 
-`at` reads a Wire at the event's moment; `when` filters by one:
+`at` reads a State at the event's moment; `when` filters by one:
 
 ```ts
 const submitted = draft.at(submits);
@@ -61,8 +61,8 @@ const submitted = draft.at(submits);
 ## Becoming state
 
 ```ts
-const latest = responses.hold(initial); // Wire: last value
-const count = clicks.accum(0, (_e, n) => n + 1); // Wire: fold
+const latest = responses.hold(initial); // State: last value
+const count = clicks.accum(0, (_e, n) => n + 1); // State: fold
 const totals = amounts.accumE(0, (a, s) => s + a); // Stream of fold steps
 ```
 
@@ -75,7 +75,7 @@ once their scope is disposed, they freeze at their last value.
 State with several named transitions reads best as a cell plus reducers:
 
 ```ts
-const count = wire(0)
+const count = state(0)
   .on(inc, (n) => n + 1)
   .on(dec, (n) => n - 1)
   .on(reset, () => 0);

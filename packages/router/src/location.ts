@@ -1,14 +1,14 @@
-// The URL as a first-class FRP value: `location()` is a Wire<URL>,
+// The URL as a first-class FRP value: `location()` is a State<URL>,
 // `navigate` is the event input. One lazily-created singleton per page —
 // created on first use so importing the module has no side effects.
 
-import { wire, type WireSource, type Wire } from "@continuum-js/frp";
+import { state, type StateSource, type State } from "@continuum-js/frp";
 
-let loc: WireSource<URL> | null = null;
+let loc: StateSource<URL> | null = null;
 
-function ensure(): WireSource<URL> {
+function ensure(): StateSource<URL> {
   if (!loc) {
-    const l = wire(new URL(window.location.href));
+    const l = state(new URL(window.location.href));
     // Back/forward: the browser moves through history, we follow.
     window.addEventListener("popstate", () =>
       l.set(new URL(window.location.href)),
@@ -19,7 +19,7 @@ function ensure(): WireSource<URL> {
 }
 
 /** The current URL across time. Updates on `navigate` and popstate. */
-export function location(): Wire<URL> {
+export function location(): State<URL> {
   return ensure();
 }
 

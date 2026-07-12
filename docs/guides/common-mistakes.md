@@ -74,7 +74,7 @@ is how it always looks.
 
 `sample()` reads the current value **right now** and returns a plain,
 non-reactive result. A component runs once, so a sampled value is frozen
-forever. Put the wire itself into JSX — that's the whole point:
+forever. Put the state itself into JSX — that's the whole point:
 
 ```tsx
 // ❌ renders the initial value, then never changes
@@ -102,7 +102,7 @@ A component runs once, so a plain `if`/ternary chooses a branch **once**.
 Reactive branching is what `<Show>` (or `when`/`dyn`) is for:
 
 ```tsx
-// ❌ `list` is a Wire — there is no `.length` on it,
+// ❌ `list` is a State — there is no `.length` on it,
 // and even `list.sample().length` would only be checked once
 {
   list.sample().length > 0 ? <TodoList /> : <Empty />;
@@ -142,7 +142,7 @@ which remaps `onChange`.
 _previous_ value, and it looks like an off-by-one bug.
 
 It isn't a bug — it's the **hold delay**, the core rule of the model: within
-one moment, every wire still holds the value it had _before_ the moment.
+one moment, every state still holds the value it had _before_ the moment.
 The new value becomes visible after the moment closes. This is exactly what
 makes state loops (`accum`, feedback through `hold`) well-defined instead of
 infinite.
@@ -191,14 +191,14 @@ changes — `sample()` keeps returning the same last value forever.
 
 State lives exactly as long as its owning scope. When a subtree is disposed,
 every process it owned — `.on` transitions, `hold`, `accum`, `perform`
-subscriptions — detaches. The wire doesn't die or throw: it freezes,
+subscriptions — detaches. The state doesn't die or throw: it freezes,
 answering `sample()` with its final value and never updating again.
 
 ```tsx
 // ❌ state owned by the Show branch: freezes every time the panel hides
 <Show when={visible}>
   {() => {
-    const n = wire(0).on(ticks, (x) => x + 1);
+    const n = state(0).on(ticks, (x) => x + 1);
     return <Counter value={n} />;
   }}
 </Show>
@@ -236,7 +236,7 @@ The full story, including cancellation and request numbering:
 
 **A meta-rule that covers half of this page:** a component runs **once**.
 Anything you compute with plain JavaScript in the component body is computed
-once and frozen. Anything that should _live_ must be a Wire, a Stream, or
+once and frozen. Anything that should _live_ must be a State, a Stream, or
 a derivation of them — and the moment you find yourself reaching _out_ of a
 pure combinator (to the DOM, to the network, to another event), move that
 code to the boundary: a handler, `perform`, or `onMount`/`onCleanup`.

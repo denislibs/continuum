@@ -7,10 +7,10 @@ that file) or https://denislibs.github.io/continuum/llms.txt
 
 ## Layout
 
-- `packages/frp` — the FRP core: Wire, Stream, transactions. No DOM.
+- `packages/frp` — the FRP core: State, Stream, transactions. No DOM.
 - `packages/dom` — JSX renderer, ownership tree, `Show`/`Each`/`Dynamic`,
   context, `onMount`/`onCleanup`.
-- `packages/std` — stream/wire utilities (`debounce`, `resource`, …).
+- `packages/std` — stream/state utilities (`debounce`, `resource`, …).
 - `packages/router`, `packages/test`, `packages/create-continuum` (CLI +
   `template/` scaffold).
 - `examples/*` — small apps; they alias packages to local sources when run

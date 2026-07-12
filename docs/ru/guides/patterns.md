@@ -8,7 +8,7 @@
 
 Рецепты предполагают знание основ: [состояние](/ru/guides/state),
 [асинхронность](/ru/guides/async), [Streams и
-Wires](/ru/concepts/events). Wire («провод») — реактивное значение; в
+States](/ru/concepts/events). State — реактивное значение; в
 FRP-литературе Behavior. Импорты показаны один раз на сниппет; всё
 берётся из `@continuum-js/frp`, `@continuum-js/dom` или `@continuum-js/std`.
 
@@ -79,11 +79,11 @@ _исходный_ факт, остальное вычисляйте:
 
 ```ts
 // ❌ два источника истины, синхронизируемых вручную
-const items = wire<Item[]>([]);
-const total = wire(0); // забыли обновить один раз — баг
+const items = state<Item[]>([]);
+const total = state(0); // забыли обновить один раз — баг
 
 // ✅ один источник, остальное — арифметика
-const items = wire<Item[]>([]);
+const items = state<Item[]>([]);
 const total = items.map((xs) => xs.reduce((s, i) => s + i.price, 0));
 const isEmpty = items.map((xs) => xs.length === 0);
 ```
@@ -103,9 +103,9 @@ const isEmpty = items.map((xs) => xs.length === 0);
 
 ```ts
 // store.ts
-import { wire, stream, root } from "@continuum-js/frp";
+import { state, stream, root } from "@continuum-js/frp";
 
-export const cart = wire<Item[]>([]);
+export const cart = state<Item[]>([]);
 export const cartTotal = cart.map(
   (xs) => xs.reduce((s, i) => s + i.price, 0), // формула: владелец не нужен
 );
@@ -137,7 +137,7 @@ const submitted = draft.at(submits);
 **Когда:** игнорировать ввод, пока что-то в полёте.
 
 ```ts
-const saving = wire(false);
+const saving = state(false);
 const effectiveClicks = saveClicks.when(saving.map((s) => !s));
 ```
 
@@ -170,7 +170,7 @@ import { pairwise, previous } from "@continuum-js/std";
 const direction = pairwise(scrollY).map(([prev, cur]) =>
   cur > prev ? "down" : "up",
 );
-const lastPrice = previous(price, 0); // Wire, отстающий на шаг
+const lastPrice = previous(price, 0); // State, отстающий на шаг
 const trend = combine(price, lastPrice, (now, before) =>
   Math.sign(now - before),
 );
@@ -223,7 +223,7 @@ const scrollSample = throttle(scrolls, 100); // не чаще 10 раз/сек
 одновременных `.on`-источников сворачиваются последовательно:
 
 ```ts
-const counter = wire(0)
+const counter = state(0)
   .on(plusClicks, (n) => n + 1)
   .on(minusClicks, (n) => n - 1)
   .on(resetClicks, () => 0);
@@ -276,7 +276,7 @@ import { resource } from "@continuum-js/std";
 const results = resource(debounce(queries, 300), (q) =>
   fetch(`/api/search?q=${encodeURIComponent(q)}`).then((r) => r.json()),
 );
-// Wire<Async<T>>: idle → loading → ok | error, «последний запрос
+// State<Async<T>>: idle → loading → ok | error, «последний запрос
 // побеждает» уже встроено
 
 <Dynamic value={results}>
@@ -325,7 +325,7 @@ const todos = (userActions as Stream<Action>)
 ```ts
 import { interval } from "@continuum-js/std";
 
-const live = wire(true);
+const live = state(true);
 const ticks = interval(30_000).when(live);
 const stats = resource(ticks, () => fetch("/api/stats").then((r) => r.json()));
 ```
@@ -341,7 +341,7 @@ const stats = resource(ticks, () => fetch("/api/stats").then((r) => r.json()));
 **Когда:** выбранный id плюс список — и представления выбранного элемента.
 
 ```ts
-const selectedId = wire<string | null>(null);
+const selectedId = state<string | null>(null);
 
 const selected = combine(
   selectedId,
@@ -363,7 +363,7 @@ const selected = combine(
 Флагманский нишевый трюк классического FRP.
 
 ```ts
-const source: Wire<Wire<Todo[]>> = mode.map((m) =>
+const source: State<State<Todo[]>> = mode.map((m) =>
   m === "local" ? localTodos : serverTodos,
 );
 const todos = flatten(source);
@@ -371,13 +371,13 @@ const todos = flatten(source);
 ```
 
 Всё построенное над `todos` — счётчики, фильтры, `<Each>` — переживает
-подмену нетронутым. Тот же `flatten` над `Wire<Stream<A>>` переключает
+подмену нетронутым. Тот же `flatten` над `State<Stream<A>>` переключает
 потоки событий (например, «какой WebSocket я сейчас слушаю»).
 
 ### 19. Модалка — `<Show>` + `<Portal>`
 
 ```tsx
-const open = wire(false);
+const open = state(false);
 
 <Show when={open}>
   {() => (
@@ -398,7 +398,7 @@ const open = wire(false);
 **Когда:** оборачиваете нереактивную библиотеку (график, карту, редактор).
 
 ```tsx
-function Chart(props: { data: Wire<number[]> }) {
+function Chart(props: { data: State<number[]> }) {
   let el!: HTMLDivElement;
   onMount(() => {
     const chart = new ThirdPartyChart(el); // DOM уже в документе
@@ -500,7 +500,7 @@ export function Button(props: ButtonProps) {
 - **children проходят через спред** — рантайм доставляет их в
   `props.children`, так что `{...rest}` уносит их в тег;
 - `loading` — это `Reactive<boolean>`: вызывающий передаёт хоть `true`, хоть
-  живой `Wire<boolean>`, и `disabled` следит за ним без проводки;
+  живой `State<boolean>`, и `disabled` следит за ним без проводки;
 - обработчики результата полностью типизированы, включая `e.currentTarget`
   (`HTMLButtonElement` или `HTMLAnchorElement` по ветке).
 
