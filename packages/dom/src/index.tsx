@@ -692,6 +692,28 @@ class EachOwner<K> extends Owner {
   }
 }
 
+// The row's current live nodes. The build-time `nodes` snapshot can go stale in
+// the MIDDLE — a nested dynamic region at the row root swaps its content between
+// its own markers on rebuild — but a built subtree's FIRST and LAST top-level
+// nodes are always stable boundaries (a region brackets its content with
+// markers, so the swappable part is never at either end). So sweep the live DOM
+// range between those boundaries rather than trusting the snapshot (#112).
+function liveRange(ns: Node | Node[]): Node[] {
+  if (!Array.isArray(ns)) return [ns];
+  const first = ns[0];
+  const last = ns[ns.length - 1];
+  if (first === undefined) return [];
+  if (first === last) return [first];
+  const out: Node[] = [];
+  let n: Node | null = first;
+  while (n) {
+    out.push(n);
+    if (n === last) break;
+    n = n.nextSibling;
+  }
+  return out;
+}
+
 /** Longest strictly-increasing subsequence; returns the set of kept indices. */
 function lisIndices(seq: number[]): Set<number> {
   const n = seq.length;
@@ -764,8 +786,9 @@ export function each<T, K>(
     // dispose rows whose key disappeared
     for (const r of rows) {
       if (!seen.has(r.key)) {
+        const live = liveRange(r.nodes!); // live range, not the stale snapshot
         r.dispose();
-        removeNodes(r.nodes!);
+        removeNodes(live);
       }
     }
 
@@ -786,14 +809,11 @@ export function each<T, K>(
           batch = document.createDocumentFragment();
           batchAnchor = anchor;
         }
-        // walking backwards: prepend to keep the row order
-        const nodes = row.nodes!;
-        if (Array.isArray(nodes)) {
-          for (let j = nodes.length - 1; j >= 0; j--) {
-            batch.insertBefore(nodes[j], batch.firstChild);
-          }
-        } else {
-          batch.insertBefore(nodes, batch.firstChild);
+        // walking backwards: prepend to keep the row order. Move the LIVE
+        // range (post content-swap), not the build-time snapshot (#112).
+        const nodes = liveRange(row.nodes!);
+        for (let j = nodes.length - 1; j >= 0; j--) {
+          batch.insertBefore(nodes[j], batch.firstChild);
         }
       } else if (batch) {
         parent.insertBefore(batch, batchAnchor);
@@ -945,8 +965,12 @@ export function portal(target: Node, child: Child): Node {
   const built = buildScoped(new Owner(getScope()), () => child);
   insertNodes(target, built.nodes!, null);
   onCleanup(() => {
+    // Snapshot the LIVE range BEFORE dispose (safer ordering if a user cleanup
+    // ever mutates the DOM). A top-level dynamic region may swap nodes after
+    // build, staling the middle of the snapshot (#112).
+    const live = liveRange(built.nodes!);
     built.dispose();
-    removeNodes(built.nodes!);
+    removeNodes(live);
   });
   return document.createComment("portal");
 }
@@ -957,9 +981,10 @@ export function mount(container: Node, view: () => Node): () => void {
     const node = view();
     const nodes = node.nodeType === 11 ? Array.from(node.childNodes) : [node];
     container.appendChild(node);
-    onCleanup(() => {
-      for (const n of nodes) if (n.parentNode) n.parentNode.removeChild(n);
-    });
+    // sweep the LIVE range on unmount — a top-level dynamic region (a router's
+    // <Show>/<Dynamic>) swaps nodes after mount, staling the middle of the
+    // snapshot; the first/last boundaries stay stable (#112).
+    onCleanup(() => removeNodes(liveRange(nodes)));
     const s = getScope();
     if (s) flushMounts(s);
     return () => dispose();
