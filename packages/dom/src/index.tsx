@@ -510,6 +510,21 @@ export function h(
   const el = createEl(tag);
   if (props) applyProps(el, props as Record<string, unknown>);
   for (const c of children) appendChild(el, c);
+  // A <select>'s `value` is only meaningful once its <option>s exist, but props
+  // are applied before children — setting value on an optionless <select> is a
+  // no-op, so the initial selection was lost (#116). Re-assert it after the
+  // children are in place; any reactive binding stays live (this only fixes the
+  // INITIAL value — options that arrive later via a reactive region still need
+  // the bound value to re-fire). <textarea> needs no such fix: assigning
+  // `.value` sets the dirty-value flag, so appended text only affects
+  // defaultValue and the value itself survives.
+  if (props && tag === "select") {
+    const v = (props as Record<string, unknown>).value;
+    if (v !== undefined) {
+      (el as unknown as Record<string, unknown>).value =
+        v instanceof State ? (v as State<unknown>).sampleNoTrans() : v;
+    }
+  }
   return el;
 }
 

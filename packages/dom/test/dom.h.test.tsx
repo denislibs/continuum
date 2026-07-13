@@ -31,6 +31,34 @@ describe("h — static elements", () => {
     expect(cb.checked).toBe(true);
   });
 
+  // #116: props are applied before children, but a <select>'s value needs its
+  // options to already exist, so the initial selection used to be lost.
+  test("<select value> keeps its initial selection", () => {
+    const el = (
+      <select value="2">
+        <option value="1">one</option>
+        <option value="2">two</option>
+        <option value="3">three</option>
+      </select>
+    ) as HTMLSelectElement;
+    expect(el.value).toBe("2");
+    expect(el.selectedIndex).toBe(1);
+  });
+
+  test("<select value={state}> initial selection sticks and stays reactive", () => {
+    const v = state("2");
+    const set = v.set;
+    const el = (
+      <select value={v}>
+        <option value="1">one</option>
+        <option value="2">two</option>
+      </select>
+    ) as HTMLSelectElement;
+    expect(el.value).toBe("2");
+    set("1");
+    expect(el.value).toBe("1");
+  });
+
   test("ref receives the element (function form)", () => {
     let captured: HTMLElement | null = null;
     (<div ref={(el: HTMLElement) => (captured = el)} />) as HTMLElement;
