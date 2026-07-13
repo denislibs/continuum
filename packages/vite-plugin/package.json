@@ -1,6 +1,6 @@
 {
   "name": "@continuum-js/vite-plugin",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Optional JSX compiler for Continuum — compiles ordinary JSX into cloned templates (Solid-class create performance). Without it the same JSX runs through the runtime factory unchanged.",
   "license": "MIT",
   "repository": {

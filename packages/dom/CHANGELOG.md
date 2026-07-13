@@ -1,5 +1,22 @@
 # @continuum-js/dom
 
+## 1.0.1
+
+### Patch Changes
+
+- e5fc7a1: `each`, `mount`, and `portal` no longer leave "ghost DOM" when a row/region
+  root is a dynamic region (`dyn`/`Show`/`when`/nested `each`). They swept the
+  build-time node snapshot, whose middle goes stale when the nested region swaps
+  its content; they now sweep the live DOM range between the snapshot's stable
+  first/last boundaries.
+- 6d3b6dd: `<select value>` keeps its initial selection. The factory path re-asserts the
+  value after options are appended; the compiled path now emits `<option value>`
+  as a static template attribute (instead of a runtime prop) so the `<select>`'s
+  value hole, run after `cloneNode`, sees its options already valued. Both paths
+  now behave identically.
+- Updated dependencies [ce238d3]
+  - @continuum-js/frp@1.0.1
+
 ## 1.0.0
 
 ### Major Changes
