@@ -95,7 +95,47 @@ describe("continuum jsx transform", () => {
     const out = compile(`const _r = getData(); const v = <div>{_r}</div>;`);
     expect(out).toContain(`const _r$2 = _tmpl$1();`);
     expect(out).toContain(`_$insert(_r$2, _r)`); // inserts the user's _r
-    expect(out).not.toContain(`const _r =`.padEnd(11) + `_tmpl$1`); // no shadow
+    expect(out).toContain(`return _r$2;`); // returns the clone, not the user's _r
+  });
+
+  test("a renamed clone var is also returned, not the user binding (#121)", () => {
+    // `_r` referenced anywhere in the module bumps the clone var (hasReference
+    // is module-wide) — the IIFE must return the clone, not the (here unbound
+    // at module scope, or TDZ) user `_r`.
+    const unrelated = compile(
+      `function h2() { const _r = 1; return _r; } const v = <div>{x}</div>;`,
+    );
+    expect(unrelated).toContain(`const _r$2 = _tmpl$1();`);
+    expect(unrelated).toContain(`return _r$2;`); // the compiled IIFE returns the clone
+
+    // TDZ variant: no user `return _r;` anywhere, so the compiled return must
+    // be the renamed clone, never a bare `return _r;`.
+    const tdz = compile(`const v = <div>{x}</div>; const _r = 1;`);
+    expect(tdz).toContain(`return _r$2;`);
+    expect(tdz).not.toMatch(/return _r;/);
+  });
+
+  test("the compiled IIFE yields the cloned element, not the captured binding (#121)", () => {
+    // runtime-shaped: strip the import, stub the runtime, and evaluate.
+    const src = compile(`const _r = getData(); const v = <div>{_r}</div>;`);
+    const body = src.replace(/^import[^\n]*\n/m, "");
+    const el = { __clone: true };
+    const fn = new Function(
+      "_$tmpl",
+      "_$insert",
+      "_$prop",
+      "_$event",
+      "getData",
+      `${body}\nreturn v;`,
+    );
+    const v = fn(
+      () => () => el, // _$tmpl(html) -> factory -> element
+      () => {},
+      () => {},
+      () => {},
+      () => "USER_VALUE", // getData()
+    );
+    expect(v).toBe(el); // the element, NOT "USER_VALUE"
   });
 
   test("runtime import names don't collide with a user declaration (#121)", () => {

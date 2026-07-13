@@ -362,7 +362,7 @@ export function continuumJsx(babel: typeof BabelCore): PluginObj<State> {
         const lines: string[] = [`const ${rVar} = ${id}();`];
         for (const [expr, v] of refs) lines.push(`const ${v} = ${expr};`);
         lines.push(...ops);
-        lines.push("return _r;");
+        lines.push(`return ${rVar};`);
         // parser `plugins` rides through TemplateBuilderOptions untyped
         const tplOpts = {
           placeholderPattern: false,
