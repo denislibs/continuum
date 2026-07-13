@@ -352,5 +352,11 @@ function generateCode(babel: typeof BabelCore, n: t.Node): string {
   let code = res?.code ?? "";
   code = code.trim();
   if (code.endsWith(";")) code = code.slice(0, -1);
+  // A top-level comma operator stringifies bare (`a, b`); interpolated into a
+  // call-argument list (`_$insert(parent, CODE, anchor)`) its commas would
+  // split into extra arguments, so wrap it. Other expression kinds the
+  // generator would print ambiguously at statement position (object literals,
+  // …) already come back parenthesized.
+  if (expr.type === "SequenceExpression") code = `(${code})`;
   return code;
 }
