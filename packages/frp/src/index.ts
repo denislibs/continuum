@@ -1051,7 +1051,12 @@ function lift2<A, B, C>(
   let hasSa = false;
   let hasSb = false;
   let scheduledTx: Transaction | null = null;
-  let reseeding = false;
+  // Keyed to the reseeding MOMENT, not a bare boolean: a mid-moment wake that
+  // ABORTS before its deferred reset runs would strand a `reseeding = true`
+  // forever, so every later flush would early-return and the join would go
+  // silent (sample stays right, updates die). An aborted moment is never
+  // recycled into the pool, so `=== t` is safe and the next moment self-heals.
+  let reseedingTx: Transaction | null = null;
   let suppressed = false;
   // one commit closure per join, not per moment (see hold); a mid-moment
   // reseed sets stagedTx to null, which also disarms a queued commit
@@ -1074,7 +1079,7 @@ function lift2<A, B, C>(
   };
   const flush = (t: Transaction) => {
     scheduledTx = null;
-    if (reseeding) {
+    if (reseedingTx === t) {
       // Woken mid-moment: the caches are not trustworthy until after the
       // commits — the deferred reseed emits once from fresh values.
       suppressed = true;
@@ -1110,6 +1115,7 @@ function lift2<A, B, C>(
       va = ba.sampleNoTrans();
       vb = bb.sampleNoTrans();
       scheduledTx = null;
+      reseedingTx = null; // clear any state stranded by an aborted reseed
       return;
     }
     // Waking mid-moment (a listen inside a batch, a switch rewire):
@@ -1118,7 +1124,8 @@ function lift2<A, B, C>(
     // far — so the reseed reads committed values; any flush scheduled
     // meanwhile is suppressed and replaced by one emission from the
     // reseeded caches.
-    reseeding = true;
+    suppressed = false; // drop anything stranded by a prior aborted reseed
+    reseedingTx = t;
     t.last(() =>
       t.last(() => {
         va = ba.sampleNoTrans();
@@ -1126,7 +1133,7 @@ function lift2<A, B, C>(
         stagedTx = null;
         hasSa = false;
         hasSb = false;
-        reseeding = false;
+        reseedingTx = null;
         scheduledTx = null;
         if (suppressed) {
           suppressed = false;
