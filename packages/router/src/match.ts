@@ -6,6 +6,18 @@ import type { Child } from "@continuum-js/dom";
 /** Extracted path parameters (`:id` segments and the `*` rest). */
 export type Params = Record<string, string>;
 
+// Path segments arrive percent-encoded (they come from URL.pathname). Params
+// should be the human-readable value: `/users/John%20Doe` -> `"John Doe"`.
+// Malformed encodings (a lone `%`) throw URIError — fall back to the raw
+// segment rather than blowing up the whole match.
+function decodeSegment(s: string): string {
+  try {
+    return decodeURIComponent(s);
+  } catch {
+    return s;
+  }
+}
+
 /** A route component. Parameters are read reactively via `useParams()`. */
 export type Component = () => Child;
 
@@ -55,7 +67,12 @@ function matchLevel(
 ): MatchEntry[] | null {
   for (const def of defs) {
     if (def.path === "*") {
-      return [{ def, params: { ...inherited, "*": segs.join("/") } }];
+      return [
+        {
+          def,
+          params: { ...inherited, "*": segs.map(decodeSegment).join("/") },
+        },
+      ];
     }
     const own = def.path.split("/").filter((s) => s !== "");
     if (own.length > segs.length) continue;
@@ -63,7 +80,8 @@ function matchLevel(
     const params: Params = { ...inherited };
     let ok = true;
     for (let i = 0; i < own.length; i++) {
-      if (own[i].startsWith(":")) params[own[i].slice(1)] = segs[i];
+      if (own[i].startsWith(":"))
+        params[own[i].slice(1)] = decodeSegment(segs[i]);
       else if (own[i] !== segs[i]) {
         ok = false;
         break;
