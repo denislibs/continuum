@@ -96,7 +96,11 @@ function compileElement(
       continue;
     }
     if (v.type === "StringLiteral" && !isEvent) {
-      if (FORCED_DYNAMIC.has(name)) {
+      // `<option value="…">` is safe as a STATIC attribute — and must be, so a
+      // `<select value>` hole (set after cloneNode) sees its options already
+      // valued; otherwise the compiled path loses the initial selection (#116).
+      // Every other value/checked/ref stays a runtime prop.
+      if (FORCED_DYNAMIC.has(name) && !(tag === "option" && name === "value")) {
         dynamic.push({
           event: false,
           key: name,
