@@ -154,17 +154,29 @@ function compileElement(
   // "<div/>" would swallow its following siblings in the parser
   out.html += ">";
 
+  // Walk children by DOM position, not filtered-child index: two text runs
+  // left adjacent by a dropped empty expression container (`{}` / `{/* */}`)
+  // SERIALIZE INTO ONE text node, so counting them as two would shift every
+  // following sibling's firstChild/nextSibling path by one (a wrong binding or
+  // an overshoot to null). `domIndex` tracks real nodes; `lastWasText` folds
+  // consecutive text into a single node.
+  let domIndex = 0;
+  let lastWasText = false;
   for (let i = 0; i < kids.length; i++) {
     const kid = kids[i];
+    if (kid.type === "JSXText") {
+      out.html += escapeText(cleanJsxText(kid.value));
+      if (!lastWasText) {
+        domIndex++;
+        lastWasText = true;
+      }
+      continue;
+    }
     const myPath: Step[] = [
       ...path,
       "first",
-      ...(Array(i).fill("next") as Step[]),
+      ...(Array(domIndex).fill("next") as Step[]),
     ];
-    if (kid.type === "JSXText") {
-      out.html += escapeText(cleanJsxText(kid.value));
-      continue;
-    }
     const isLast = i === kids.length - 1;
     if (kid.type === "JSXExpressionContainer") {
       const inner = kid.expression;
@@ -185,6 +197,8 @@ function compileElement(
           parentPath: [...path],
           code: exprSource(inner),
         });
+        domIndex++;
+        lastWasText = false;
       }
       continue;
     }
@@ -194,6 +208,8 @@ function compileElement(
         name.type === "JSXIdentifier" && /^[a-z]/.test(name.name);
       if (isIntrinsic) {
         compileElement(kid, myPath, out, exprSource); // Bail bubbles up
+        domIndex++;
+        lastWasText = false;
         continue;
       }
       // component child: an expression hole; the JSX source stays and the
@@ -214,6 +230,8 @@ function compileElement(
           parentPath: [...path],
           code: exprSource(kid),
         });
+        domIndex++;
+        lastWasText = false;
       }
       continue;
     }
