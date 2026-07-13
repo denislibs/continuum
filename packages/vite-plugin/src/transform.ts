@@ -224,9 +224,40 @@ function pathExpr(rootVar: string, steps: Step[]): string {
   return e;
 }
 
+// Minimal scope surface for uniqueness checks.
+interface ScopeLike {
+  hasBinding(name: string): boolean;
+  hasReference(name: string): boolean;
+  hasGlobal(name: string): boolean;
+}
+
+// A name free in `scope`, preserving our style when there's no clash. All the
+// injected identifiers were fixed strings (`_r`, `_el$N`, `_tmpl$N`, `_$insert`
+// …); a user variable of the same name was silently captured, and a same-named
+// import/declaration produced a duplicate-declaration SyntaxError. Bump a
+// suffix only on a real collision, so uncontended output is byte-for-byte
+// unchanged.
+function uniqueName(scope: ScopeLike, base: string): string {
+  const taken = (n: string) =>
+    scope.hasBinding(n) || scope.hasReference(n) || scope.hasGlobal(n);
+  if (!taken(base)) return base;
+  for (let i = 2; ; i++) {
+    const candidate = `${base}$${i}`;
+    if (!taken(candidate)) return candidate;
+  }
+}
+
+interface RuntimeIds {
+  tmpl: string;
+  insert: string;
+  prop: string;
+  event: string;
+}
+
 interface State extends PluginPass {
   templates?: Array<{ id: string; html: string }>;
   counter?: number;
+  ids?: RuntimeIds;
 }
 
 export function continuumJsx(babel: typeof BabelCore): PluginObj<State> {
@@ -236,16 +267,30 @@ export function continuumJsx(babel: typeof BabelCore): PluginObj<State> {
     name: "continuum-jsx-templates",
     visitor: {
       Program: {
-        enter(_p, state) {
+        enter(programPath, state) {
           state.templates = [];
           state.counter = 0;
+          // Reserve collision-free names for the runtime imports up front —
+          // the JSXElement visitor below emits calls to them before Program
+          // exit writes the import line.
+          const s = programPath.scope as unknown as ScopeLike;
+          state.ids = {
+            tmpl: uniqueName(s, "_$tmpl"),
+            insert: uniqueName(s, "_$insert"),
+            prop: uniqueName(s, "_$prop"),
+            event: uniqueName(s, "_$event"),
+          };
         },
         exit(programPath, state) {
           if (!state.templates || state.templates.length === 0) return;
+          const ids = state.ids!;
           const decls = state.templates
-            .map((tp) => `const ${tp.id} = _$tmpl(${JSON.stringify(tp.html)});`)
+            .map(
+              (tp) =>
+                `const ${tp.id} = ${ids.tmpl}(${JSON.stringify(tp.html)});`,
+            )
             .join("\n");
-          const importLine = `import { tmpl as _$tmpl, insert as _$insert, prop as _$prop, event as _$event } from "@continuum-js/dom/compiled";`;
+          const importLine = `import { tmpl as ${ids.tmpl}, insert as ${ids.insert}, prop as ${ids.prop}, event as ${ids.event} } from "@continuum-js/dom/compiled";`;
           const file = babel.parseSync(`${importLine}\n${decls}`, {
             babelrc: false,
             configFile: false,
@@ -273,41 +318,48 @@ export function continuumJsx(babel: typeof BabelCore): PluginObj<State> {
           if (e instanceof Bail) return; // leave as JSX for the factory
           throw e;
         }
-        const id = `_tmpl$${++state.counter!}`;
+        const scope = elPath.scope as unknown as ScopeLike;
+        const id = uniqueName(
+          elPath.scope.getProgramParent() as unknown as ScopeLike,
+          `_tmpl$${++state.counter!}`,
+        );
         state.templates!.push({ id, html: out.html });
         // Resolve EVERY node reference before the first mutation: inserts
         // splice new children in, which would invalidate later
-        // firstChild/nextSibling walks.
+        // firstChild/nextSibling walks. All names are collision-checked against
+        // the user's code so an interpolated expression can't be captured.
+        const rVar = uniqueName(scope, "_r");
         const refs = new Map<string, string>(); // path-expr -> var
         const refVar = (steps: Step[]): string => {
-          const expr = pathExpr("_r", steps);
-          if (expr === "_r") return "_r";
+          const expr = pathExpr(rVar, steps);
+          if (expr === rVar) return rVar;
           let v = refs.get(expr);
           if (!v) {
-            v = `_el$${refs.size + 1}`;
+            v = uniqueName(scope, `_el$${refs.size + 1}`);
             refs.set(expr, v);
           }
           return v;
         };
+        const ids = state.ids!;
         const ops: string[] = [];
         for (const h of out.holes) {
           if (h.kind === "prop") {
             ops.push(
-              `_$prop(${refVar(h.path)}, ${JSON.stringify(h.key)}, ${h.code});`,
+              `${ids.prop}(${refVar(h.path)}, ${JSON.stringify(h.key)}, ${h.code});`,
             );
           } else if (h.kind === "event") {
             ops.push(
-              `_$event(${refVar(h.path)}, ${JSON.stringify(h.key)}, ${h.code});`,
+              `${ids.event}(${refVar(h.path)}, ${JSON.stringify(h.key)}, ${h.code});`,
             );
           } else if (h.append) {
-            ops.push(`_$insert(${refVar(h.parentPath!)}, ${h.code});`);
+            ops.push(`${ids.insert}(${refVar(h.parentPath!)}, ${h.code});`);
           } else {
             ops.push(
-              `_$insert(${refVar(h.parentPath!)}, ${h.code}, ${refVar(h.path)});`,
+              `${ids.insert}(${refVar(h.parentPath!)}, ${h.code}, ${refVar(h.path)});`,
             );
           }
         }
-        const lines: string[] = [`const _r = ${id}();`];
+        const lines: string[] = [`const ${rVar} = ${id}();`];
         for (const [expr, v] of refs) lines.push(`const ${v} = ${expr};`);
         lines.push(...ops);
         lines.push("return _r;");

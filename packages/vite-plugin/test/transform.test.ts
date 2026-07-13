@@ -91,6 +91,23 @@ describe("continuum jsx transform", () => {
     expect(out2).toContain("&lt;");
   });
 
+  test("generated clone var doesn't capture a user identifier named _r (#121)", () => {
+    const out = compile(`const _r = getData(); const v = <div>{_r}</div>;`);
+    expect(out).toContain(`const _r$2 = _tmpl$1();`);
+    expect(out).toContain(`_$insert(_r$2, _r)`); // inserts the user's _r
+    expect(out).not.toContain(`const _r =`.padEnd(11) + `_tmpl$1`); // no shadow
+  });
+
+  test("runtime import names don't collide with a user declaration (#121)", () => {
+    const out = compile(`const _$insert = 1; const v = <div>{x}</div>;`);
+    expect(out).toContain(`insert as _$insert$2`);
+    expect(out).toContain(`_$insert$2(_r, x)`);
+    const importCount = (
+      out.match(/from "@continuum-js\/dom\/compiled"/g) || []
+    ).length;
+    expect(importCount).toBe(1); // still one import, no duplicate declaration
+  });
+
   test("the runtime import is added once per module", () => {
     const out = compile(`const a = <div>x</div>; const b = <span>y</span>;`);
     const importCount = (
