@@ -91,6 +91,26 @@ describe("continuum jsx transform", () => {
     expect(out2).toContain("&lt;");
   });
 
+  test("empty expression container between text keeps sibling paths correct (#114)", () => {
+    const out = compile(
+      `const v = <div>Hello {/* i18n */} world <button onClick={go}>OK</button></div>;`,
+    );
+    // the two text runs merge into ONE text node, so the button is
+    // firstChild.nextSibling — not .nextSibling.nextSibling (which was null).
+    expect(out).toContain(
+      `_$tmpl("<div>Hello  world <button>OK</button></div>")`,
+    );
+    expect(out).toContain(`const _el$1 = _r.firstChild.nextSibling;`);
+    expect(out).toContain(`_$event(_el$1, "click", go)`);
+  });
+
+  test("empty container before a mid-position element anchors correctly (#114)", () => {
+    const out = compile(`const v = <div>a{/* */}b<span>{y}</span></div>;`);
+    expect(out).toContain(`_$tmpl("<div>ab<span></span></div>")`);
+    expect(out).toContain(`const _el$1 = _r.firstChild.nextSibling;`); // the <span>
+    expect(out).toContain(`_$insert(_el$1, y)`); // y appended into the span
+  });
+
   test("the runtime import is added once per module", () => {
     const out = compile(`const a = <div>x</div>; const b = <span>y</span>;`);
     const importCount = (
