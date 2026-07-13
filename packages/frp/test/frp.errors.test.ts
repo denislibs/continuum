@@ -1,5 +1,13 @@
 import { describe, test, expect } from "vitest";
-import { root, newStream } from "@continuum-js/frp";
+import {
+  root,
+  newStream,
+  state,
+  combine,
+  flatten,
+  constant,
+  type State,
+} from "@continuum-js/frp";
 
 describe("error semantics (§5.1 + isolation)", () => {
   test("exception in a combinator propagates but the engine recovers", () => {
@@ -42,5 +50,37 @@ describe("error semantics (§5.1 + isolation)", () => {
 
     expect(() => fire(1)).toThrow("obs1");
     expect(seen).toEqual([1]); // second observer still ran
+  });
+
+  // #113: a combine woken mid-moment defers a reseed; if that moment aborts
+  // before the reseed runs, the join must not go permanently silent.
+  test("combine survives an aborted waking moment (#113)", () => {
+    root(() => {
+      const a = state(1);
+      const b = state(1);
+      const c = combine(a, b, (x, y) => x + y); // cold, value 2
+
+      const sel = state<State<number>>(constant(0));
+      const flat = flatten(sel);
+      let poison = false;
+      const guarded = flat.map((v) => {
+        if (poison) throw new Error("boom");
+        return v;
+      });
+      guarded.listen(() => {}); // wake flat + chain
+
+      // Switch flat onto c AND poison, so the switch's phase-2 emission throws
+      // — aborting the moment after c.onWake ran but before its reseed reset.
+      poison = true;
+      expect(() => sel.set(c)).toThrow("boom");
+      poison = false;
+
+      // On the buggy version `reseeding` was stranded true and c.updates never
+      // fired again; the fix keys it to the (never-recycled) aborted moment.
+      const seen: number[] = [];
+      c.updates.listen((v) => seen.push(v));
+      a.set(10);
+      expect(seen).toEqual([11]);
+    });
   });
 });
