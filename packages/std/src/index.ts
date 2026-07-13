@@ -150,12 +150,23 @@ export function dedupe<A>(
 ): State<A> {
   const out = new Stream<A>(b.updates.rank + 1);
   let prev = b.sampleNoTrans();
-  b.updates.listen_(out, (t, a) => {
+  // Lazy (demand-activated) like the core `distinct`: `source` subscribes to
+  // `b.updates` on the first listener and tears the edge down on sleep/dispose.
+  // The old eager `listen_` dropped its unlisten handle, so the edge — and the
+  // whole upstream chain — leaked for the lifetime of `b` (every router
+  // navigation mounting an Outlet level / calling `useParams` added one).
+  out.source(b.updates, (t, a) => {
     if (!eq(prev, a)) {
       prev = a;
       out.send_(t, a);
     }
   });
+  // Re-seed against the committed value on wake: occurrences seen while asleep
+  // never primed the memory, so a fresh warm period dedups against the value
+  // the state actually holds now.
+  out.onWake = () => {
+    prev = b.sampleNoTrans();
+  };
   return new State<A>(() => b.sampleNoTrans(), out);
 }
 
