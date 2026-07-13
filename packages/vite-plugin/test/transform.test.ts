@@ -146,6 +146,8 @@ describe("continuum jsx transform", () => {
       out.match(/from "@continuum-js\/dom\/compiled"/g) || []
     ).length;
     expect(importCount).toBe(1); // still one import, no duplicate declaration
+  });
+
   test("empty expression container between text keeps sibling paths correct (#114)", () => {
     const out = compile(
       `const v = <div>Hello {/* i18n */} world <button onClick={go}>OK</button></div>;`,
