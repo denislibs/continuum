@@ -22,8 +22,10 @@ tester.run("no-impure-combinators", plugin.rules["no-impure-combinators"], {
     `const onClick = () => { alert("saved"); setTimeout(poll, 100); };`,
     // Array.prototype.map is not in the flagged set
     `const ids = items.map((t) => { fetch("/api"); return t.id; });`,
-    // reading captured values is fine
-    `const s = src.snapshot(held, (now, prev) => now + prev);`,
+    // reading captured values is fine (pure sample-on-event join)
+    `const s = held.at(clicks, (now, e) => now + e);`,
+    // pure free-function join
+    `const s = combine(a, b, (x, y) => x + y);`,
   ],
   invalid: [
     {
@@ -39,11 +41,19 @@ tester.run("no-impure-combinators", plugin.rules["no-impure-combinators"], {
       errors: [{ messageId: "impure" }],
     },
     {
-      code: `const p = src.snapshot(held, (now, prev) => { localStorage.setItem("k", String(now)); return prev; });`,
+      code: `const p = held.at(clicks, (now, e) => { localStorage.setItem("k", String(now)); return now; });`,
       errors: [{ messageId: "impure" }],
     },
     {
-      code: `const j = Behavior.lift2((x, y) => { setTotal(x + y); return x; }, a, b);`,
+      code: `const v = count.at(clicks, (v) => { fetch("/x"); return v; });`,
+      errors: [{ messageId: "impure" }],
+    },
+    {
+      code: `const j = combine(a, b, (x, y) => { setTotal(x + y); return x; });`,
+      errors: [{ messageId: "impure" }],
+    },
+    {
+      code: `const j = combine(a, b, (x, y) => { fetch("/log"); return x; });`,
       errors: [{ messageId: "impure" }],
     },
     {

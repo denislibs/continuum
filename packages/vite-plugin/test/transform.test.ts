@@ -146,6 +146,36 @@ describe("continuum jsx transform", () => {
       out.match(/from "@continuum-js\/dom\/compiled"/g) || []
     ).length;
     expect(importCount).toBe(1); // still one import, no duplicate declaration
+  test("empty expression container between text keeps sibling paths correct (#114)", () => {
+    const out = compile(
+      `const v = <div>Hello {/* i18n */} world <button onClick={go}>OK</button></div>;`,
+    );
+    // the two text runs merge into ONE text node, so the button is
+    // firstChild.nextSibling — not .nextSibling.nextSibling (which was null).
+    expect(out).toContain(
+      `_$tmpl("<div>Hello  world <button>OK</button></div>")`,
+    );
+    expect(out).toContain(`const _el$1 = _r.firstChild.nextSibling;`);
+    expect(out).toContain(`_$event(_el$1, "click", go)`);
+  });
+
+  test("empty container before a mid-position element anchors correctly (#114)", () => {
+    const out = compile(`const v = <div>a{/* */}b<span>{y}</span></div>;`);
+    expect(out).toContain(`_$tmpl("<div>ab<span></span></div>")`);
+    expect(out).toContain(`const _el$1 = _r.firstChild.nextSibling;`); // the <span>
+    expect(out).toContain(`_$insert(_el$1, y)`); // y appended into the span
+  });
+
+  test("a top-level sequence expression in a hole is parenthesized (#122)", () => {
+    // prop hole
+    const out = compile(`const v = <div class={(a, b)}>x</div>;`);
+    expect(out).toContain(`_$prop(_r, "class", (a, b))`);
+    // event hole
+    const out2 = compile(`const v = <button onClick={(a, b)}>x</button>;`);
+    expect(out2).toContain(`_$event(_r, "click", (a, b))`);
+    // child insert hole (with a following sibling → anchored insert)
+    const out3 = compile(`const v = <div>{(a, b)}<span /></div>;`);
+    expect(out3).toContain(`_$insert(_r, (a, b), _el$1)`);
   });
 
   test("the runtime import is added once per module", () => {
