@@ -7,9 +7,23 @@
 import { describe, test, expect, afterEach } from "vitest";
 import { h, each, when, dyn, mount, portal } from "@continuum-js/dom";
 import { root, state } from "@continuum-js/frp";
-import { render, cleanup } from "@continuum-js/test";
 
-afterEach(() => cleanup());
+// Local render helper — avoids depending on @continuum-js/test, whose project
+// reference back onto @continuum-js/dom would make `tsc -b` circular.
+const cleanups: Array<() => void> = [];
+function render(view: () => Node): { container: HTMLElement } {
+  const container = document.createElement("div");
+  document.body.appendChild(container);
+  const unmount = mount(container, view);
+  cleanups.push(() => {
+    unmount();
+    container.remove();
+  });
+  return { container };
+}
+afterEach(() => {
+  for (const c of cleanups.splice(0)) c();
+});
 
 describe("region node tracking (#112)", () => {
   test("each removes the LIVE nodes when a row root is a dynamic region", () => {

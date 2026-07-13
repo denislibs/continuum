@@ -950,10 +950,12 @@ export function portal(target: Node, child: Child): Node {
   const built = buildScoped(new Owner(getScope()), () => child);
   insertNodes(target, built.nodes!, null);
   onCleanup(() => {
-    built.dispose();
-    // sweep the LIVE range — a top-level dynamic region may swap nodes after
+    // Snapshot the LIVE range BEFORE dispose (safer ordering if a user cleanup
+    // ever mutates the DOM). A top-level dynamic region may swap nodes after
     // build, staling the middle of the snapshot (#112).
-    removeNodes(liveRange(built.nodes!));
+    const live = liveRange(built.nodes!);
+    built.dispose();
+    removeNodes(live);
   });
   return document.createComment("portal");
 }
