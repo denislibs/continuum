@@ -111,6 +111,18 @@ describe("continuum jsx transform", () => {
     expect(out).toContain(`_$insert(_el$1, y)`); // y appended into the span
   });
 
+  test("a top-level sequence expression in a hole is parenthesized (#122)", () => {
+    // prop hole
+    const out = compile(`const v = <div class={(a, b)}>x</div>;`);
+    expect(out).toContain(`_$prop(_r, "class", (a, b))`);
+    // event hole
+    const out2 = compile(`const v = <button onClick={(a, b)}>x</button>;`);
+    expect(out2).toContain(`_$event(_r, "click", (a, b))`);
+    // child insert hole (with a following sibling → anchored insert)
+    const out3 = compile(`const v = <div>{(a, b)}<span /></div>;`);
+    expect(out3).toContain(`_$insert(_r, (a, b), _el$1)`);
+  });
+
   test("the runtime import is added once per module", () => {
     const out = compile(`const a = <div>x</div>; const b = <span>y</span>;`);
     const importCount = (

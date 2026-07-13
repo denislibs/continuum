@@ -62,4 +62,31 @@ describe("resource", () => {
     await tick();
     expect(state.sample()).toEqual({ status: "ok", value: ["from-second"] });
   });
+
+  // #115: last-request-wins must apply to failures too — a late rejection of a
+  // superseded request must not overwrite a newer success.
+  test("a stale rejection does not clobber a newer success", async () => {
+    const settlers: Array<{
+      res: (v: string[]) => void;
+      rej: (e: unknown) => void;
+    }> = [];
+    const [trigger, fire] = newStream<string>();
+    const state = root(() =>
+      resource<string, string[]>(
+        trigger,
+        () => new Promise<string[]>((res, rej) => settlers.push({ res, rej })),
+      ),
+    );
+
+    fire("first");
+    fire("second");
+
+    settlers[1].res(["from-second"]);
+    await tick();
+    expect(state.sample()).toEqual({ status: "ok", value: ["from-second"] });
+
+    settlers[0].rej(new Error("late-first-failure")); // stale — must be ignored
+    await tick();
+    expect(state.sample()).toEqual({ status: "ok", value: ["from-second"] });
+  });
 });

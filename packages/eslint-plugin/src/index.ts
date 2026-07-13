@@ -4,8 +4,9 @@
 //
 // Design note: `map`/`filter` are NOT statically flagged — they collide with
 // Array.prototype and would drown users in false positives. The combinators
-// unique to Continuum (`accum`, `accumE`, `snapshot`, `lift2`, `lift3`,
-// `hold`) carry the rules; the runtime purity guard covers the rest.
+// whose callbacks run in the pure zone (`accum`, `accumE`, `at`, and the free
+// `combine`) plus the stateful `hold` carry the rules; the runtime purity
+// guard covers the rest.
 import type { Rule } from "eslint";
 
 // Loose structural view of ESTree + JSX nodes — enough for the checks below
@@ -17,14 +18,11 @@ interface AnyNode {
 
 const version = "0.1.0";
 
-// Callbacks of these members run in the transaction's pure zone.
-const PURE_CALLBACK_MEMBERS = new Set([
-  "accum",
-  "accumE",
-  "snapshot",
-  "lift2",
-  "lift3",
-]);
+// Callbacks of these members run in the transaction's pure zone. `at` is the
+// current sample-on-event join (`state.at(e, f)`); the free `combine(...)` is
+// handled separately in enclosingPureCombinator since its callee is an
+// Identifier, not a member. (The pre-1.0 names snapshot/lift2/lift3 are gone.)
+const PURE_CALLBACK_MEMBERS = new Set(["accum", "accumE", "at"]);
 
 // Module-level derivations ending in these members need `.retain()`.
 // Stateful constructors: their process needs an owner (a component or root()).
@@ -72,12 +70,23 @@ function enclosingPureCombinator(ancestors: AnyNode[]): string | null {
       a.type === "FunctionExpression"
     ) {
       const parent = ancestors[i - 1];
-      if (
-        parent.type === "CallExpression" &&
-        (parent.arguments as AnyNode[]).includes(a)
-      ) {
-        const name = memberName(parent.callee as AnyNode);
-        if (name && PURE_CALLBACK_MEMBERS.has(name)) return name;
+      if (parent.type === "CallExpression") {
+        const args = parent.arguments as AnyNode[];
+        const callee = parent.callee as AnyNode;
+        // member form: src.accum(init, f), state.at(e, f), …
+        const name = memberName(callee);
+        if (name && PURE_CALLBACK_MEMBERS.has(name) && args.includes(a)) {
+          return name;
+        }
+        // free form: combine(a, b, …, f) — the pure combiner is the LAST arg
+        if (
+          callee.type === "Identifier" &&
+          callee.name === "combine" &&
+          args.length > 0 &&
+          args[args.length - 1] === a
+        ) {
+          return "combine";
+        }
       }
     }
   }

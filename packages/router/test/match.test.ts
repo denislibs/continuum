@@ -81,4 +81,24 @@ describe("matchChain", () => {
     if (m && "chain" in m) expect(m.chain[0].params["*"]).toBe("a/b/c");
     else expect.unreachable("expected a match");
   });
+
+  // #120: params arrive percent-encoded from URL.pathname and must be decoded.
+  test("param segments are URL-decoded", () => {
+    const m = matchChain(routes, "/users/John%20Doe");
+    if (m && "chain" in m)
+      expect(m.chain[1].params).toEqual({ id: "John Doe" });
+    else expect.unreachable("expected a match");
+  });
+
+  test("wildcard rest is URL-decoded per segment", () => {
+    const m = matchChain(routes, "/a%20b/c%2Bd");
+    if (m && "chain" in m) expect(m.chain[0].params["*"]).toBe("a b/c+d");
+    else expect.unreachable("expected a match");
+  });
+
+  test("malformed encoding falls back to the raw segment", () => {
+    const m = matchChain(routes, "/users/%E0%A4%A");
+    if (m && "chain" in m) expect(m.chain[1].params.id).toBe("%E0%A4%A");
+    else expect.unreachable("expected a match");
+  });
 });

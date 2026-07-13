@@ -143,6 +143,50 @@ describe("Link", () => {
     expect(window.location.pathname).toBe("/about");
     expect(a.classList.contains("active")).toBe(true);
   });
+
+  // #119: external / cross-origin / non-http links and non-_self targets must
+  // fall through to the browser — intercepting them preventDefault()s and then
+  // throws inside history.pushState.
+  const leftClick = (a: HTMLAnchorElement) => {
+    const ev = new MouseEvent("click", {
+      bubbles: true,
+      cancelable: true,
+      button: 0,
+    });
+    a.dispatchEvent(ev);
+    return ev;
+  };
+
+  test("does not intercept a cross-origin link", () => {
+    const { container } = render(() => (
+      <Link href="https://example.com/">ext</Link>
+    ));
+    const a = container.querySelector("a")!;
+    const before = window.location.pathname;
+    const ev = leftClick(a);
+    expect(ev.defaultPrevented).toBe(false); // browser handles it
+    expect(window.location.pathname).toBe(before); // no client-side navigate
+  });
+
+  test("does not intercept a mailto: link", () => {
+    const { container } = render(() => <Link href="mailto:a@b.com">mail</Link>);
+    const ev = leftClick(container.querySelector("a")!);
+    expect(ev.defaultPrevented).toBe(false);
+  });
+
+  test("does not intercept target=_blank", () => {
+    const { container } = render(() => (
+      <Link href="/about" target="_blank">
+        new tab
+      </Link>
+    ));
+    const a = container.querySelector("a")!;
+    expect(a.getAttribute("target")).toBe("_blank");
+    const before = window.location.pathname;
+    const ev = leftClick(a);
+    expect(ev.defaultPrevented).toBe(false);
+    expect(window.location.pathname).toBe(before);
+  });
 });
 
 describe("lazy", () => {

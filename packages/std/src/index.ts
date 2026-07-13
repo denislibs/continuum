@@ -150,12 +150,23 @@ export function dedupe<A>(
 ): State<A> {
   const out = new Stream<A>(b.updates.rank + 1);
   let prev = b.sampleNoTrans();
-  b.updates.listen_(out, (t, a) => {
+  // Lazy (demand-activated) like the core `distinct`: `source` subscribes to
+  // `b.updates` on the first listener and tears the edge down on sleep/dispose.
+  // The old eager `listen_` dropped its unlisten handle, so the edge — and the
+  // whole upstream chain — leaked for the lifetime of `b` (every router
+  // navigation mounting an Outlet level / calling `useParams` added one).
+  out.source(b.updates, (t, a) => {
     if (!eq(prev, a)) {
       prev = a;
       out.send_(t, a);
     }
   });
+  // Re-seed against the committed value on wake: occurrences seen while asleep
+  // never primed the memory, so a fresh warm period dedups against the value
+  // the state actually holds now.
+  out.onWake = () => {
+    prev = b.sampleNoTrans();
+  };
   return new State<A>(() => b.sampleNoTrans(), out);
 }
 
@@ -189,17 +200,26 @@ export function resource<A, T>(
 
   const latest = requests.map((r) => r.seq).hold(0);
 
+  // Stamp BOTH outcomes with the request's seq: a rejection carries its seq
+  // too, so a late failure of a superseded request can be dropped exactly like
+  // a late success. `run` resolves on both paths, so perform's own Result is
+  // always ok and the real outcome lives inside res.value.
   const responses = perform(requests, (r) =>
-    fetcher(r.arg).then((value) => ({ seq: r.seq, value })),
+    fetcher(r.arg).then(
+      (value) => ({ seq: r.seq, ok: true as const, value }),
+      (error: unknown) => ({ seq: r.seq, ok: false as const, error }),
+    ),
   );
 
   const settled = latest
     .at(responses, (latestSeq, res): Async<T> | null => {
-      if (res.ok) {
-        if (res.value.seq !== latestSeq) return null; // superseded — ignore
-        return { status: "ok", value: res.value.value };
-      }
-      return { status: "error", error: res.error };
+      // res.ok is always true here (run never rejects); guard for types.
+      if (!res.ok) return { status: "error", error: res.error };
+      const r = res.value;
+      if (r.seq !== latestSeq) return null; // superseded — ignore (win OR lose)
+      return r.ok
+        ? { status: "ok", value: r.value }
+        : { status: "error", error: r.error };
     })
     .filter((s) => s !== null) as Stream<Async<T>>;
 

@@ -117,6 +117,8 @@ export function Link(props: {
   end?: boolean;
   class?: string;
   activeClass?: string;
+  /** Forwarded to the anchor; a non-`_self` target is left to the browser. */
+  target?: string;
 }): Node {
   const exact = props.end || props.href === "/";
   const active = location().map((u) =>
@@ -134,9 +136,22 @@ export function Link(props: {
     {
       href: props.href,
       class: cls,
+      target: props.target,
       onClick: (e: MouseEvent) => {
         if (e.defaultPrevented || e.button !== 0) return;
         if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+        // A target that opens elsewhere (_blank, a named frame) is a native nav.
+        if (props.target && props.target !== "_self") return;
+        // External / cross-origin / non-http(s) links (mailto:, tel:, …): let
+        // the browser handle them. Intercepting would preventDefault() and then
+        // throw a SecurityError inside history.pushState.
+        let dest: URL;
+        try {
+          dest = new URL(props.href, window.location.href);
+        } catch {
+          return; // malformed href — let the browser deal with it
+        }
+        if (dest.origin !== window.location.origin) return;
         e.preventDefault();
         navigate(props.href);
       },

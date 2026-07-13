@@ -96,7 +96,11 @@ function compileElement(
       continue;
     }
     if (v.type === "StringLiteral" && !isEvent) {
-      if (FORCED_DYNAMIC.has(name)) {
+      // `<option value="…">` is safe as a STATIC attribute — and must be, so a
+      // `<select value>` hole (set after cloneNode) sees its options already
+      // valued; otherwise the compiled path loses the initial selection (#116).
+      // Every other value/checked/ref stays a runtime prop.
+      if (FORCED_DYNAMIC.has(name) && !(tag === "option" && name === "value")) {
         dynamic.push({
           event: false,
           key: name,
@@ -366,5 +370,11 @@ function generateCode(babel: typeof BabelCore, n: t.Node): string {
   let code = res?.code ?? "";
   code = code.trim();
   if (code.endsWith(";")) code = code.slice(0, -1);
+  // A top-level comma operator stringifies bare (`a, b`); interpolated into a
+  // call-argument list (`_$insert(parent, CODE, anchor)`) its commas would
+  // split into extra arguments, so wrap it. Other expression kinds the
+  // generator would print ambiguously at statement position (object literals,
+  // …) already come back parenthesized.
+  if (expr.type === "SequenceExpression") code = `(${code})`;
   return code;
 }
