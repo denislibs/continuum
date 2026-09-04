@@ -16,6 +16,13 @@ jobs:
           node-version: 22
           cache: npm
 
+      # Node 22 bundles npm 10.9, whose arborist crashes with "Cannot read
+      # properties of null (reading 'edgesOut')" while resolving vitest's
+      # peer set against the current registry (reproducible with a bare
+      # `npm i -D @vitest/coverage-v8@4.1.10`). npm 11.19+ resolves it fine.
+      - name: Use a current npm
+        run: npm install -g npm@11
+
       - name: Install
         run: npm ci
 
