@@ -71,4 +71,17 @@ describe("behavior combinators", () => {
       expect(maps).toBe(afterUn);
     });
   });
+  test("dedupe reseeds from the live value on wake", () => {
+    const b = state(1);
+    const setB = b.set;
+    const d = dedupe(b);
+    d.updates.listen(() => {})(); // warm once, then let it sleep
+
+    setB(2); // changes while nobody listens
+    const seen: number[] = [];
+    d.updates.listen((v) => seen.push(v));
+    setB(2); // equal to the CURRENT value — suppressed, not compared to 1
+    setB(3);
+    expect(seen).toEqual([3]);
+  });
 });
