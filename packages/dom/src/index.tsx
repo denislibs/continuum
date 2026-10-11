@@ -624,15 +624,15 @@ export function dyn<T>(b: State<T>, render: (v: T) => Child): Node {
 
   let current: Owner | null = null;
   // Level-triggered: render the behavior's CURRENT value, not the delivered
-  // occurrence. A listener that runs earlier in the post phase may re-enter
-  // with a new moment (e.g. a router redirect); the stale queued delivery
+  // occurrence. A listener that runs earlier in the post-phase may re-enter
+  // with a new moment (e.g., a router redirect); the stale queued delivery
   // then must not clobber the newer render. Deduping by Object.is also makes
   // duplicate deliveries free.
   let hasRendered = false;
   let renderedValue: T;
   // Guards against a re-entrant update superseding this one mid-build: if
   // `render` itself fires a moment (an error boundary flipping its state),
-  // the nested update finishes first and the outer one must discard its
+  // the nested update finishes first, and the outer one must discard its
   // now-stale build instead of clobbering the newer region.
   let epoch = 0;
   const update = () => {
@@ -672,7 +672,7 @@ export function dyn<T>(b: State<T>, render: (v: T) => Child): Node {
     }
     current = built;
     insertNodes(end.parentNode!, current.nodes!, end);
-    // During the initial build the whole tree flushes at mount; afterwards
+    // During the initial build, the whole tree flushes at mount; afterward
     // each freshly inserted subtree flushes here.
     if (!(owner instanceof Owner) || owner.mounted) current.flush();
   };

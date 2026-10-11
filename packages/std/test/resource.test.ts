@@ -89,4 +89,21 @@ describe("resource", () => {
     await tick();
     expect(state.sample()).toEqual({ status: "ok", value: ["from-second"] });
   });
+  test("a stale rejection leaves the newer request in its loading state", async () => {
+    const rejecters: Array<(e: unknown) => void> = [];
+    const [trigger, fire] = newStream<string>();
+    const state = root(() =>
+      resource<string, string[]>(
+        trigger,
+        () => new Promise<string[]>((_res, rej) => rejecters.push(rej)),
+      ),
+    );
+
+    fire("first");
+    fire("second");
+
+    rejecters[0](new Error("first failed after being superseded"));
+    await tick();
+    expect(state.sample().status).toBe("loading");
+  });
 });
