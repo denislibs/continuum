@@ -419,7 +419,7 @@ export class Transaction {
     }
     t.postN = 0;
     Transaction.pool = t;
-    if (postN > 0) scheduleFrame();
+    if (postN > 0 && !flushing) scheduleFrame();
     return result;
   }
 }
@@ -454,7 +454,7 @@ const FRAME_TIMEOUT_MS = 35;
  */
 export function requestMeasure(cb: () => void): void {
   measureQ.push(cb);
-  scheduleFrame();
+  if (!flushing) scheduleFrame();
 }
 
 function scheduleFrame(): void {
@@ -470,7 +470,19 @@ function scheduleFrame(): void {
  * when nothing is pending. Observers are isolated: one throwing does not
  * stop the rest; the first error is rethrown at the end.
  */
+let flushing = false;
+
 export function flushFrame(): void {
+  if (flushing) return; // re-entrant call from inside the pass: already draining
+  flushing = true;
+  try {
+    flushFrameNow();
+  } finally {
+    flushing = false;
+  }
+}
+
+function flushFrameNow(): void {
   if (frameScheduled) {
     frameScheduled = false;
     if (rafId !== 0) cancelAnimationFrame(rafId);
@@ -493,23 +505,29 @@ export function flushFrame(): void {
       }
     }
   };
-  while (measureQ.length > 0) {
-    const q = measureQ;
-    measureQ = [];
-    for (const cb of q) call(null, undefined, cb);
-  }
-  effectZone++;
-  while (frameLevel.size > 0 || frameEffectN > 0) {
-    const m = frameLevel;
-    frameLevel = new Map();
-    for (const [e, a] of m) call(e, a);
-    const q = frameEffects;
-    const n = frameEffectN;
-    frameEffects = [];
-    frameEffectN = 0;
-    for (let i = 0; i < n; i += 2) call(q[i] as Edge<unknown>, q[i + 1]);
-  }
-  effectZone--;
+  // Rounds of reads-then-writes until nothing is pending: a measure
+  // requested from inside a round (an effect reacting to an insertion)
+  // runs after that round's writes and still in this frame — before paint
+  // — and the moments its results open get their writes in the next round.
+  do {
+    while (measureQ.length > 0) {
+      const q = measureQ;
+      measureQ = [];
+      for (const cb of q) call(null, undefined, cb);
+    }
+    effectZone++;
+    while (frameLevel.size > 0 || frameEffectN > 0) {
+      const m = frameLevel;
+      frameLevel = new Map();
+      for (const [e, a] of m) call(e, a);
+      const q = frameEffects;
+      const n = frameEffectN;
+      frameEffects = [];
+      frameEffectN = 0;
+      for (let i = 0; i < n; i += 2) call(q[i] as Edge<unknown>, q[i + 1]);
+    }
+    effectZone--;
+  } while (measureQ.length > 0);
   if (hasErr) throw firstErr;
 }
 

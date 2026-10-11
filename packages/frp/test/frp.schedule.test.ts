@@ -66,6 +66,23 @@ describe("the frame pass", () => {
     expect(log).toEqual(["measure", "binding", "effect"]);
   });
 
+  test("a measure requested from inside the pass runs after its writes, in the same flush", () => {
+    const s = state(0);
+    const r = state(0);
+    const log: string[] = [];
+    observe_(s.updates, () => log.push("write s"));
+    observe_(r.updates, (v) => log.push(`write r=${v}`));
+    s.updates.listen(() =>
+      requestMeasure(() => {
+        log.push("measure");
+        r.set(1); // a result moment: its bindings run in this flush too
+      }),
+    );
+    s.set(1);
+    flushFrame();
+    expect(log).toEqual(["write s", "measure", "write r=1"]);
+  });
+
   test("a set() inside a flushed observer lands in the same flush", () => {
     const a = state(0);
     const b = state(0);
