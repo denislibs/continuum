@@ -1,0 +1,20 @@
+{
+  "name": "@continuum-js/example-tweb-a",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@continuum-js/dom": "1.0.0",
+    "@continuum-js/frp": "1.0.0",
+    "@continuum-js/std": "1.0.0"
+  },
+  "devDependencies": {
+    "@continuum-js/devtools": "0.0.0",
+    "vite": "^8.1.3"
+  }
+}

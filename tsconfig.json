@@ -41,6 +41,9 @@
       "path": "./examples/router-app"
     },
     {
+      "path": "./examples/tweb-a"
+    },
+    {
       "path": "./benchmark"
     }
   ]

@@ -115,6 +115,16 @@ function MessageList(props: {
 The user never sees the jump: the correction is written in the same frame
 the new rows appear in, before the browser paints either.
 
+One rule falls out of the frame pass: a read that must happen **before** a
+write cannot live in the effect that performs the write — effects run after
+the round's writes. Make the write a _consequence_ of the measurement
+instead: measure first, write in the result's listener. Above, the
+`loadOlder` request takes a network round-trip, so the "before" read is
+naturally a frame ahead of the insertion; when the prepend is synchronous
+(the window grows from what is already loaded), the shape is
+`measure(reachedTop, snapshot).listen((a) => { anchor.set(a); limit.update(…) })`
+— the `examples/tweb-a` spike does exactly this.
+
 ## Opting out: `forceMeasure`
 
 A third-party widget measures when it initializes, and it initializes in
