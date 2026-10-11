@@ -170,3 +170,61 @@ describe("recommended config", () => {
     }
   });
 });
+
+tester.run(
+  "no-layout-reads-in-effects",
+  plugin.rules["no-layout-reads-in-effects"],
+  {
+    valid: [
+      // the component body is not the effect zone
+      `function C() { const h = el.offsetHeight; return <div />; }`,
+      // event handlers are not effects
+      `const v = <input onClick={() => el.focus()} />;`,
+      // measure() is where reads belong
+      `const h = measure(inserted, () => list.scrollHeight);`,
+      // an explicit opt-out inside an effect
+      `onMount(() => forceMeasure(() => widget.init(el.getBoundingClientRect())));`,
+      `x.listen(() => withLayout(() => el.offsetWidth));`,
+      // writes are not reads
+      `x.listen((top) => { list.scrollTop = top; });`,
+      `onMount(() => { el.scrollLeft = 0; });`,
+      // a same-named property on a non-layout object is still flagged — but
+      // an unrelated member name is not
+      `x.listen(() => el.offsetParentId);`,
+    ],
+    invalid: [
+      {
+        code: `x.listen(() => { const h = el.offsetHeight; });`,
+        errors: [{ messageId: "read" }],
+      },
+      {
+        code: `onMount(() => el.getBoundingClientRect());`,
+        errors: [{ messageId: "read" }],
+      },
+      {
+        code: `onMount(() => input.focus());`,
+        errors: [{ messageId: "read" }],
+      },
+      {
+        code: `perform(req, async () => { const w = window.innerWidth; return w; });`,
+        errors: [{ messageId: "read" }],
+      },
+      {
+        code: `total.on(e, (acc) => acc + el.clientWidth);`,
+        errors: [{ messageId: "read" }],
+      },
+      {
+        code: `x.listen(() => { list.scrollTop += 10; });`, // a compound write reads
+        errors: [{ messageId: "read" }],
+      },
+      {
+        code: `x.listen(() => getComputedStyle(el).width);`,
+        errors: [{ messageId: "read" }],
+      },
+      {
+        code: `onMount(() => { measure(t, () => 1); el.scrollIntoView(); });`, // the read is outside the measure callback
+        errors: [{ messageId: "read" }],
+      },
+    ],
+  },
+);

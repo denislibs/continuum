@@ -297,8 +297,132 @@ const preferOninput: Rule.RuleModule = {
   },
 };
 
+// Law 3: layout is an effect. Reading layout (a property or method that
+// forces style/layout — Paul Irish's list) inside an effect callback
+// (`listen`, `onMount`, `perform`, `.on`) interleaves reads with the
+// renderer's writes. Reads belong in `measure()` (batched into the frame
+// pass) or behind an explicit `forceMeasure`/`withLayout`.
+const LAYOUT_PROPS = new Set([
+  "offsetWidth",
+  "offsetHeight",
+  "offsetTop",
+  "offsetLeft",
+  "offsetParent",
+  "clientWidth",
+  "clientHeight",
+  "clientTop",
+  "clientLeft",
+  "scrollWidth",
+  "scrollHeight",
+  "scrollTop",
+  "scrollLeft",
+  "innerText",
+  "scrollX",
+  "scrollY",
+  "innerWidth",
+  "innerHeight",
+]);
+const LAYOUT_METHODS = new Set([
+  "getBoundingClientRect",
+  "getClientRects",
+  "getComputedStyle",
+  "scrollIntoView",
+  "scrollTo",
+  "scrollBy",
+  "focus",
+  "elementFromPoint",
+  "select",
+]);
+const EFFECT_CALLS = new Set(["listen", "onMount", "perform", "on"]);
+const MEASURE_CALLS = new Set(["measure", "forceMeasure", "withLayout"]);
+
+// Name of the call a function node is a direct argument of, if any.
+function enclosingCallName(ancestors: AnyNode[], i: number): string | null {
+  const parent = ancestors[i - 1];
+  if (parent?.type !== "CallExpression") return null;
+  if (!(parent.arguments as AnyNode[]).includes(ancestors[i])) return null;
+  const callee = parent.callee as AnyNode;
+  if (callee.type === "Identifier") return callee.name as string;
+  return memberName(callee);
+}
+
+// Walk outwards from the read; the innermost function-argument decides:
+// a measure-style call allows it, an effect-style call flags it.
+function effectContext(ancestors: AnyNode[]): string | null {
+  for (let i = ancestors.length - 1; i > 0; i--) {
+    const a = ancestors[i];
+    if (a.type !== "ArrowFunctionExpression" && a.type !== "FunctionExpression")
+      continue;
+    const name = enclosingCallName(ancestors, i);
+    if (name && MEASURE_CALLS.has(name)) return null;
+    if (name && EFFECT_CALLS.has(name)) return name;
+  }
+  return null;
+}
+
+const noLayoutReadsInEffects: Rule.RuleModule = {
+  meta: {
+    type: "problem",
+    docs: {
+      description:
+        "disallow layout reads (offsetHeight, getBoundingClientRect, focus…) inside effects (listen/onMount/perform/.on) — use measure() or forceMeasure()",
+    },
+    messages: {
+      read:
+        "Layout read `{{name}}` inside `{{effect}}`: effects run after the " +
+        "renderer's writes, so reading layout here forces a reflow. Read " +
+        "through measure(trigger, fn) or createSize/createScroll, or wrap " +
+        "an intentional read in forceMeasure(() => …).",
+    },
+    schema: [],
+  },
+  create(context) {
+    const report = (node: Rule.Node, name: string) => {
+      const effect = effectContext(
+        context.sourceCode.getAncestors(node) as unknown as AnyNode[],
+      );
+      if (effect)
+        context.report({ node, messageId: "read", data: { name, effect } });
+    };
+    return {
+      MemberExpression(node) {
+        const n = node as unknown as AnyNode;
+        if (n.computed as boolean) return;
+        const prop = n.property as AnyNode;
+        if (prop.type !== "Identifier") return;
+        const name = prop.name as string;
+        const parent = (node as unknown as { parent: AnyNode }).parent;
+        if (LAYOUT_METHODS.has(name)) {
+          if (parent.type === "CallExpression" && parent.callee === n)
+            report(node, name + "()");
+          return;
+        }
+        if (!LAYOUT_PROPS.has(name)) return;
+        // a plain assignment target is a write, not a read
+        if (
+          parent.type === "AssignmentExpression" &&
+          parent.left === n &&
+          parent.operator === "="
+        )
+          return;
+        report(node, name);
+      },
+      // bare `getComputedStyle(el)` / `scrollTo(...)` (window globals)
+      CallExpression(node) {
+        const callee = (node as unknown as AnyNode).callee as AnyNode;
+        if (
+          callee.type === "Identifier" &&
+          LAYOUT_METHODS.has(callee.name as string)
+        )
+          report(node, (callee.name as string) + "()");
+      },
+    };
+  },
+};
+
 const rules = {
   "no-impure-combinators": noImpureCombinators,
+  "no-layout-reads-in-effects": noLayoutReadsInEffects,
   "no-sample-in-jsx": noSampleInJsx,
   "state-needs-scope": stateNeedsScope,
   "prefer-oninput": preferOninput,
@@ -323,6 +447,7 @@ plugin.configs.recommended = {
   plugins: { continuum: plugin },
   rules: {
     "continuum/no-impure-combinators": "error",
+    "continuum/no-layout-reads-in-effects": "error",
     "continuum/no-sample-in-jsx": "error",
     "continuum/state-needs-scope": "error",
     "continuum/prefer-oninput": "warn",
