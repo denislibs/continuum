@@ -1,6 +1,6 @@
 {
   "name": "@continuum-js/example-router-app",
-  "version": "0.0.23",
+  "version": "0.0.24",
   "private": true,
   "type": "module",
   "scripts": {
@@ -9,10 +9,10 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@continuum-js/dom": "1.0.0",
-    "@continuum-js/frp": "1.0.0",
-    "@continuum-js/router": "1.0.0",
-    "@continuum-js/std": "1.0.0"
+    "@continuum-js/dom": "1.0.1",
+    "@continuum-js/frp": "1.0.1",
+    "@continuum-js/router": "1.0.1",
+    "@continuum-js/std": "1.0.1"
   },
   "devDependencies": {
     "vite": "^8.1.3"

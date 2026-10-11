@@ -1,5 +1,22 @@
 # @continuum-js/vite-plugin
 
+## 0.3.1
+
+### Patch Changes
+
+- e74d14c: An empty JSX expression container ({} or {/* comment */}) between text runs no longer shifts sibling node paths; children are counted by real DOM position.
+- 1d53d03: A top-level comma (SequenceExpression) in a JSX hole is parenthesized so its commas are not spliced as extra call arguments.
+- 0f960e3: Generate collision-free identifiers in the JSX→template transform. User code
+  that referenced `_r` or declared/imported the runtime names (`_$insert`, …)
+  previously captured or clashed with the compiler's injected identifiers; the
+  IIFE now returns the cloned element even when its clone variable is renamed
+  (previously a renamed clone still `return`ed the user's binding).
+- 6d3b6dd: `<select value>` keeps its initial selection. The factory path re-asserts the
+  value after options are appended; the compiled path now emits `<option value>`
+  as a static template attribute (instead of a runtime prop) so the `<select>`'s
+  value hole, run after `cloneNode`, sees its options already valued. Both paths
+  now behave identically.
+
 ## 0.3.0
 
 ### Minor Changes

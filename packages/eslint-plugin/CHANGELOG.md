@@ -1,5 +1,11 @@
 # @continuum-js/eslint-plugin
 
+## 0.3.1
+
+### Patch Changes
+
+- c45823d: no-impure-combinators now flags the current pure joins State.at(e, f) and the free combine(...), and drops the removed snapshot/lift2/lift3 names.
+
 ## 0.3.0
 
 ### Minor Changes

@@ -1,5 +1,14 @@
 # @continuum-js/std
 
+## 1.0.1
+
+### Patch Changes
+
+- e890c25: dedupe is now demand-activated, so it detaches from its source when unobserved instead of leaking the subscription (and its upstream chain) for the lifetime of the state.
+- d85ddbf: resource applies last-request-wins to failures too: a late rejection of a superseded request no longer clobbers a newer success.
+- Updated dependencies [ce238d3]
+  - @continuum-js/frp@1.0.1
+
 ## 1.0.0
 
 ### Major Changes
