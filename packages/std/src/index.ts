@@ -170,6 +170,45 @@ export function dedupe<A>(
   return new State<A>(() => b.sampleNoTrans(), out);
 }
 
+/**
+ * Freeze `b` while `gate` is true; on release, catch up to the latest value
+ * in one step (nothing is emitted if it did not change). A formula: attached
+ * to its inputs only while listened. The classic use is holding a heavy
+ * region still during an animation: `each(holdWhile(items, isAnimating), …)`.
+ */
+export function holdWhile<T>(b: State<T>, gate: State<boolean>): State<T> {
+  const out = new Stream<T>(Math.max(b.updates.rank, gate.updates.rank) + 1);
+  let held = b.sampleNoTrans();
+  let gated = gate.sampleNoTrans();
+  out.source(b.updates, (t, v) => {
+    if (!gated) {
+      held = v;
+      out.send_(t, v);
+    }
+  });
+  out.source(gate.updates, (t, g) => {
+    gated = g;
+    if (g) return;
+    // Release at the boundary, so a `b` committed in this same moment is
+    // what we catch up to (same shape as a switch rewire).
+    t.last(() => {
+      const v = b.sampleNoTrans();
+      if (!Object.is(held, v)) {
+        held = v;
+        out.send_(t, v);
+      }
+    });
+  });
+  out.onWake = () => {
+    held = b.sampleNoTrans();
+    gated = gate.sampleNoTrans();
+  };
+  return new State<T>(
+    () => (gate.sampleNoTrans() ? held : b.sampleNoTrans()),
+    out,
+  );
+}
+
 // ===========================================================================
 // Async data — HTTP and friends. `perform` is the IO boundary (§6.5): the
 // effect runs after the moment closes and its result re-enters the network as

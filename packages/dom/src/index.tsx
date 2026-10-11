@@ -13,6 +13,8 @@ import {
   observe_,
   unobserve_,
   flushFrame,
+  effectZone_,
+  withLayout,
 } from "@continuum-js/frp";
 import type { Unlisten, StateSource, ObserverHandle } from "@continuum-js/frp";
 
@@ -116,9 +118,17 @@ function flushMounts(scope: Scope): void {
   const mounts = scope.mounts;
   if (mounts) {
     scope.mounts = null;
-    runInScope(scope, () => {
-      for (let i = mounts.length - 1; i >= 0; i--) mounts[i]();
-    });
+    // onMount is an effect zone — on the first mount as much as on a region
+    // rebuild (law 3: measure with createSize/measure, or opt out with
+    // withLayout for a third-party widget).
+    effectZone_(1);
+    try {
+      runInScope(scope, () => {
+        for (let i = mounts.length - 1; i >= 0; i--) mounts[i]();
+      });
+    } finally {
+      effectZone_(-1);
+    }
   }
 }
 
@@ -394,19 +404,24 @@ const delegatedTypes = new WeakMap<Document, Set<string>>();
 function delegatedDispatch(e: Event): void {
   const key = "$$" + e.type;
   let node = e.target as Node | null;
-  while (node) {
-    const h = (node as unknown as Record<string, unknown>)[key] as
-      EventListener | undefined;
-    if (h) {
-      // handlers expect currentTarget = the element carrying the handler
-      Object.defineProperty(e, "currentTarget", {
-        configurable: true,
-        value: node,
-      });
-      h.call(node, e);
-      if (e.cancelBubble) return; // stopPropagation() halts the walk
+  try {
+    while (node) {
+      const h = (node as unknown as Record<string, unknown>)[key] as
+        EventListener | undefined;
+      if (h) {
+        // handlers expect currentTarget = the element carrying the handler
+        Object.defineProperty(e, "currentTarget", {
+          configurable: true,
+          value: node,
+        });
+        h.call(node, e);
+        if (e.cancelBubble) return; // stopPropagation() halts the walk
+      }
+      node = node.parentNode;
     }
-    node = node.parentNode;
+  } finally {
+    // give the native getter back: an event object must not pin a node
+    delete (e as unknown as Record<string, unknown>).currentTarget;
   }
 }
 
@@ -831,7 +846,9 @@ export function each<T, K>(
       doc.activeElement !== active &&
       active.isConnected
     ) {
-      active.focus();
+      // focus() forces layout: the renderer's one documented layout call,
+      // explicitly outside the effect zone
+      withLayout(() => active.focus());
     }
 
     rows = next;
