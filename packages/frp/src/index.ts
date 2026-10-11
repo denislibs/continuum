@@ -9,6 +9,52 @@
 /** Handle returned by `listen`: call it to unsubscribe. */
 export type Unlisten = () => void;
 
+/**
+ * @internal Engine counters for devtools: live scopes, live subscriptions
+ * (edges), moments opened. Null in production — one null check per event.
+ */
+export interface DevHooks {
+  scope?: (delta: 1 | -1) => void;
+  edge?: (delta: number) => void;
+  moment?: () => void;
+}
+let dev: DevHooks | null = null;
+
+/** @internal Install (or remove, with `null`) the devtools counters. */
+export function setDevHooks(h: DevHooks | null): void {
+  dev = h;
+}
+
+// The effect zone: > 0 while the frame pass runs bindings and effects (and
+// while a renderer flushes its mount hooks). Law 3: a layout read here is a
+// violation — devtools' patched getters check this flag.
+let effectZone = 0;
+
+/** @internal True while observers run (bindings, effects, mount hooks). */
+export function inEffectZone(): boolean {
+  return effectZone > 0;
+}
+
+/** @internal Enter (+1) or leave (-1) the effect zone — for renderers. */
+export function effectZone_(delta: 1 | -1): void {
+  effectZone += delta;
+}
+
+/**
+ * Run `fn` outside the effect zone: an explicit, lint-visible layout read
+ * from an effect (a third-party widget's init in `onMount`). The zone is
+ * restored afterwards, even if `fn` throws.
+ */
+export function withLayout<T>(fn: () => T): T {
+  const saved = effectZone;
+  effectZone = 0;
+  try {
+    return fn();
+  } finally {
+    effectZone = saved;
+  }
+}
+
 // A subscriber inside the graph: receives the enclosing transaction + value.
 type Handler<A> = (t: Transaction, a: A) => void;
 
@@ -62,6 +108,7 @@ export class Scope {
   constructor(parent: Scope | null = currentScope) {
     this.parent = parent;
     if (parent) (parent.children ??= []).push(this);
+    dev?.scope?.(1);
   }
 
   /** Register a teardown to run when this scope disposes. */
@@ -73,6 +120,7 @@ export class Scope {
   dispose(): void {
     if ((this.flags & 1) !== 0) return;
     this.flags |= 1;
+    dev?.scope?.(-1);
     if (this.children) {
       for (let i = this.children.length - 1; i >= 0; i--) {
         this.children[i].dispose();
@@ -338,6 +386,7 @@ export class Transaction {
       t = new Transaction();
     }
     Transaction.current = t;
+    dev?.moment?.();
     let result: A;
     try {
       result = f(t);
@@ -449,6 +498,7 @@ export function flushFrame(): void {
     measureQ = [];
     for (const cb of q) call(null, undefined, cb);
   }
+  effectZone++;
   while (frameLevel.size > 0 || frameEffectN > 0) {
     const m = frameLevel;
     frameLevel = new Map();
@@ -459,6 +509,7 @@ export function flushFrame(): void {
     frameEffectN = 0;
     for (let i = 0; i < n; i += 2) call(q[i] as Edge<unknown>, q[i + 1]);
   }
+  effectZone--;
   if (hasErr) throw firstErr;
 }
 
@@ -632,6 +683,7 @@ export class Stream<A> {
       );
     }
     const rec: Edge<any> = { h, t: target, i: -2 };
+    dev?.edge?.(1);
     const obs = this.obs;
     if (obs === null) {
       const first = this.ob0;
@@ -665,11 +717,13 @@ export class Stream<A> {
     if (rec === this.ob0) {
       this.ob0 = null;
       rec.i = -1;
+      dev?.edge?.(-1);
       this.sleep();
       return;
     }
     const obs = this.obs;
     if (!obs || rec.i < 0) return;
+    dev?.edge?.(-1);
     const last = obs.pop()!;
     if (last !== rec) {
       obs[rec.i] = last;
@@ -812,6 +866,8 @@ export class Stream<A> {
     const cs = this.cleanups;
     this.cleanups = null;
     if (cs) for (const c of cs) c();
+    // downstream edges are dropped wholesale, not unlistened one by one
+    if (dev?.edge) dev.edge(-((this.ob0 ? 1 : 0) + (this.obs?.length ?? 0)));
     this.ob0 = null;
     this.obs = null;
     this.snap = null;
