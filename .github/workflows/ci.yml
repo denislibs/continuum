@@ -38,6 +38,10 @@ jobs:
       - name: Test
         run: npm test
 
+      # Bundle budgets (.size-limit.json) are hard: a regression fails the build.
+      - name: Size budgets
+        run: npm run size
+
       # Publish contract: packed tarballs must install and build in a clean
       # Vite project (no monorepo aliases). Perf measurements stay local-only.
       - name: Smoke (publish contract)
