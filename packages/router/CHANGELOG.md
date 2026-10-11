@@ -1,5 +1,20 @@
 # @continuum-js/router
 
+## 1.0.1
+
+### Patch Changes
+
+- eac9549: Link no longer intercepts external / cross-origin / non-http links (or non-_self targets); it falls through to the browser instead of preventDefault-ing and throwing in pushState. Adds a target prop.
+- 6420eb2: Route params are URL-decoded (e.g. /users/John%20Doe -> "John Doe"), falling back to the raw segment on malformed input.
+- Updated dependencies [ce238d3]
+- Updated dependencies [e890c25]
+- Updated dependencies [d85ddbf]
+- Updated dependencies [e5fc7a1]
+- Updated dependencies [6d3b6dd]
+  - @continuum-js/frp@1.0.1
+  - @continuum-js/std@1.0.1
+  - @continuum-js/dom@1.0.1
+
 ## 1.0.0
 
 ### Major Changes
