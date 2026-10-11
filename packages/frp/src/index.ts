@@ -202,9 +202,12 @@ export class Transaction {
   }
 
   // --- phase 3: observer side effects, run after the moment closes ---
-  post<X>(fn: (x: X) => void, arg: X): void {
+  // Stores the EDGE (not the bare handler): the frame scheduler needs the
+  // edge to coalesce bindings per subscriber and to skip edges removed
+  // before the frame fires.
+  post<X>(e: Edge<X>, arg: X): void {
     const q = this.postQ;
-    q[this.postN++] = fn;
+    q[this.postN++] = e;
     q[this.postN++] = arg;
   }
 
@@ -350,14 +353,33 @@ export class Transaction {
     // first error is rethrown.
     const posts = t.postQ;
     const postN = t.postN;
+    if (schedule === "frame") {
+      // Defer to the frame pass: bindings coalesce per edge (latest value
+      // wins — a binding is level-triggered), effects queue in order (every
+      // occurrence — an effect is edge-triggered).
+      for (let i = 0; i < postN; i += 2) {
+        const e = posts[i] as Edge<unknown>;
+        const arg = posts[i + 1];
+        posts[i] = posts[i + 1] = undefined;
+        if (e.t === POST) frameLevel.set(e, arg);
+        else {
+          frameEffects[frameEffectN++] = e;
+          frameEffects[frameEffectN++] = arg;
+        }
+      }
+      t.postN = 0;
+      Transaction.pool = t;
+      scheduleFrame();
+      return result;
+    }
     let firstErr: unknown;
     let hasErr = false;
     for (let i = 0; i < postN; i += 2) {
-      const fn = posts[i] as (x: unknown) => void;
+      const e = posts[i] as Edge<unknown>;
       const arg = posts[i + 1];
       posts[i] = posts[i + 1] = undefined; // recycled array must retain nothing
       try {
-        fn(arg);
+        (e.h as Observer<unknown>)(arg);
       } catch (err) {
         if (!hasErr) {
           hasErr = true;
@@ -370,6 +392,130 @@ export class Transaction {
     if (hasErr) throw firstErr;
     return result;
   }
+}
+
+// ---------------------------------------------------------------------------
+// Frame scheduler (spike) — `schedule: "frame"`.
+//
+// In "sync" (the default) observers run before `set()` returns. In "frame"
+// the graph still updates synchronously (`sample()` is current), but the
+// observer phase is deferred to ONE pass per animation frame: measures
+// first (layout reads, before any write), then bindings (one delivery per
+// edge, latest value), then effects (every occurrence, FIFO). A `set` from
+// inside the pass lands in the same pass.
+// ---------------------------------------------------------------------------
+
+export type Schedule = "sync" | "frame";
+
+let schedule: Schedule = "sync";
+// bindings: edge -> latest arg (insertion order = first delivery order)
+let frameLevel = new Map<Edge<unknown>, unknown>();
+// effects: flat (edge, arg) pairs
+let frameEffects: unknown[] = [];
+let frameEffectN = 0;
+let measureQ: Array<() => void> = [];
+let frameScheduled = false;
+let rafId = 0;
+let timeoutId: ReturnType<typeof setTimeout> | 0 = 0;
+// rAF does not fire in a background tab; the timeout keeps logic that waits
+// on a frame (a `measure` result) from stalling there.
+const FRAME_TIMEOUT_MS = 35;
+
+/** Select the observer schedule: `"sync"` (default) or `"frame"`. */
+export function setSchedule(s: Schedule): void {
+  schedule = s;
+}
+
+/** The current observer schedule. */
+export function getSchedule(): Schedule {
+  return schedule;
+}
+
+/**
+ * Queue a layout read for the next frame pass; it runs before any binding
+ * of that pass writes to the DOM.
+ */
+export function requestMeasure(cb: () => void): void {
+  measureQ.push(cb);
+  scheduleFrame();
+}
+
+function scheduleFrame(): void {
+  if (frameScheduled) return;
+  frameScheduled = true;
+  if (typeof requestAnimationFrame === "function") {
+    rafId = requestAnimationFrame(onFrame);
+    timeoutId = setTimeout(onFrame, FRAME_TIMEOUT_MS);
+  } else {
+    timeoutId = setTimeout(onFrame, 0);
+  }
+}
+
+function onFrame(): void {
+  flushFrame();
+}
+
+function cancelFrame(): void {
+  if (!frameScheduled) return;
+  frameScheduled = false;
+  if (rafId !== 0) {
+    cancelAnimationFrame(rafId);
+    rafId = 0;
+  }
+  if (timeoutId !== 0) {
+    clearTimeout(timeoutId);
+    timeoutId = 0;
+  }
+}
+
+/**
+ * Run the pending frame pass now (measures → bindings → effects). A no-op
+ * when nothing is pending. Observers are isolated: one throwing does not
+ * stop the rest; the first error is rethrown at the end.
+ */
+export function flushFrame(): void {
+  cancelFrame();
+  let firstErr: unknown;
+  let hasErr = false;
+  const guard = (fn: () => void) => {
+    try {
+      fn();
+    } catch (err) {
+      if (!hasErr) {
+        hasErr = true;
+        firstErr = err;
+      }
+    }
+  };
+  while (measureQ.length > 0) {
+    const q = measureQ;
+    measureQ = [];
+    for (const cb of q) guard(cb);
+  }
+  for (;;) {
+    if (frameLevel.size === 0 && frameEffectN === 0) break;
+    if (frameLevel.size > 0) {
+      const m = frameLevel;
+      frameLevel = new Map();
+      for (const [e, a] of m) {
+        if (e.i === -1) continue; // unsubscribed before the frame
+        guard(() => (e.h as Observer<unknown>)(a));
+      }
+    }
+    if (frameEffectN > 0) {
+      const q = frameEffects;
+      const n = frameEffectN;
+      frameEffects = [];
+      frameEffectN = 0;
+      for (let i = 0; i < n; i += 2) {
+        const e = q[i] as Edge<unknown>;
+        const a = q[i + 1];
+        if (e.i === -1) continue;
+        guard(() => (e.h as Observer<unknown>)(a));
+      }
+    }
+  }
+  if (hasErr) throw firstErr;
 }
 
 // ---------------------------------------------------------------------------
@@ -506,7 +652,7 @@ export class Stream<A> {
       const o0 = n.ob0;
       if (o0 !== null) {
         const t0 = o0.t;
-        if (t0 !== null && t0 !== POST) {
+        if (t0 !== null && t0 !== POST && t0 !== POST_EFFECT) {
           if (onPath.has(t0))
             throw new Error("Continuum: dependency cycle detected");
           stack.push({ n: t0, l: n.rank });
@@ -514,7 +660,7 @@ export class Stream<A> {
       } else if (n.obs) {
         for (const e of n.obs) {
           const t = e.t;
-          if (t === null || t === POST) continue;
+          if (t === null || t === POST || t === POST_EFFECT) continue;
           if (onPath.has(t))
             throw new Error("Continuum: dependency cycle detected");
           // duplicate edges to one target just revisit an already-high rank
@@ -565,7 +711,8 @@ export class Stream<A> {
     }
     // keep the target strictly above this source (handles dynamic
     // subscriptions from flatten onto deeper events).
-    if (target !== null && target !== POST) target.ensureBiggerThan(this.rank);
+    if (target !== null && target !== POST && target !== POST_EFFECT)
+      target.ensureBiggerThan(this.rank);
     return rec;
   }
 
@@ -603,7 +750,7 @@ export class Stream<A> {
       // (The sentinel target discriminates the union in `Edge.h`: a POST
       // edge carries the user callback — schedule it for the observer
       // phase without a per-listen wrapper closure.)
-      if (o0.t === POST) t.post(o0.h as Observer<A>, a);
+      if (o0.t === POST || o0.t === POST_EFFECT) t.post(o0, a);
       else (o0.h as Handler<A>)(t, a);
       return;
     }
@@ -613,7 +760,7 @@ export class Stream<A> {
     // allocates nothing.
     const ls = (this.snap ??= this.obs.length > 0 ? [...this.obs] : EMPTY_SNAP);
     for (const e of ls) {
-      if (e.t === POST) t.post(e.h as Observer<A>, a);
+      if (e.t === POST || e.t === POST_EFFECT) t.post(e, a);
       else (e.h as Handler<A>)(t, a);
     }
   }
@@ -930,7 +1077,7 @@ export class Stream<A> {
     // No dispose-cascade here (it used to guess liveness from listener
     // counts and guessed wrong): pure derivations sleep on their own, and
     // stateful ones live exactly as long as their owning scope.
-    const rec = this.attach_(POST, h);
+    const rec = this.attach_(POST_EFFECT, h);
     return () => this.unlisten_(rec);
   }
 
@@ -951,6 +1098,10 @@ export class Stream<A> {
 // `listen()` used to allocate. Rank machinery skips the sentinel.
 // (Below the class: `new Stream` needs the declaration evaluated.)
 const POST = new Stream<any>(0);
+// Sentinel for EFFECT edges (`listen`): same observer-phase delivery as POST
+// in the sync schedule; in the frame schedule effects keep every occurrence
+// while POST bindings coalesce to the latest value.
+const POST_EFFECT = new Stream<any>(0);
 
 // ---------------------------------------------------------------------------
 // State<A> — a value across time (pull) + discrete `updates` (push).
