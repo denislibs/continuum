@@ -330,6 +330,14 @@ function setStyle(el: Element, prev: unknown, next: unknown): void {
   setProp(el, "style", next);
 }
 
+// [true-token, false-token] for the attributes whose "false" is meaningful.
+const ENUMERATED: Record<string, readonly [string, string]> = {
+  draggable: ["true", "false"],
+  spellcheck: ["true", "false"],
+  contenteditable: ["true", "false"],
+  translate: ["yes", "no"],
+};
+
 function setProp(el: Element, key: string, value: unknown): void {
   if (key === "class" || key === "className") {
     // SVG elements have a read-only `className` (SVGAnimatedString).
@@ -354,6 +362,13 @@ function setProp(el: Element, key: string, value: unknown): void {
     return;
   }
   if (typeof value === "boolean") {
+    // Enumerated attributes: "false" is a value, not an absence (an absent
+    // `draggable` means auto, an absent `spellcheck` means the default).
+    const tokens = ENUMERATED[key];
+    if (tokens) {
+      el.setAttribute(key, tokens[value ? 0 : 1]);
+      return;
+    }
     if (value) el.setAttribute(key, "");
     else el.removeAttribute(key);
     return;

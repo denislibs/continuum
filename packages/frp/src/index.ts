@@ -134,8 +134,10 @@ export class Scope {
       this.cleanups.length = 0;
     }
     if (this.parent) {
+      // A parent that is disposing drains its list itself — a per-child
+      // indexOf+splice there made a 10k-row teardown quadratic.
       const siblings = this.parent.children;
-      if (siblings) {
+      if (siblings && (this.parent.flags & 1) === 0) {
         const idx = siblings.indexOf(this);
         if (idx >= 0) siblings.splice(idx, 1);
       }
@@ -1412,7 +1414,7 @@ function makeFire<A>(e: Stream<A>, once: boolean): (a: A) => void {
   return (a: A) => {
     if (Transaction.current?.pureZone) {
       throw new Error(
-        "Source fired inside a pure combinator (map/filter/snapshot/accum). " +
+        "Source fired inside a pure combinator (map/filter/at/accum). " +
           "Keep those callbacks pure — fire from a handler, `listen`, or `perform`.",
       );
     }
@@ -1843,7 +1845,16 @@ export function perform<A, B>(
   // listen runs in phase post (after the moment closes); the promise
   // settles later, and `fire` opens a brand-new moment.
   const un = e.listen((a) => {
-    run(a).then(
+    // "errors flow as data" covers a run() that throws before it returns a
+    // promise (a bad URL, a serializer) — not only a rejection.
+    let p: Promise<B>;
+    try {
+      p = run(a);
+    } catch (error) {
+      if (!dead) fire({ ok: false, error });
+      return;
+    }
+    p.then(
       (value) => {
         if (!dead) fire({ ok: true, value });
       },
