@@ -715,8 +715,10 @@ export function dyn<T>(b: State<T>, render: (v: T) => Child): Node {
 
 // A list row IS its owner plus the reuse key — the {key, owner} wrapper
 // record per row was pure overhead (10k of them at 10k rows).
-class EachOwner<K> extends Owner {
+class EachOwner<T, K> extends Owner {
   key: K;
+  /** The row's live item, when the render asked for it (`render.length >= 2`). */
+  cell: StateSource<T> | null = null;
   constructor(parent: Scope | null, key: K) {
     super(parent);
     this.key = key;
@@ -776,7 +778,7 @@ function lisIndices(seq: number[]): Set<number> {
 export function each<T, K>(
   items: State<T[]>,
   key: (item: T) => K,
-  render: (item: T) => Child,
+  render: (item: T, row: State<T>) => Child,
 ): Node {
   needRegionOwner("each()");
   const owner = getScope();
@@ -786,7 +788,7 @@ export function each<T, K>(
   frag.appendChild(start);
   frag.appendChild(end);
 
-  let rows: Array<EachOwner<K>> = [];
+  let rows: Array<EachOwner<T, K>> = [];
 
   const update = (list: T[]) => {
     const parent = end.parentNode!;
@@ -794,7 +796,7 @@ export function each<T, K>(
     rows.forEach((r, i) => oldIndex.set(r.key, i));
 
     const seen = new Set<K>();
-    const next: Array<EachOwner<K>> = [];
+    const next: Array<EachOwner<T, K>> = [];
     const seq: number[] = [];
     const freshFlushes: Owner[] = [];
     for (const item of list) {
@@ -803,11 +805,19 @@ export function each<T, K>(
       seen.add(k);
       const prevIdx = oldIndex.get(k);
       if (prevIdx !== undefined) {
-        next.push(rows[prevIdx]); // reuse: no re-render
+        const row = rows[prevIdx];
+        next.push(row); // reuse: no re-render …
+        row.cell?.set(item); // … the row's State follows the item instead
         seq.push(prevIdx);
       } else {
-        const built = new EachOwner(owner, k);
-        buildScoped(built, () => render(item));
+        const built = new EachOwner<T, K>(owner, k);
+        // A row cell only when the render declares the second parameter:
+        // 10k rows that never read it never pay for it.
+        const cell = render.length >= 2 ? state(item) : null;
+        built.cell = cell;
+        buildScoped(built, () =>
+          cell ? render(item, cell) : (render as (i: T) => Child)(item),
+        );
         next.push(built);
         seq.push(-1);
         freshFlushes.push(built);
@@ -1103,9 +1113,13 @@ export function Show<T>(props: {
 export function Each<T, K = T>(props: {
   each: State<T[]>;
   by?: (item: T) => K;
-  children: (item: T) => Child;
+  /** `row` follows the item under the same key — bind `row.map(…)` for live fields. */
+  children: (item: T, row: State<T>) => Child;
 }): Node {
-  const render = asRender<T>(props.children);
+  const render = asRender<T>(props.children) as (
+    item: T,
+    row: State<T>,
+  ) => Child;
   const key = props.by ?? ((item: T) => item as unknown as K);
   return each(props.each, key, render);
 }
