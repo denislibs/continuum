@@ -45,13 +45,19 @@ widget — register it with `onMount`:
 
 ```tsx
 import { onMount } from "@continuum-js/dom";
+import { forceMeasure } from "@continuum-js/dom/layout";
 
 function SearchBox() {
   const input = (<input />) as HTMLInputElement;
-  onMount(() => input.focus());
+  onMount(() => forceMeasure(() => input.focus()));
   return input;
 }
 ```
+
+`onMount` runs in the frame pass, between the renderer's writes — it is an
+_effect zone_. Reading layout there (`focus()` forces it) is a reflow in the
+middle of a frame; `forceMeasure` marks the one you mean. Sizes and scroll
+positions have a better home: the [layout guide](/guides/layout).
 
 `onMount` fires once, right after the scope's nodes are inserted — at
 `mount`, on a `dyn`/`Show` switch, on a new `Each` row. Child scopes mount

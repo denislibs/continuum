@@ -45,13 +45,19 @@ function Ticker() {
 
 ```tsx
 import { onMount } from "@continuum-js/dom";
+import { forceMeasure } from "@continuum-js/dom/layout";
 
 function SearchBox() {
   const input = (<input />) as HTMLInputElement;
-  onMount(() => input.focus());
+  onMount(() => forceMeasure(() => input.focus()));
   return input;
 }
 ```
+
+`onMount` выполняется в кадровом проходе, между записями рендерера — это
+_зона эффектов_. Чтение layout там (`focus()` его форсирует) — reflow
+посреди кадра; `forceMeasure` помечает то, которое вы имеете в виду. У
+размеров и позиций скролла есть дом получше: [гайд по layout](/ru/guides/layout).
 
 `onMount` срабатывает один раз, сразу после вставки узлов скоупа — при
 `mount`, при переключении `dyn`/`Show`, при новой строке `Each`. Дочерние
