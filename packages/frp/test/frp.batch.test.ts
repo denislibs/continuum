@@ -7,6 +7,7 @@ import {
   batch,
   combine,
 } from "@continuum-js/frp";
+import { flushFrame } from "@continuum-js/frp";
 
 describe("batch — several fires as one moment", () => {
   test("two sets inside one batch reach a lift2 as ONE recomputation", () => {
@@ -29,7 +30,9 @@ describe("batch — several fires as one moment", () => {
     });
 
     // without batch this would be two moments: [11, 21, 22]
+    flushFrame();
     expect(seen).toEqual([11, 22]);
+    flushFrame();
     expect(computes).toBe(1);
   });
 
@@ -45,10 +48,12 @@ describe("batch — several fires as one moment", () => {
       fireB(2);
     });
 
+    flushFrame();
     expect(seen).toEqual([3]);
   });
 
   test("returns the callback's value", () => {
+    flushFrame();
     expect(batch(() => 42)).toBe(42);
   });
 
@@ -66,6 +71,7 @@ describe("batch — several fires as one moment", () => {
       batch(() => setB(3));
     });
 
+    flushFrame();
     expect(seen).toEqual([2, 5]);
   });
 
@@ -83,6 +89,7 @@ describe("batch — several fires as one moment", () => {
       setA(7); // same moment: the observer must still see 7, not 0
     });
 
+    flushFrame();
     expect(sampledInsideObserver).toBe(7);
   });
 
@@ -94,6 +101,7 @@ describe("batch — several fires as one moment", () => {
       return x;
     });
     bad.listen(() => {});
+    flushFrame();
     expect(() => batch(() => fire(1))).toThrow(/pure/i);
   });
 });
@@ -103,6 +111,7 @@ describe("batch — one occurrence per source per moment", () => {
     const [src, fire] = newStream<number>();
     const acc = root(() => src.accum(0, (a, s) => s + a));
     acc.updates.listen(() => {});
+    flushFrame();
     expect(() =>
       batch(() => {
         fire(1);
@@ -124,9 +133,11 @@ describe("batch — one occurrence per source per moment", () => {
       /* expected */
     }
     // the first fire of the aborted moment must NOT be committed
+    flushFrame();
     expect(acc.sample()).toBe(0);
     // and the source is not poisoned: a fresh moment works
     fire(5);
+    flushFrame();
     expect(acc.sample()).toBe(5);
   });
 
@@ -139,6 +150,7 @@ describe("batch — one occurrence per source per moment", () => {
       set(1);
       set(2);
     });
+    flushFrame();
     expect(b.sample()).toBe(2);
   });
 
@@ -152,6 +164,7 @@ describe("batch — one occurrence per source per moment", () => {
       fireA(1);
       fireB(2);
     });
+    flushFrame();
     expect(seen).toEqual([3]);
   });
 
@@ -161,6 +174,7 @@ describe("batch — one occurrence per source per moment", () => {
     acc.updates.listen(() => {});
     fire(1);
     fire(2);
+    flushFrame();
     expect(acc.sample()).toBe(3);
   });
 });

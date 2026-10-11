@@ -7,6 +7,7 @@
 import { describe, test, expect, afterEach } from "vitest";
 import { h, each, when, dyn, mount, portal } from "@continuum-js/dom";
 import { root, state } from "@continuum-js/frp";
+import { flushFrame } from "@continuum-js/frp";
 
 // Local render helper — avoids depending on @continuum-js/test, whose project
 // reference back onto @continuum-js/dom would make `tsc -b` circular.
@@ -47,10 +48,13 @@ describe("region node tracking (#112)", () => {
         ),
       ),
     );
+    flushFrame();
     expect(container.textContent).toBe("onetwo");
     show.set(false); // row 1's content is swapped by the nested region
+    flushFrame();
     expect(container.textContent).toBe("ONEtwo");
     items.set([{ id: 2 }]); // remove row 1
+    flushFrame();
     expect(container.textContent).toBe("two"); // not "ONEtwo"
   });
 
@@ -75,10 +79,13 @@ describe("region node tracking (#112)", () => {
         ),
       ),
     );
+    flushFrame();
     expect(container.textContent).toBe("oner2r3");
     show.set(false);
+    flushFrame();
     expect(container.textContent).toBe("ONEr2r3");
     items.set([{ id: 2 }, { id: 3 }, { id: 1 }]); // move row 1 to the end
+    flushFrame();
     expect(container.textContent).toBe("r2r3ONE");
   });
 
@@ -88,10 +95,13 @@ describe("region node tracking (#112)", () => {
     const unmount = mount(container, () =>
       dyn(b, (v) => h("span", null, String(v))),
     );
+    flushFrame();
     expect(container.textContent).toBe("1");
     b.set(2); // content swapped
+    flushFrame();
     expect(container.textContent).toBe("2");
     unmount();
+    flushFrame();
     expect(container.childNodes.length).toBe(0); // no ghost <span>2
   });
 
@@ -103,10 +113,13 @@ describe("region node tracking (#112)", () => {
         target,
         dyn(b, (v) => h("span", null, String(v))),
       );
+      flushFrame();
       expect(target.textContent).toBe("1");
       b.set(2);
+      flushFrame();
       expect(target.textContent).toBe("2");
       dispose();
+      flushFrame();
       expect(target.childNodes.length).toBe(0);
     });
   });

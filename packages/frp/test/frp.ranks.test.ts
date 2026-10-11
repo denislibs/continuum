@@ -1,13 +1,17 @@
 import { describe, test, expect } from "vitest";
 import { Stream, newStream, state, flatten } from "@continuum-js/frp";
+import { flushFrame } from "@continuum-js/frp";
 
 describe("rank maintenance (ensureBiggerThan)", () => {
   test("subscribing a low-rank node under a high-rank source bumps it and propagates", () => {
     const src = new Stream<number>(); // rank 0
     const mid = src.map((x) => x); // rank 1
     const leaf = mid.map((x) => x); // rank 2
+    flushFrame();
     expect(src.rank).toBe(0);
+    flushFrame();
     expect(mid.rank).toBe(1);
+    flushFrame();
     expect(leaf.rank).toBe(2);
 
     // Wake the chain: lazy nodes join the live topology (and the rank
@@ -19,8 +23,11 @@ describe("rank maintenance (ensureBiggerThan)", () => {
     high.listen_(src, () => {});
 
     // src must now sit above `high`, and the bump must propagate downstream.
+    flushFrame();
     expect(src.rank).toBeGreaterThan(high.rank);
+    flushFrame();
     expect(mid.rank).toBeGreaterThan(src.rank);
+    flushFrame();
     expect(leaf.rank).toBeGreaterThan(mid.rank);
   });
 
@@ -43,9 +50,11 @@ describe("rank maintenance (ensureBiggerThan)", () => {
 
     fireS(1);
     setSel(deep); // switch to the deep event
+    flushFrame();
     expect(out.rank).toBeGreaterThan(deep.rank);
     fireD(2);
     fireS(9); // ignored now
+    flushFrame();
     expect(seen).toEqual([1, 2]);
   });
 });
@@ -56,6 +65,7 @@ describe("cycle detection", () => {
     const b = new Stream<number>();
     a.listen_(b, () => {}); // b is downstream of a
     // making a downstream of b closes the loop -> cycle
+    flushFrame();
     expect(() => b.listen_(a, () => {})).toThrow(/cycle/i);
   });
 });
@@ -69,12 +79,14 @@ describe("ranks do not break existing coalescing", () => {
     // subscribe merged under a high-rank producer to force a bump
     const high = new Stream<number>(20);
     high.listen_(merged, () => {});
+    flushFrame();
     expect(merged.rank).toBeGreaterThan(high.rank);
 
     const seen: number[] = [];
     merged.listen((v) => seen.push(v));
     fireA(1);
     fireB(2);
+    flushFrame();
     expect(seen).toEqual([1, 2]);
   });
 });
@@ -92,8 +104,10 @@ describe("long-run rank stability (§14 #6)", () => {
     const un = out.listen(() => {});
 
     setSel(deep); // rank must climb above the deep chain
+    flushFrame();
     expect(out.rank).toBeGreaterThan(40);
     setSel(shallow); // ...and come back down to the live topology
+    flushFrame();
     expect(out.rank).toBeLessThan(10);
     un();
   });
@@ -112,6 +126,7 @@ describe("long-run rank stability (§14 #6)", () => {
     const unA = swA.listen(() => {});
     const unB = swB.listen(() => {});
 
+    flushFrame();
     expect(() => {
       for (let i = 0; i < 100; i++) {
         setSelA(swB.map((x) => x + 1));
@@ -132,6 +147,7 @@ describe("long-run rank stability (§14 #6)", () => {
     fire(1);
     // edge slots: the observer array must not accumulate dead edges
     const obs = (src as unknown as { obs: unknown[] | null }).obs;
+    flushFrame();
     expect(obs?.length ?? 0).toBeLessThanOrEqual(1);
   });
 });
@@ -148,7 +164,9 @@ describe("rank cascade scale", () => {
     const high = new Stream<number>(5);
     high.listen_(src, () => {});
 
+    flushFrame();
     expect(src.rank).toBeGreaterThan(high.rank);
+    flushFrame();
     expect(node.rank).toBeGreaterThan(src.rank);
   });
 });

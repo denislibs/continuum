@@ -1,6 +1,7 @@
 import { describe, test, expect } from "vitest";
 import { mount } from "@continuum-js/dom";
 import { root, newStream, state } from "@continuum-js/frp";
+import { flushFrame } from "@continuum-js/frp";
 
 describe("h — static elements", () => {
   test("creates an element with attributes and text children", () => {
@@ -9,9 +10,13 @@ describe("h — static elements", () => {
         world
       </div>
     ) as HTMLElement;
+    flushFrame();
     expect(el.tagName).toBe("DIV");
+    flushFrame();
     expect(el.id).toBe("x");
+    flushFrame();
     expect(el.getAttribute("title")).toBe("hello");
+    flushFrame();
     expect(el.textContent).toBe("world");
   });
 
@@ -19,15 +24,20 @@ describe("h — static elements", () => {
     const el = (
       <div class="a b" style={{ color: "red", fontSize: "10px" }} />
     ) as HTMLElement;
+    flushFrame();
     expect(el.className).toBe("a b");
+    flushFrame();
     expect(el.style.color).toBe("red");
+    flushFrame();
     expect(el.style.fontSize).toBe("10px");
   });
 
   test("value and checked are set as properties", () => {
     const input = (<input value="hi" />) as HTMLInputElement;
+    flushFrame();
     expect(input.value).toBe("hi");
     const cb = (<input type="checkbox" checked={true} />) as HTMLInputElement;
+    flushFrame();
     expect(cb.checked).toBe(true);
   });
 
@@ -41,7 +51,9 @@ describe("h — static elements", () => {
         <option value="3">three</option>
       </select>
     ) as HTMLSelectElement;
+    flushFrame();
     expect(el.value).toBe("2");
+    flushFrame();
     expect(el.selectedIndex).toBe(1);
   });
 
@@ -54,22 +66,28 @@ describe("h — static elements", () => {
         <option value="2">two</option>
       </select>
     ) as HTMLSelectElement;
+    flushFrame();
     expect(el.value).toBe("2");
     set("1");
+    flushFrame();
     expect(el.value).toBe("1");
   });
 
   test("ref receives the element (function form)", () => {
     let captured: HTMLElement | null = null;
     (<div ref={(el: HTMLElement) => (captured = el)} />) as HTMLElement;
+    flushFrame();
     expect(captured).not.toBeNull();
+    flushFrame();
     expect(captured!.tagName).toBe("DIV");
   });
 
   test("ref receives the element (object form)", () => {
     const ref = { current: null as HTMLElement | null };
     (<div ref={ref} />) as HTMLElement;
+    flushFrame();
     expect(ref.current).not.toBeNull();
+    flushFrame();
     expect(ref.current!.tagName).toBe("DIV");
   });
 
@@ -81,7 +99,9 @@ describe("h — static elements", () => {
         ))}
       </ul>
     ) as HTMLElement;
+    flushFrame();
     expect(el.querySelectorAll("li").length).toBe(3);
+    flushFrame();
     expect(el.textContent).toBe("123");
   });
 });
@@ -91,8 +111,10 @@ describe("h — fine-grained bindings", () => {
     const b = state("x");
     const set = b.set;
     const el = (<span>{b}</span>) as HTMLElement;
+    flushFrame();
     expect(el.textContent).toBe("x");
     set("y");
+    flushFrame();
     expect(el.textContent).toBe("y");
   });
 
@@ -100,8 +122,10 @@ describe("h — fine-grained bindings", () => {
     const cls = state("one");
     const setCls = cls.set;
     const el = (<div class={cls} />) as HTMLElement;
+    flushFrame();
     expect(el.className).toBe("one");
     setCls("two");
+    flushFrame();
     expect(el.className).toBe("two");
   });
 
@@ -109,8 +133,10 @@ describe("h — fine-grained bindings", () => {
     const b = state(1);
     const set = b.set;
     const el = (<div>count: {b}!</div>) as HTMLElement;
+    flushFrame();
     expect(el.textContent).toBe("count: 1!");
     set(2);
+    flushFrame();
     expect(el.textContent).toBe("count: 2!");
   });
 });
@@ -124,6 +150,7 @@ describe("h — events", () => {
     document.body.appendChild(btn); // delegated events need a connected tree
     btn.click();
     btn.click();
+    flushFrame();
     expect(fired).toBe(2);
     btn.remove();
   });
@@ -133,9 +160,11 @@ describe("h — events", () => {
     const count = root(() => clicks.accum(0, (_e, n) => n + 1));
     const btn = (<button onClick={fire}>{count}</button>) as HTMLButtonElement;
     document.body.appendChild(btn); // delegated events need a connected tree
+    flushFrame();
     expect(btn.textContent).toBe("0");
     btn.click();
     btn.click();
+    flushFrame();
     expect(btn.textContent).toBe("2");
     btn.remove();
   });
@@ -151,10 +180,13 @@ describe("h — components", () => {
     const n = state(1);
     const set = n.set;
     const el = (<Comp n={n} />) as HTMLElement;
+    flushFrame();
     expect(calls).toBe(1);
     set(2);
     set(3);
+    flushFrame();
     expect(calls).toBe(1);
+    flushFrame();
     expect(el.textContent).toBe("3");
   });
 });
@@ -169,7 +201,9 @@ describe("Fragment", () => {
       </>
     ) as Node;
     container.appendChild(f);
+    flushFrame();
     expect(container.childNodes.length).toBe(2);
+    flushFrame();
     expect(container.textContent).toBe("ab");
   });
 });
@@ -180,12 +214,16 @@ describe("mount / unmount", () => {
     const b = state("x");
     const set = b.set;
     const unmount = mount(container, () => <span>{b}</span>);
+    flushFrame();
     expect(container.textContent).toBe("x");
     set("y");
+    flushFrame();
     expect(container.textContent).toBe("y");
     unmount();
+    flushFrame();
     expect(container.childNodes.length).toBe(0);
     // updates after unmount must not throw
+    flushFrame();
     expect(() => set("z")).not.toThrow();
   });
 });

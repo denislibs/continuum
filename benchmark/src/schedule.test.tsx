@@ -1,21 +1,19 @@
 /** @jsxImportSource @continuum-js/dom */
-// Spike bench: sync vs frame schedule on the same renderer. Prints the
-// numbers the decision needs (region rebuilds, DOM writes, wall time).
+// Bench: a flush per update (what the old synchronous observer phase cost)
+// vs one frame pass. Prints region rebuilds, DOM writes, wall time.
 // Run: npx vitest run benchmark/schedule.test.tsx
 import { test, afterEach } from "vitest";
-import { state, setSchedule, flushFrame } from "@continuum-js/frp";
+import { state, flushFrame } from "@continuum-js/frp";
 import { mount, dyn, each } from "@continuum-js/dom";
 
 afterEach(() => {
   flushFrame();
-  setSchedule("sync");
   document.body.innerHTML = "";
 });
 
 type Row = { id: number; text: string };
 
-function scenario(label: "sync" | "frame", updates: number, rows: number) {
-  setSchedule(label);
+function scenario(label: "batched" | "frame", updates: number, rows: number) {
   const items = state<Row[]>(
     Array.from({ length: rows }, (_, i) => ({ id: i, text: `row ${i}` })),
   );
@@ -82,7 +80,7 @@ function scenario(label: "sync" | "frame", updates: number, rows: number) {
   return { label, ms: +ms.toFixed(2), regionBuilds, rowBuilds, textWrites };
 }
 
-test("sync vs frame: burst of updates between frames", () => {
+test("per-update flush vs one frame pass: burst of updates between frames", () => {
   const out: Record<string, unknown>[] = [];
   for (const [updates, rows] of [
     [10, 100],
@@ -90,9 +88,9 @@ test("sync vs frame: burst of updates between frames", () => {
     [1000, 1000],
   ] as const) {
     // warm-up
-    scenario("sync", 5, 10);
+    scenario("batched", 5, 10);
     scenario("frame", 5, 10);
-    const s = scenario("sync", updates, rows);
+    const s = scenario("batched", updates, rows);
     const f = scenario("frame", updates, rows);
     out.push({ updates, rows, ...s }, { updates, rows, ...f });
   }

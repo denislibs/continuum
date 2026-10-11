@@ -9,6 +9,7 @@ import { mount, Show, Each, onCleanup } from "@continuum-js/dom";
 import { state } from "@continuum-js/frp";
 import { interval } from "@continuum-js/std";
 import { memoryUsage } from "node:process";
+import { flushFrame } from "@continuum-js/frp";
 
 const gc = (globalThis as { gc?: () => void }).gc;
 
@@ -58,6 +59,7 @@ describe.skipIf(!gc)("heap stress (--expose-gc)", () => {
 
     // A single leaked listener closure is ~100+ bytes; 10k cycles of any
     // per-cycle leak lands in megabytes. 5 MB absorbs jsdom/V8 noise.
+    flushFrame();
     expect(grown).toBeLessThan(5 * 1024 * 1024);
   }, 120_000);
 });

@@ -3,6 +3,7 @@ import { describe, test, expect } from "vitest";
 import { mount, Show } from "@continuum-js/dom";
 import { jsx, jsxs, Fragment } from "@continuum-js/dom/jsx-runtime";
 import { state } from "@continuum-js/frp";
+import { flushFrame } from "@continuum-js/frp";
 
 describe("automatic JSX runtime", () => {
   test("JSX works without importing h", () => {
@@ -11,9 +12,12 @@ describe("automatic JSX runtime", () => {
     const container = document.createElement("div");
     mount(container, () => <h1 class="title">hello {name}</h1>);
     const h1 = container.querySelector("h1")!;
+    flushFrame();
     expect(h1.className).toBe("title");
+    flushFrame();
     expect(h1.textContent).toBe("hello world");
     setName("continuum");
+    flushFrame();
     expect(h1.textContent).toBe("hello continuum");
   });
 
@@ -26,23 +30,30 @@ describe("automatic JSX runtime", () => {
         {() => <span>on</span>}
       </Show>
     ));
+    flushFrame();
     expect(container.textContent).toBe("on");
     setOn(false);
+    flushFrame();
     expect(container.textContent).toBe("off");
   });
 
   test("jsx/jsxs/Fragment adapters build real nodes", () => {
     const single = jsx("p", { id: "a", children: "hi" }) as HTMLElement;
+    flushFrame();
     expect(single.tagName).toBe("P");
+    flushFrame();
     expect(single.id).toBe("a");
+    flushFrame();
     expect(single.textContent).toBe("hi");
 
     const many = jsxs("div", { children: ["x", "y"] }) as HTMLElement;
+    flushFrame();
     expect(many.textContent).toBe("xy");
 
     const frag = jsx(Fragment, { children: ["a", "b"] });
     const box = document.createElement("div");
     box.appendChild(frag);
+    flushFrame();
     expect(box.textContent).toBe("ab");
   });
 });

@@ -11,6 +11,7 @@ import {
   State,
   combine,
 } from "@continuum-js/frp";
+import { flushFrame } from "@continuum-js/frp";
 
 // A small pool of total unary functions to build random derivation chains.
 const FN_POOL: Array<(x: number) => number> = [
@@ -47,12 +48,15 @@ describe("transactional invariants (property-based)", () => {
         const un = joined.updates.listen((p) => seen.push(p));
 
         for (const v of fires) fire(v);
+        flushFrame();
         un();
 
         // Exactly one delivery per fire, and each is the fully consistent
         // pair — the "half-updated" intermediate must not exist.
+        flushFrame();
         expect(seen.length).toBe(fires.length);
         fires.forEach((v, i) => {
+          flushFrame();
           expect(seen[i]).toEqual([applyChain(ca, v), applyChain(cb, v)]);
         });
       }),
@@ -70,10 +74,13 @@ describe("transactional invariants (property-based)", () => {
         const un = merged.listen((v) => seen.push(v));
 
         for (const v of fires) fire(v);
+        flushFrame();
         un();
 
+        flushFrame();
         expect(seen.length).toBe(fires.length); // never two per moment
         fires.forEach((v, i) => {
+          flushFrame();
           expect(seen[i]).toBe(applyChain(ca, v) * 1000003 + applyChain(cb, v));
         });
       }),
@@ -90,11 +97,13 @@ describe("transactional invariants (property-based)", () => {
         const un = pairs.listen((p) => seen.push(p));
 
         for (const v of fires) fire(v);
+        flushFrame();
         un();
 
         const model = fires.map(
           (v, i) => [v, i === 0 ? init : fires[i - 1]] as const,
         );
+        flushFrame();
         expect(seen).toEqual(model);
       }),
     );
@@ -114,10 +123,15 @@ describe("transactional invariants (property-based)", () => {
         // delivered value — a listener can never catch the moment half-done.
         const un = derived.listen((v) => seen.push([v, derived.sample()]));
 
-        for (const v of fires) set(v);
+        // one frame pass per moment, so every change is observed
+        for (const v of fires) {
+          set(v);
+          flushFrame();
+        }
         un();
 
         for (const [delivered, sampled] of seen) {
+          flushFrame();
           expect(sampled).toBe(delivered);
         }
         // And the deliveries themselves follow the functional model. The
@@ -131,6 +145,7 @@ describe("transactional invariants (property-based)", () => {
             prev = v;
           }
         }
+        flushFrame();
         expect(seen.map(([d]) => d)).toEqual(
           [init, ...distinctFires].map((v) => applyChain(chain, v)),
         );
@@ -149,6 +164,7 @@ describe("transactional invariants (property-based)", () => {
         for (const v of fires) {
           fire(v);
           model = model * 31 + v;
+          flushFrame();
           expect(acc.sample()).toBe(model);
         }
         un();

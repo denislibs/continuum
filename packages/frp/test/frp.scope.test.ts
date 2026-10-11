@@ -3,17 +3,21 @@
 // owners on top of this class.
 import { describe, test, expect } from "vitest";
 import { Scope, getScope, runInScope, root } from "@continuum-js/frp";
+import { flushFrame } from "@continuum-js/frp";
 
 describe("Scope — ownership in the core", () => {
   test("root() provides an ambient scope and a dispose handle", () => {
     const order: string[] = [];
     root((dispose) => {
       const s = getScope();
+      flushFrame();
       expect(s).toBeInstanceOf(Scope);
       s!.onDispose(() => order.push("cleanup"));
       dispose();
     });
+    flushFrame();
     expect(order).toEqual(["cleanup"]);
+    flushFrame();
     expect(getScope()).toBeNull(); // ambient restored
   });
 
@@ -29,6 +33,7 @@ describe("Scope — ownership in the core", () => {
       parent.onDispose(() => order.push("parent-2"));
       dispose();
     });
+    flushFrame();
     expect(order).toEqual(["child-b", "child-a", "parent-2", "parent-1"]);
   });
 
@@ -39,20 +44,25 @@ describe("Scope — ownership in the core", () => {
       child.onDispose(() => runs++);
       child.dispose();
       child.dispose();
+      flushFrame();
       expect(runs).toBe(1);
       dispose(); // must not re-run the child's cleanups
+      flushFrame();
       expect(runs).toBe(1);
     });
   });
 
   test("runInScope sets and restores the ambient scope, even on throw", () => {
     const s = new Scope(null);
+    flushFrame();
     expect(() =>
       runInScope(s, () => {
+        flushFrame();
         expect(getScope()).toBe(s);
         throw new Error("x");
       }),
     ).toThrow("x");
+    flushFrame();
     expect(getScope()).toBeNull();
   });
 
@@ -65,6 +75,7 @@ describe("Scope — ownership in the core", () => {
       });
       dispose();
     });
+    flushFrame();
     expect(order).toEqual(["nested"]);
   });
 });

@@ -8,6 +8,7 @@ import {
   sampleWith,
 } from "@continuum-js/std";
 import { state } from "@continuum-js/frp";
+import { flushFrame } from "@continuum-js/frp";
 
 describe("event combinators", () => {
   test("filterMap maps and drops null/undefined results", () => {
@@ -21,6 +22,7 @@ describe("event combinators", () => {
     fire("1");
     fire("nope");
     fire("3");
+    flushFrame();
     expect(seen).toEqual([1, 3]);
   });
 
@@ -32,6 +34,7 @@ describe("event combinators", () => {
     fire(1);
     fire(2);
     fire(3);
+    flushFrame();
     expect(seen).toEqual([
       [1, 2],
       [2, 3],
@@ -47,16 +50,20 @@ describe("event combinators", () => {
     odds.listen((n) => os.push(n));
 
     [1, 2, 3, 4].forEach(fire);
+    flushFrame();
     expect(es).toEqual([2, 4]);
+    flushFrame();
     expect(os).toEqual([1, 3]);
   });
 
   test("count folds occurrences into a running total", () => {
     const [e, fire] = newStream<void>();
     const c = root(() => count(e));
+    flushFrame();
     expect(c.sample()).toBe(0);
     fire();
     fire();
+    flushFrame();
     expect(c.sample()).toBe(2);
   });
 
@@ -70,6 +77,7 @@ describe("event combinators", () => {
     fire();
     setB("b");
     fire();
+    flushFrame();
     expect(seen).toEqual(["a", "b"]);
   });
 });

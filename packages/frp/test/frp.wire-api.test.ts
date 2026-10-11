@@ -11,24 +11,31 @@ import {
   Stream,
   batch,
 } from "@continuum-js/frp";
+import { flushFrame } from "@continuum-js/frp";
 
 describe("State — the type rename", () => {
   test("State is the class; State is the same class under a deprecated alias", () => {
+    flushFrame();
     expect(State).toBe(State);
     const b = state(1);
+    flushFrame();
     expect(b instanceof State).toBe(true);
   });
 
   test("state(init) is a source cell with .set", () => {
     const count = state(0);
+    flushFrame();
     expect(count.sample()).toBe(0);
     count.set(5);
+    flushFrame();
     expect(count.sample()).toBe(5);
     const seen: number[] = [];
     count.listen((v) => seen.push(v));
     count.set(6);
+    flushFrame();
     expect(seen).toEqual([5, 6]);
     count.set(6); // equality skip, like newBehavior
+    flushFrame();
     expect(seen).toEqual([5, 6]);
   });
 
@@ -38,6 +45,7 @@ describe("State — the type rename", () => {
     user.listen((u) => seen.push(u.name));
     user.set({ id: 1, name: "b" }); // same id -> skipped
     user.set({ id: 2, name: "c" });
+    flushFrame();
     expect(seen).toEqual(["a", "c"]);
   });
 
@@ -47,8 +55,10 @@ describe("State — the type rename", () => {
     const count = state(0);
     const { set, update } = count;
     set(5);
+    flushFrame();
     expect(count.sample()).toBe(5);
     update((n) => n + 1);
+    flushFrame();
     expect(count.sample()).toBe(6);
   });
 
@@ -57,10 +67,12 @@ describe("State — the type rename", () => {
     const seen: number[] = [];
     clicks.listen((v) => seen.push(v));
     clicks.fire(7);
+    flushFrame();
     expect(seen).toEqual([7]);
     // .fire is a standalone closure — safe to pass as a handler
     const f = clicks.fire;
     f(8);
+    flushFrame();
     expect(seen).toEqual([7, 8]);
   });
 });
@@ -70,6 +82,7 @@ describe("combine — variadic, data first", () => {
     const a = state(1);
     const b = state(10);
     const total = combine(a, b, (x, y) => x + y);
+    flushFrame();
     expect(total.sample()).toBe(11);
     const seen: number[] = [];
     total.listen((v) => seen.push(v));
@@ -77,6 +90,7 @@ describe("combine — variadic, data first", () => {
       a.set(2);
       b.set(20);
     });
+    flushFrame();
     expect(seen).toEqual([11, 22]); // one recompute for the one moment
   });
 
@@ -85,7 +99,9 @@ describe("combine — variadic, data first", () => {
     const b = state(2);
     const c = state(3);
     const d = state(4);
+    flushFrame();
     expect(combine(a, b, c, (x, y, z) => x + y + z).sample()).toBe(6);
+    flushFrame();
     expect(combine(a, b, c, d, (x, y, z, w) => x + y + z + w).sample()).toBe(
       10,
     );
@@ -102,6 +118,7 @@ describe("combine — variadic, data first", () => {
       a.set(9);
       d.set(9);
     });
+    flushFrame();
     expect(seen).toEqual([1234, 9239]); // glitch-free: one moment, one value
   });
 });
@@ -115,6 +132,7 @@ describe("at — sampling a state at a stream's moments", () => {
     submitted.listen((v) => seen.push(v));
     draft.set("hello");
     submits.fire(null);
+    flushFrame();
     expect(seen).toEqual(["hello"]);
   });
 
@@ -125,6 +143,7 @@ describe("at — sampling a state at a stream's moments", () => {
     const seen: string[] = [];
     tagged.listen((v) => seen.push(v));
     submits.fire(42);
+    flushFrame();
     expect(seen).toEqual(["t:42"]);
   });
 });
@@ -138,6 +157,7 @@ describe("when / or — stream intents", () => {
     clicks.fire(1);
     enabled.set(true);
     clicks.fire(2);
+    flushFrame();
     expect(seen).toEqual([2]);
   });
 
@@ -148,6 +168,7 @@ describe("when / or — stream intents", () => {
     a.or(b).listen((v) => seen.push(v));
     b.fire("b");
     a.fire("a");
+    flushFrame();
     expect(seen).toEqual(["b", "a"]);
   });
 });
@@ -158,12 +179,15 @@ describe("flatten — one name for both switches", () => {
     const y = state(10);
     const sel = state<State<number>>(x);
     const flat = flatten(sel);
+    flushFrame();
     expect(flat.sample()).toBe(1);
     sel.set(y);
+    flushFrame();
     expect(flat.sample()).toBe(10);
     const seen: number[] = [];
     flat.listen((v) => seen.push(v));
     y.set(20);
+    flushFrame();
     expect(seen).toEqual([10, 20]);
   });
 
@@ -178,6 +202,7 @@ describe("flatten — one name for both switches", () => {
     sel.set(b);
     b.fire(2);
     a.fire(99); // no longer selected
+    flushFrame();
     expect(seen).toEqual([1, 2]);
   });
 });

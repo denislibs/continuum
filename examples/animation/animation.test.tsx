@@ -1,6 +1,7 @@
 import { describe, test, expect, vi, afterEach } from "vitest";
 import { mount } from "@continuum-js/dom";
 import { TimeWarpDemo } from "./animation";
+import { flushFrame } from "@continuum-js/frp";
 
 afterEach(() => vi.unstubAllGlobals());
 
@@ -21,7 +22,9 @@ describe("TimeWarpDemo", () => {
     cb!(100); // +100ms
 
     // normal: 0.1 * 100 = 10px ; warped (2x): 0.1 * 200 = 20px
+    flushFrame();
     expect(boxes[0].style.transform).toBe("translateX(10px)");
+    flushFrame();
     expect(boxes[1].style.transform).toBe("translateX(20px)");
   });
 });

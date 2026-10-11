@@ -14,6 +14,7 @@ import {
   createContext,
 } from "@continuum-js/dom";
 import { state } from "@continuum-js/frp";
+import { flushFrame } from "@continuum-js/frp";
 
 describe("onMount runs under its owner", () => {
   test("onCleanup inside onMount attaches to the component's scope", () => {
@@ -25,8 +26,10 @@ describe("onMount runs under its owner", () => {
       });
       return <div>app</div>;
     });
+    flushFrame();
     expect(cleaned).toBe(0);
     dispose();
+    flushFrame();
     expect(cleaned).toBe(1);
   });
 
@@ -49,13 +52,18 @@ describe("onMount runs under its owner", () => {
       </Show>
     ));
 
+    flushFrame();
     expect(() => setVisible(true)).not.toThrow(); // used to throw here
+    flushFrame();
     expect(cleaned).toBe(0);
     setVisible(false); // the region is disposed → its mount-cleanup runs
+    flushFrame();
     expect(cleaned).toBe(1);
 
     setVisible(true); // and a fresh region states a fresh cleanup
+    flushFrame();
     setVisible(false);
+    flushFrame();
     expect(cleaned).toBe(2);
     dispose();
   });
@@ -71,6 +79,7 @@ describe("onMount runs under its owner", () => {
       });
       return <div />;
     });
+    flushFrame();
     expect(seen).toBe("provided");
     dispose();
   });

@@ -1,5 +1,6 @@
 import { describe, test, expect, vi, afterEach } from "vitest";
 import { mount, animationFrames } from "@continuum-js/dom";
+import { flushFrame } from "@continuum-js/frp";
 
 afterEach(() => vi.unstubAllGlobals());
 
@@ -23,9 +24,13 @@ describe("animationFrames", () => {
 
     cb!(16);
     cb!(32);
+    flushFrame();
     expect(seen).toEqual([16, 32]);
 
     unmount();
-    expect(canceled.length).toBe(1); // the pending frame was canceled
+    // the loop's pending frame (the last id requested) was canceled; the
+    // frame scheduler cancels its own requests as it flushes, so the list
+    // holds those too
+    expect(canceled).toContain(nextId - 1);
   });
 });

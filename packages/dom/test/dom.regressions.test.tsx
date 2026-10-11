@@ -4,6 +4,7 @@
 import { describe, test, expect } from "vitest";
 import { state } from "@continuum-js/frp";
 import { mount, when, h, bindInput } from "@continuum-js/dom";
+import { flushFrame } from "@continuum-js/frp";
 
 describe("when/Show release the condition chain on unmount", () => {
   test("after unmounts, the condition's map chain sleeps", () => {
@@ -29,6 +30,7 @@ describe("when/Show release the condition chain on unmount", () => {
 
     mapCalls = 0;
     flag.set(true);
+    flushFrame();
     expect(mapCalls).toBe(0); // everything detached — the chain is asleep
 
     // and a FOURTH mount still works (the chain wakes again)
@@ -40,8 +42,10 @@ describe("when/Show release the condition chain on unmount", () => {
         () => h("span", null, "off"),
       ),
     );
+    flushFrame();
     expect(el.textContent).toBe("on");
     flag.set(false);
+    flushFrame();
     expect(el.textContent).toBe("off");
     unmount();
   });
@@ -53,11 +57,15 @@ describe("style={state} clears keys that disappear", () => {
     const el = document.createElement("div");
     const unmount = mount(el, () => h("div", { style }));
     const target = el.firstChild as HTMLElement;
+    flushFrame();
     expect(target.style.color).toBe("red");
     style.set({ fontWeight: "bold" });
+    flushFrame();
     expect(target.style.color).toBe(""); // gone with the key
+    flushFrame();
     expect(target.style.fontWeight).toBe("bold");
     style.set({});
+    flushFrame();
     expect(target.style.fontWeight).toBe("");
     unmount();
   });
@@ -70,9 +78,11 @@ describe("bindInput accepts a source state alone", () => {
     document.body.appendChild(el); // delegated events need a connected tree
     const unmount = mount(el, () => h("input", { ...bindInput(text) }));
     const input = el.firstChild as HTMLInputElement;
+    flushFrame();
     expect(input.value).toBe("a");
     input.value = "ab";
     input.dispatchEvent(new Event("input", { bubbles: true }));
+    flushFrame();
     expect(text.sample()).toBe("ab");
     unmount();
     el.remove();

@@ -3,6 +3,9 @@
 // fake timers (vitest is an optional peer, imported lazily).
 
 import { mount, type Child } from "@continuum-js/dom";
+import { flushFrame } from "@continuum-js/frp";
+
+export { flushFrame } from "@continuum-js/frp";
 
 /** A mounted view under test. */
 export interface RenderResult {
@@ -37,9 +40,15 @@ export function cleanup(): void {
   for (const dispose of [...live]) dispose();
 }
 
-/** Dispatch `event` on `el`. Returns the `dispatchEvent` result. */
+/**
+ * Dispatch `event` on `el` and run the frame pass, so handlers' state
+ * changes reach the DOM before the test reads it. Returns the
+ * `dispatchEvent` result.
+ */
 export function fire(el: EventTarget, event: Event): boolean {
-  return el.dispatchEvent(event);
+  const r = el.dispatchEvent(event);
+  flushFrame();
+  return r;
 }
 
 /** Click an element (a bubbling, cancelable MouseEvent). */
@@ -60,11 +69,12 @@ export function type(input: HTMLInputElement, text: string): void {
 
 /**
  * Drain the microtask queue so settled promises (e.g. `perform` results)
- * re-enter the network. Transactions themselves are synchronous — this only
- * waits for the JS runtime, not for Continuum.
+ * re-enter the network, then run the frame pass so their observers (and
+ * DOM bindings) have run.
  */
 export async function flush(rounds = 3): Promise<void> {
   for (let i = 0; i < rounds; i++) await Promise.resolve();
+  flushFrame();
 }
 
 /**

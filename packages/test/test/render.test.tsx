@@ -11,6 +11,7 @@ import {
   flush,
   advanceTimers,
 } from "../src/index.js";
+import { flushFrame } from "@continuum-js/frp";
 
 afterEach(() => {
   cleanup();
@@ -26,14 +27,18 @@ function Counter() {
 describe("render", () => {
   test("mounts the view into a container attached to the document", () => {
     const { container } = render(() => <Counter />);
+    flushFrame();
     expect(container.textContent).toBe("count: 0");
+    flushFrame();
     expect(document.body.contains(container)).toBe(true);
   });
 
   test("dispose unmounts and removes the container", () => {
     const { container, dispose } = render(() => <Counter />);
     dispose();
+    flushFrame();
     expect(container.textContent).toBe("");
+    flushFrame();
     expect(document.body.contains(container)).toBe(false);
   });
 
@@ -41,7 +46,9 @@ describe("render", () => {
     const a = render(() => <Counter />);
     const b = render(() => <Counter />);
     cleanup();
+    flushFrame();
     expect(document.body.contains(a.container)).toBe(false);
+    flushFrame();
     expect(document.body.contains(b.container)).toBe(false);
   });
 });
@@ -52,6 +59,7 @@ describe("events", () => {
     const button = container.querySelector("button")!;
     click(button);
     click(button);
+    flushFrame();
     expect(button.textContent).toBe("count: 2");
   });
 
@@ -59,6 +67,7 @@ describe("events", () => {
     const { container } = render(() => <Counter />);
     const button = container.querySelector("button")!;
     fire(button, new MouseEvent("click", { bubbles: true }));
+    flushFrame();
     expect(button.textContent).toBe("count: 1");
   });
 
@@ -68,7 +77,9 @@ describe("events", () => {
     const { container } = render(() => <input {...bindInput(text, setText)} />);
     const input = container.querySelector("input")!;
     type(input, "abc");
+    flushFrame();
     expect(text.sample()).toBe("abc");
+    flushFrame();
     expect(input.value).toBe("abc");
   });
 });
@@ -83,8 +94,10 @@ describe("async helpers", () => {
     });
 
     fireReq(21);
+    flushFrame();
     expect(seen).toEqual([]); // promise not settled yet
     await flush();
+    flushFrame();
     expect(seen).toEqual([42]);
   });
 
@@ -97,9 +110,12 @@ describe("async helpers", () => {
 
     fireE("a");
     fireE("b");
+    flushFrame(); // the debounce effect starts its timer in the frame pass
     await advanceTimers(199);
+    flushFrame();
     expect(seen).toEqual([]);
     await advanceTimers(1);
+    flushFrame();
     expect(seen).toEqual(["b"]);
   });
 });

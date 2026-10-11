@@ -4,6 +4,7 @@
 // delegated dispatch requires a connected tree (same contract as Solid).
 import { describe, test, expect, afterEach, vi } from "vitest";
 import { mount, h } from "@continuum-js/dom";
+import { flushFrame } from "@continuum-js/frp";
 
 const roots: Array<() => void> = [];
 function attach(view: () => Node): HTMLElement {
@@ -29,6 +30,7 @@ describe("event handlers — characterization", () => {
       </div>
     ));
     el.querySelector("button")!.click();
+    flushFrame();
     expect(order).toEqual(["child", "parent"]);
   });
 
@@ -47,6 +49,7 @@ describe("event handlers — characterization", () => {
       </div>
     ));
     el.querySelector("button")!.click();
+    flushFrame();
     expect(order).toEqual(["child"]);
   });
 
@@ -62,6 +65,7 @@ describe("event handlers — characterization", () => {
       </div>
     ));
     el.querySelector("button")!.click();
+    flushFrame();
     expect(seen).toBe(el.firstChild);
   });
 
@@ -77,6 +81,7 @@ describe("event handlers — characterization", () => {
       </div>
     ));
     el.querySelector("button")!.click();
+    flushFrame();
     expect(seen).toBe(el.querySelector("button"));
   });
 
@@ -91,6 +96,7 @@ describe("event handlers — characterization", () => {
     // the node is out of the document after unmount; clicking the detached
     // node must not reach the handler either way
     btn.click();
+    flushFrame();
     expect(calls).toBe(1);
     el.remove();
   });
@@ -99,6 +105,7 @@ describe("event handlers — characterization", () => {
     let focused = 0;
     const el = attach(() => <input onFocus={() => focused++} />);
     (el.querySelector("input") as HTMLInputElement).focus();
+    flushFrame();
     expect(focused).toBe(1);
   });
 
@@ -111,6 +118,7 @@ describe("event handlers — characterization", () => {
     const a = el.querySelector("a")!;
     const evt = new MouseEvent("click", { bubbles: true, cancelable: true });
     a.dispatchEvent(evt);
+    flushFrame();
     expect(evt.defaultPrevented).toBe(true);
   });
 });
@@ -133,6 +141,7 @@ describe("each() focus restore — only when a move actually stole it", () => {
     outside.focus();
     const spy = vi.spyOn(HTMLElement.prototype, "focus");
     items.set([3, 2, 1]); // reorder — focus was never inside the list
+    flushFrame();
     expect(spy).not.toHaveBeenCalled();
     spy.mockRestore();
     outside.remove();
@@ -151,8 +160,10 @@ describe("each() focus restore — only when a move actually stole it", () => {
     );
     const first = el.querySelector('input[data-n="1"]') as HTMLInputElement;
     first.focus();
+    flushFrame();
     expect(document.activeElement).toBe(first);
     items.set([3, 2, 1]); // the focused row moves
+    flushFrame();
     expect(document.activeElement).toBe(first); // restored
   });
 });

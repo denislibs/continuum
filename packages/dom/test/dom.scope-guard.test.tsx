@@ -12,22 +12,27 @@ import {
   root,
 } from "@continuum-js/dom";
 import { state } from "@continuum-js/frp";
+import { flushFrame } from "@continuum-js/frp";
 
 describe("lifecycle functions outside any owner throw", () => {
   test("onCleanup", () => {
+    flushFrame();
     expect(() => onCleanup(() => {})).toThrow(/outside/i);
   });
 
   test("onMount", () => {
+    flushFrame();
     expect(() => onMount(() => {})).toThrow(/outside/i);
   });
 
   test("provide", () => {
     const ctx = createContext("light");
+    flushFrame();
     expect(() => provide(ctx, "dark")).toThrow(/outside/i);
   });
 
   test("the handler-registered-too-late case reads like a lesson", () => {
+    flushFrame();
     expect(() => onCleanup(() => {})).toThrow(/component|scope/i);
   });
 });
@@ -40,19 +45,23 @@ describe("owned code keeps working", () => {
       onCleanup(() => (cleaned = true));
       onMount(() => {});
       provide(ctx, "dark");
+      flushFrame();
       expect(use(ctx)).toBe("dark");
       dispose();
     });
+    flushFrame();
     expect(cleaned).toBe(true);
   });
 
   test("use() outside an owner still returns the default (a read, not a leak)", () => {
     const ctx = createContext("fallback");
+    flushFrame();
     expect(use(ctx)).toBe("fallback");
   });
 
   test("building JSX with live bindings outside mount stays allowed", () => {
     const b = state(0);
+    flushFrame();
     expect(() => <div>{b}</div>).not.toThrow();
   });
 });

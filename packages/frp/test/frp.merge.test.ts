@@ -1,14 +1,18 @@
 import { describe, test, expect } from "vitest";
 import { root, newStream, Stream, state } from "@continuum-js/frp";
+import { flushFrame } from "@continuum-js/frp";
 
 describe("accumulation", () => {
   test("accum folds occurrences into a behavior", () => {
     const [e, fire] = newStream<number>();
     const sum = root(() => e.accum(0, (a, s) => s + a));
+    flushFrame();
     expect(sum.sample()).toBe(0);
     fire(3);
+    flushFrame();
     expect(sum.sample()).toBe(3);
     fire(4);
+    flushFrame();
     expect(sum.sample()).toBe(7);
   });
 
@@ -19,6 +23,7 @@ describe("accumulation", () => {
     fire(1);
     fire(2);
     fire(3);
+    flushFrame();
     expect(seen).toEqual([1, 3, 6]);
   });
 });
@@ -31,6 +36,7 @@ describe("once", () => {
     fire(10);
     fire(20);
     fire(30);
+    flushFrame();
     expect(seen).toEqual([10]);
   });
 });
@@ -47,6 +53,7 @@ describe("gate", () => {
     fire(2);
     setOpen(true);
     fire(3);
+    flushFrame();
     expect(seen).toEqual([1, 3]);
   });
 });
@@ -59,6 +66,7 @@ describe("orElse (left-biased merge)", () => {
     a.or(b).listen((v) => seen.push(v));
     fireA(1);
     fireB(2);
+    flushFrame();
     expect(seen).toEqual([1, 2]);
   });
 
@@ -69,6 +77,7 @@ describe("orElse (left-biased merge)", () => {
     const seen: number[] = [];
     left.or(right).listen((v) => seen.push(v));
     fire(1); // both branches fire in one moment; left wins
+    flushFrame();
     expect(seen).toEqual([101]);
   });
 });
@@ -82,6 +91,7 @@ describe("merge with coalescing", () => {
     Stream.merge(left, right, (l, r) => l + r).listen((v) => seen.push(v));
     fire(1); // left=1, right=10 in one moment -> single coalesced 11
     fire(2); // left=2, right=20 -> 22
+    flushFrame();
     expect(seen).toEqual([11, 22]);
   });
 });
@@ -97,6 +107,7 @@ describe("glitch-free diamond", () => {
     fire(5);
     // Both branches fire in one moment; a single coalesced 10 is observed,
     // never a half-updated intermediate.
+    flushFrame();
     expect(seen).toEqual([10]);
   });
 });

@@ -10,6 +10,7 @@ import {
   newStream,
   perform,
 } from "@continuum-js/frp";
+import { flushFrame } from "@continuum-js/frp";
 
 describe("owned state — hold/accum live with their scope, not their listeners", () => {
   test("a hold survives listener churn: sample stays live, re-listen works", () => {
@@ -20,10 +21,12 @@ describe("owned state — hold/accum live with their scope, not their listeners"
       src.fire(1);
       un();
       src.fire(2); // no listeners — state still tracks history
+      flushFrame();
       expect(held.sample()).toBe(2);
       const seen: number[] = [];
       held.listen((v) => seen.push(v)); // remount: no "disposed" trap
       src.fire(3);
+      flushFrame();
       expect(seen).toEqual([2, 3]);
     });
   });
@@ -37,6 +40,7 @@ describe("owned state — hold/accum live with their scope, not their listeners"
       clicks.fire(null);
       un();
       clicks.fire(null);
+      flushFrame();
       expect(count.sample()).toBe(3);
     });
   });
@@ -53,17 +57,22 @@ describe("owned state — hold/accum live with their scope, not their listeners"
         })
         .hold(0);
       src.fire(1);
+      flushFrame();
       expect(calls).toBe(1);
       dispose();
     });
     src.fire(2);
+    flushFrame();
     expect(calls).toBe(1); // detached with the scope
+    flushFrame();
     expect(held.sample()).toBe(1); // frozen at the scope's end — deterministic
   });
 
   test("hold/accum outside any scope throw a teaching error", () => {
     const src = stream<number>();
+    flushFrame();
     expect(() => src.hold(0)).toThrow(/scope|root\(\)/);
+    flushFrame();
     expect(() => src.accum(0, (a: number, n: number) => n + a)).toThrow(
       /scope|root\(\)/,
     );
@@ -83,8 +92,10 @@ describe("state().on() — declarative state transitions", () => {
       inc.fire(null);
       inc.fire(null);
       dec.fire(null);
+      flushFrame();
       expect(count.sample()).toBe(1);
       reset.fire(null);
+      flushFrame();
       expect(count.sample()).toBe(0);
     });
   });
@@ -94,6 +105,7 @@ describe("state().on() — declarative state transitions", () => {
       const add = stream<number>();
       const total = state(10).on(add, (n, x) => n + x);
       add.fire(5);
+      flushFrame();
       expect(total.sample()).toBe(15);
     });
   });
@@ -107,7 +119,9 @@ describe("state().on() — declarative state transitions", () => {
       before.listen((v) => seen.push(v));
       clicks.fire(null);
       clicks.fire(null);
+      flushFrame();
       expect(seen).toEqual([0, 1]); // the value BEFORE each moment
+      flushFrame();
       expect(count.sample()).toBe(2);
     });
   });
@@ -125,6 +139,7 @@ describe("state().on() — declarative state transitions", () => {
         a.fire(null);
         b.fire(null);
       });
+      flushFrame();
       expect(n.sample()).toBe(10); // (0 + 1) * 10
       un();
     });
@@ -132,6 +147,7 @@ describe("state().on() — declarative state transitions", () => {
 
   test(".on outside any scope throws the teaching error", () => {
     const clicks = stream<null>();
+    flushFrame();
     expect(() => state(0).on(clicks, (n) => n + 1)).toThrow(/scope|root\(\)/);
   });
 });
@@ -148,15 +164,18 @@ describe("owned effects — perform stops with its scope", () => {
       );
       res.listen((r) => seen.push(r));
       req.fire(1);
-      dispose();
+      flushFrame(); // the request is issued in the frame pass …
+      dispose(); // … and its owner dies while it is in flight
     });
     resolveIt(42);
     await new Promise((r) => setTimeout(r, 0));
+    flushFrame();
     expect(seen).toEqual([]); // the effect died with its owner
   });
 
   test("perform outside any scope throws the teaching error", () => {
     const [e] = newStream<number>();
+    flushFrame();
     expect(() => perform(e, async (x) => x)).toThrow(/scope|root\(\)/);
   });
 });
@@ -168,6 +187,7 @@ describe("the guards are gone", () => {
       const m = src.map((x) => x);
       m.listen(() => {});
       m.dispose();
+      flushFrame();
       expect(() => m.listen(() => {})).toThrow(/dispose/);
     });
   });
@@ -183,9 +203,11 @@ describe("the guards are gone", () => {
     src.fire(1);
     un();
     src.fire(2);
+    flushFrame();
     expect(calls).toBe(1); // asleep
     m.listen(() => {});
     src.fire(3);
+    flushFrame();
     expect(calls).toBe(2); // woke again — no cascade killed it
   });
 });

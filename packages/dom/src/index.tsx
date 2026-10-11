@@ -12,6 +12,7 @@ import {
   runInScope,
   observe_,
   unobserve_,
+  flushFrame,
 } from "@continuum-js/frp";
 import type { Unlisten, StateSource, ObserverHandle } from "@continuum-js/frp";
 
@@ -1004,6 +1005,10 @@ export function animationFrames(): Stream<number> {
   const ticks = stream<number>();
   let raf = requestAnimationFrame(function loop(t) {
     ticks.fire(t);
+    // A tick's observers would otherwise wait for the NEXT frame pass (a
+    // rAF requested from inside a rAF callback runs a frame later): run the
+    // pass now, so animation state reaches the DOM in this frame.
+    flushFrame();
     raf = requestAnimationFrame(loop);
   });
   onCleanup(() => cancelAnimationFrame(raf));

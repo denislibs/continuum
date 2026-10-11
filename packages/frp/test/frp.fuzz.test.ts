@@ -22,6 +22,7 @@ import {
   combine,
   flatten,
 } from "@continuum-js/frp";
+import { flushFrame } from "@continuum-js/frp";
 
 // Pure pools — combinator callbacks must not close over mutable state.
 const FN: Array<(x: number) => number> = [
@@ -330,8 +331,10 @@ function runTwinsIn(spec: GraphSpec, ops: Op[]): void {
   const checkLaws = () => {
     for (let i = 0; i < warm.states.length; i++) {
       // law 1, push ≡ pull (on the warm twin)
+      flushFrame();
       expect(last[i]).toBe(warm.states[i].w.sample());
       // law 1, cold ≡ warm (across twins)
+      flushFrame();
       expect(cold.states[i].w.sample()).toBe(warm.states[i].w.sample());
     }
   };
@@ -376,6 +379,7 @@ function runTwinsIn(spec: GraphSpec, ops: Op[]): void {
       case "abortSet": {
         // warm only: the moment aborts in the batch body, after the set
         const i = op.cell % warm.sets.length;
+        flushFrame();
         expect(() =>
           batch(() => {
             warm.sets[i](op.v * 3 + 1); // a value normal ops don't produce? irrelevant — abort discards it
@@ -389,6 +393,7 @@ function runTwinsIn(spec: GraphSpec, ops: Op[]): void {
         const i = warm.boomSrcs[op.boom % warm.boomSrcs.length];
         bombArmed = true;
         try {
+          flushFrame();
           expect(() => warm.fires[i](op.v)).toThrow("boom");
         } finally {
           bombArmed = false;
@@ -434,6 +439,7 @@ describe("fuzz — the two laws on random graphs", () => {
           }
           const before = calls;
           fire(1);
+          flushFrame();
           expect(calls).toBe(before); // asleep: the source pays nothing
         },
       ),
@@ -456,7 +462,9 @@ describe("fuzz seeds — known law violations (flip to test() in their phase)", 
       fire(1);
       un();
       fire(2);
+      flushFrame();
       expect(held.sample()).toBe(2);
+      flushFrame();
       expect(() => held.listen(() => {})).not.toThrow();
     });
   });
@@ -474,8 +482,10 @@ describe("fuzz seeds — known law violations (flip to test() in their phase)", 
       return x;
     });
     bomb.listen(() => {});
+    flushFrame();
     expect(() => batch(() => setB(5))).toThrow();
     setB(5); // bomb disarmed; today this is a silent no-op
+    flushFrame();
     expect(b.sample()).toBe(5);
   });
 
@@ -492,6 +502,7 @@ describe("fuzz seeds — known law violations (flip to test() in their phase)", 
       setA(2); // commit lands AFTER today's reseed
     });
     setB(30);
+    flushFrame();
     expect(seen[seen.length - 1]).toBe(sum.sample()); // today: push 31, pull 32
   });
 
@@ -508,6 +519,7 @@ describe("fuzz seeds — known law violations (flip to test() in their phase)", 
       setSel(y);
       setY(99);
     });
+    flushFrame();
     expect(seen[seen.length - 1]).toBe(sw.sample()); // today: push 10, pull 99
   });
 
@@ -520,6 +532,7 @@ describe("fuzz seeds — known law violations (flip to test() in their phase)", 
       setB(1);
       setB(2);
     });
+    flushFrame();
     expect(seen).toEqual([2]); // today: [1, 2] — the intermediate leaks
   });
 });

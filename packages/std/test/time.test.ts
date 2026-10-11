@@ -1,6 +1,7 @@
 import { describe, test, expect, vi, afterEach } from "vitest";
 import { newStream } from "@continuum-js/frp";
 import { debounce, throttle, delay, interval } from "@continuum-js/std";
+import { flushFrame } from "@continuum-js/frp";
 
 describe("time combinators", () => {
   afterEach(() => vi.useRealTimers());
@@ -14,9 +15,12 @@ describe("time combinators", () => {
     fire("a");
     fire("ab");
     fire("abc");
+    flushFrame(); // the debounce effect starts its timer in the frame pass
     vi.advanceTimersByTime(199);
+    flushFrame();
     expect(seen).toEqual([]);
     vi.advanceTimersByTime(1);
+    flushFrame();
     expect(seen).toEqual(["abc"]);
   });
 
@@ -29,10 +33,12 @@ describe("time combinators", () => {
     fire(1); // leading — passes
     fire(2); // within window — dropped
     fire(3); // within window — dropped
+    flushFrame();
     expect(seen).toEqual([1]);
 
     vi.advanceTimersByTime(100);
     fire(4); // window elapsed — passes
+    flushFrame();
     expect(seen).toEqual([1, 4]);
   });
 
@@ -43,8 +49,10 @@ describe("time combinators", () => {
     delay(e, 50).listen((v) => seen.push(v));
 
     fire("x");
+    flushFrame();
     expect(seen).toEqual([]);
     vi.advanceTimersByTime(50);
+    flushFrame();
     expect(seen).toEqual(["x"]);
   });
 
@@ -55,10 +63,12 @@ describe("time combinators", () => {
     ticks.listen((n) => seen.push(n));
 
     vi.advanceTimersByTime(35);
+    flushFrame();
     expect(seen).toEqual([1, 2, 3]);
 
     ticks.dispose();
     vi.advanceTimersByTime(50);
+    flushFrame();
     expect(seen).toEqual([1, 2, 3]); // no more ticks after dispose
   });
 });

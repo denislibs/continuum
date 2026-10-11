@@ -3,6 +3,7 @@
 import { describe, test, expect, afterEach } from "vitest";
 import { mount, Each } from "@continuum-js/dom";
 import { state } from "@continuum-js/frp";
+import { flushFrame } from "@continuum-js/frp";
 
 let unmounts: Array<() => void> = [];
 afterEach(() => {
@@ -39,6 +40,7 @@ describe("<Each> with duplicate keys", () => {
     const texts = Array.from(container.querySelectorAll("li")).map(
       (li) => li.textContent,
     );
+    flushFrame();
     expect(texts).toEqual(["first", "two"]);
   });
 
@@ -52,9 +54,12 @@ describe("<Each> with duplicate keys", () => {
     ]);
 
     const lis = container.querySelectorAll("li");
+    flushFrame();
     expect(lis.length).toBe(1);
     // Same key → the live row is reused as-is (rows build once per key).
+    flushFrame();
     expect(lis[0]).toBe(original);
+    flushFrame();
     expect(lis[0].textContent).toBe("first");
   });
 
@@ -71,9 +76,12 @@ describe("<Each> with duplicate keys", () => {
       { id: 2, text: "dup of two" },
     ]);
 
+    flushFrame();
     const lis = Array.from(container.querySelectorAll("li"));
     expect(lis.length).toBe(2);
+    flushFrame();
     expect(lis[0]).toBe(two); // reordered, not rebuilt
+    flushFrame();
     expect(lis[1]).toBe(one);
   });
 
@@ -85,11 +93,14 @@ describe("<Each> with duplicate keys", () => {
     const original = container.querySelector("li");
 
     setList([]);
+    flushFrame();
     expect(container.querySelectorAll("li").length).toBe(0);
 
     setList([{ id: 1, text: "new" }]);
+    flushFrame();
     const li = container.querySelector("li")!;
     expect(li.textContent).toBe("new");
+    flushFrame();
     expect(li).not.toBe(original);
   });
 });

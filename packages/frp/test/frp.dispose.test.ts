@@ -1,5 +1,6 @@
 import { describe, test, expect } from "vitest";
 import { root, newStream, Stream } from "@continuum-js/frp";
+import { flushFrame } from "@continuum-js/frp";
 
 describe("Stream.dispose", () => {
   test("detaches a derived node from its source", () => {
@@ -11,9 +12,11 @@ describe("Stream.dispose", () => {
     });
     m.listen(() => {});
     fire(1);
+    flushFrame();
     expect(calls).toBe(1);
     m.dispose();
     fire(2);
+    flushFrame();
     expect(calls).toBe(1); // no longer wired to source
   });
 
@@ -21,6 +24,7 @@ describe("Stream.dispose", () => {
     const [src] = newStream<number>();
     const m = src.map((n) => n);
     m.dispose();
+    flushFrame();
     expect(() => m.dispose()).not.toThrow();
   });
 
@@ -31,6 +35,7 @@ describe("Stream.dispose", () => {
     let seen = 0;
     src.listen(() => seen++);
     fire(1);
+    flushFrame();
     expect(seen).toBe(1); // source still works after a derived node is disposed
   });
 
@@ -44,6 +49,7 @@ describe("Stream.dispose", () => {
     const leaf = mid.map((n) => n);
     leaf.dispose(); // leaf was mid's only consumer -> mid torn down too
     fire(1);
+    flushFrame();
     expect(midCalls).toBe(0);
   });
 
@@ -60,6 +66,7 @@ describe("Stream.dispose", () => {
     b.listen(() => {});
     a.dispose();
     fire(1);
+    flushFrame();
     expect(midCalls).toBe(1); // mid still feeds b
   });
 
@@ -73,6 +80,7 @@ describe("Stream.dispose", () => {
     merged.dispose();
     fireA(2);
     fireB(3);
+    flushFrame();
     expect(seen).toEqual([1]);
   });
 });
@@ -84,9 +92,11 @@ describe("State.dispose", () => {
     let seen = 0;
     b.updates.listen(() => seen++);
     fire(1);
+    flushFrame();
     expect(seen).toBe(1);
     b.dispose();
     fire(2);
+    flushFrame();
     expect(seen).toBe(1);
   });
 });

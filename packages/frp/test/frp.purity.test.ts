@@ -11,6 +11,7 @@ import {
   Transaction,
   combine,
 } from "@continuum-js/frp";
+import { flushFrame } from "@continuum-js/frp";
 
 describe("firing a source inside a pure combinator throws", () => {
   test("inside a map callback", () => {
@@ -25,6 +26,7 @@ describe("firing a source inside a pure combinator throws", () => {
     });
     const un = bad.listen(() => {});
 
+    flushFrame();
     expect(() => set(1)).toThrow(/pure combinator/i);
     un();
   });
@@ -42,6 +44,7 @@ describe("firing a source inside a pure combinator throws", () => {
     );
     const un = acc.updates.listen(() => {});
 
+    flushFrame();
     expect(() => fire(1)).toThrow(/pure combinator/i);
     un();
   });
@@ -58,6 +61,7 @@ describe("firing a source inside a pure combinator throws", () => {
       })
       .listen(() => {});
 
+    flushFrame();
     expect(() => fire(1)).toThrow(/pure combinator/i);
     un();
   });
@@ -75,6 +79,7 @@ describe("firing a source inside a pure combinator throws", () => {
       })
       .listen(() => {});
 
+    flushFrame();
     expect(() => fire(1)).toThrow(/pure combinator/i);
     un();
   });
@@ -94,7 +99,9 @@ describe("legitimate effect sites keep working", () => {
     });
     const unB = b.listen((v) => seen.push(v));
 
+    flushFrame();
     expect(() => setA(1)).not.toThrow();
+    flushFrame();
     expect(seen).toEqual([0, 10]); // initial delivery, then the new moment
     unA();
     unB();
@@ -109,6 +116,7 @@ describe("legitimate effect sites keep working", () => {
     const seen: Array<readonly [number, number]> = [];
     const un = joined.updates.listen((p) => seen.push(p));
 
+    flushFrame();
     expect(() =>
       Transaction.run(() => {
         setA(1);
@@ -117,6 +125,7 @@ describe("legitimate effect sites keep working", () => {
     ).not.toThrow();
 
     // one moment, one consistent delivery — never [1, 0]
+    flushFrame();
     expect(seen).toEqual([[1, 2]]);
     un();
   });

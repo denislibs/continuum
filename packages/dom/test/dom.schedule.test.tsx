@@ -1,8 +1,8 @@
 /** @jsxImportSource @continuum-js/dom */
-// Spike: `schedule: "frame"` seen from the renderer — N updates between
-// frames become ONE region rebuild and ONE text write.
+// The frame pass seen from the renderer — N updates between frames become
+// ONE region rebuild and ONE text write.
 import { describe, test, expect, afterEach } from "vitest";
-import { state, setSchedule, flushFrame } from "@continuum-js/frp";
+import { state, flushFrame } from "@continuum-js/frp";
 import { Dynamic, Each, mount } from "@continuum-js/dom";
 
 const unmounts: Array<() => void> = [];
@@ -15,30 +15,12 @@ function render(view: () => Node): { container: HTMLElement } {
 
 afterEach(() => {
   flushFrame();
-  setSchedule("sync");
   for (const u of unmounts.splice(0)) u();
   document.body.innerHTML = "";
 });
 
-describe("frame schedule in the renderer", () => {
-  test("sync: 100 sets rebuild a dynamic region 100 times", () => {
-    const n = state(0);
-    let builds = 0;
-    render(() => (
-      <Dynamic value={n}>
-        {(v) => {
-          builds++;
-          return <b>{String(v)}</b>;
-        }}
-      </Dynamic>
-    ));
-    builds = 0;
-    for (let i = 1; i <= 100; i++) n.set(i);
-    expect(builds).toBe(100);
-  });
-
+describe("the frame pass in the renderer", () => {
   test("frame: 100 sets rebuild a dynamic region ONCE, with the final value", () => {
-    setSchedule("frame");
     const n = state(0);
     let builds = 0;
     const r = render(() => (
@@ -59,7 +41,6 @@ describe("frame schedule in the renderer", () => {
   });
 
   test("frame: a keyed list reconciles once per frame", () => {
-    setSchedule("frame");
     const items = state<number[]>([]);
     let rowBuilds = 0;
     const r = render(() => (
@@ -81,7 +62,6 @@ describe("frame schedule in the renderer", () => {
   });
 
   test("frame: a text binding is written once with the final value", () => {
-    setSchedule("frame");
     const s = state("a");
     const r = render(() => <p>{s}</p>);
     const text = r.container.querySelector("p")!.firstChild as Text;
