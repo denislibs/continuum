@@ -4,8 +4,9 @@
 Loading data, showing the loading and error states, and never hitting a response race.
 :::
 
-The FRP network is pure and synchronous: the moment closes, effects run
-after it. The asynchronous world enters and leaves through two hatches.
+The FRP network is pure and synchronous: the moment closes, and effects run
+in the next frame pass. The asynchronous world enters and leaves through
+two hatches.
 
 ## `perform`: IO as data
 

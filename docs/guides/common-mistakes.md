@@ -143,9 +143,10 @@ _previous_ value, and it looks like an off-by-one bug.
 
 It isn't a bug — it's the **hold delay**, the core rule of the model: within
 one moment, every state still holds the value it had _before_ the moment.
-The new value becomes visible after the moment closes. This is exactly what
-makes state loops (`accum`, feedback through `hold`) well-defined instead of
-infinite.
+The new value is visible to `sample()` once the moment closes (before
+`set()` returns), and reaches bindings and listeners in the next frame pass.
+This is exactly what makes state loops (`accum`, feedback through `hold`)
+well-defined instead of infinite.
 
 ```ts
 const src = stream<number>();

@@ -1,5 +1,6 @@
 import { describe, test, expect } from "vitest";
 import { mount } from "@continuum-js/dom";
+import { flushFrame } from "@continuum-js/frp";
 import { App } from "./App.js";
 
 describe("App", () => {
@@ -13,6 +14,9 @@ describe("App", () => {
     expect(button.textContent).toBe("count: 0");
 
     button.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    // bindings run in the frame pass — run it before reading the DOM
+    // (the @continuum-js/test helpers do this for you)
+    flushFrame();
     expect(button.textContent).toBe("count: 1");
     container.remove();
   });

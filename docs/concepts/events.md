@@ -86,8 +86,9 @@ current scope.
 
 ## Listening (the exit hatch)
 
-`e.listen(handler)` runs the handler after the moment closes and returns an
-unsubscribe function. It is **not** registered with the ownership tree
+`e.listen(handler)` runs the handler in the next frame pass — after the
+moment closes, once per occurrence, in order — and returns an unsubscribe
+function. It is **not** registered with the ownership tree
 automatically — inside a component, wrap it:
 
 ```ts
