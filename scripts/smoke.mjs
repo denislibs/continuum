@@ -31,6 +31,7 @@ const PACKAGES = [
   "router",
   "eslint-plugin",
   "vite-plugin",
+  "devtools",
 ];
 
 function run(cmd, args, cwd) {
@@ -206,6 +207,7 @@ cliPkg.devDependencies["@continuum-js/eslint-plugin"] =
   `file:${tarballs["eslint-plugin"]}`;
 cliPkg.devDependencies["@continuum-js/vite-plugin"] =
   `file:${tarballs["vite-plugin"]}`;
+cliPkg.devDependencies["@continuum-js/devtools"] = `file:${tarballs.devtools}`;
 writeFileSync(cliPkgPath, JSON.stringify(cliPkg, null, 2));
 
 run("npm", ["install", "--no-audit", "--no-fund"], cliApp);

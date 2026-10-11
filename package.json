@@ -19,7 +19,7 @@
     "docs:api": "node scripts/docs-api.mjs",
     "test:docs": "vitest run --config vitest.docs.config.ts",
     "typecheck": "tsc -b",
-    "build": "npm run build -w @continuum-js/frp && npm run build -w @continuum-js/std && npm run build -w @continuum-js/dom && npm run build -w @continuum-js/test && npm run build -w @continuum-js/router && npm run build -w @continuum-js/eslint-plugin && npm run build -w @continuum-js/vite-plugin",
+    "build": "npm run build -w @continuum-js/frp && npm run build -w @continuum-js/std && npm run build -w @continuum-js/dom && npm run build -w @continuum-js/test && npm run build -w @continuum-js/router && npm run build -w @continuum-js/eslint-plugin && npm run build -w @continuum-js/vite-plugin && npm run build -w @continuum-js/devtools",
     "smoke": "node scripts/smoke.mjs",
     "stress": "vitest run --config vitest.stress.config.ts",
     "changeset": "changeset",

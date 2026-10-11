@@ -1,18 +1,47 @@
 {
   "files": [],
   "references": [
-    { "path": "./packages/frp" },
-    { "path": "./packages/dom" },
-    { "path": "./packages/std" },
-    { "path": "./packages/test" },
-    { "path": "./packages/router" },
-    { "path": "./packages/eslint-plugin" },
-    { "path": "./examples/counter" },
-    { "path": "./examples/todo" },
-    { "path": "./examples/animation" },
-    { "path": "./examples/showcase" },
-    { "path": "./examples/data" },
-    { "path": "./examples/router-app" },
-    { "path": "./benchmark" }
+    {
+      "path": "./packages/frp"
+    },
+    {
+      "path": "./packages/dom"
+    },
+    {
+      "path": "./packages/std"
+    },
+    {
+      "path": "./packages/test"
+    },
+    {
+      "path": "./packages/router"
+    },
+    {
+      "path": "./packages/eslint-plugin"
+    },
+    {
+      "path": "./packages/devtools"
+    },
+    {
+      "path": "./examples/counter"
+    },
+    {
+      "path": "./examples/todo"
+    },
+    {
+      "path": "./examples/animation"
+    },
+    {
+      "path": "./examples/showcase"
+    },
+    {
+      "path": "./examples/data"
+    },
+    {
+      "path": "./examples/router-app"
+    },
+    {
+      "path": "./benchmark"
+    }
   ]
 }
