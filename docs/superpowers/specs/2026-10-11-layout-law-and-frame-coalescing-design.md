@@ -155,12 +155,21 @@ before
 - `npm run size` обязателен после frp/dom/std изменений; `size-limit` сейчас не установлен локально — `npm ci` в плане.
 - Changesets: `frp` minor (новая гарантия порядка — наблюдаемое поведение), `dom` minor (`/layout`), `std` minor, `eslint-plugin` minor, `devtools` — первый релиз 0.1.0, `create-continuum` patch.
 
-## 7. Решения по умолчанию (можно переиграть на ревью спеки)
+## 7. Решения
 
-1. `holdWhile` вместо `defer`-пропа у регионов.
-2. `measure` — последний аргумент на кадр, а не массив.
-3. Ошибки `read` в `measure` — как у наблюдателей, без `Result`.
-4. `onMount` — зона эффектов всегда (включая первый `mount`).
+Утверждены 2026-10-11:
+
+1. Гейт heavy-animation — только `holdWhile(state, gate)` в std; `defer`-пропа у регионов нет.
+2. `measure` — одно чтение на кадр, `read` получает **последний** аргумент; промежуточные триггеры теряются.
+3. `onMount` — зона эффектов всегда (и первый `mount()`, и перестройка региона); исключение — `forceMeasure`.
+
+По умолчанию (не обсуждались, можно переиграть):
+
+4. Ошибки `read` в `measure` — как у наблюдателей, без `Result`.
 5. `focus`/`blur` не делегируются; Shadow DOM и `stopImmediatePropagation` вне scope.
-6. `animationFrames()` без fallback в фоне.
-7. Overlay — пять счётчиков, без графа и без flight recorder (отдельный проект).
+6. `animationFrames()` без fallback в фоновой вкладке.
+7. Overlay — пять счётчиков, без графа и flight recorder.
+
+## 8. Статус
+
+Реализация **не начата и не запланирована** — спека зафиксирована как результат обсуждения. Когда вернёмся: рекомендуемый порядок — спайк `examples/tweb-a` с `MessageList` (утилиты поверх публичного API), апстрим доказавшегося, затем ядро (commit→effects, devtools).
