@@ -57,6 +57,26 @@ function Chart() {
 bind them. They register with the component's owner (`createX` by
 convention) and disconnect on unmount. Nothing in your code reads layout.
 
+For rows, share one observer: `createVisibilityObserver()` creates a single
+`IntersectionObserver` for a list and returns `observe(el)`, a `State<boolean>`
+per element — 300 messages must not mean 300 observers. Each cell unobserves
+with its owner (a row); the observer disconnects with the owner that created
+it (the list).
+
+```tsx
+const observe = createVisibilityObserver({ root: list });
+each(
+  messages,
+  (m) => m.id,
+  (m) => {
+    const el = (<div class="msg" />) as HTMLElement;
+    const seen = observe(el); // State<boolean>
+    onCleanup(seen.updates.filter(Boolean).listen(() => markRead(m.id)));
+    return el;
+  },
+);
+```
+
 ## `measure`: the read you must take yourself
 
 Some measurements have no observer — the scroll height after an insertion,

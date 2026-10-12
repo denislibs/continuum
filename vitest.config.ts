@@ -63,7 +63,7 @@ export default defineConfig({
     setupFiles: ["./vitest.setup.ts"],
     include: [
       "packages/*/test/**/*.test.{ts,tsx}",
-      "examples/*/*.test.{ts,tsx}",
+      "examples/*/**/*.test.{ts,tsx}",
       "benchmark/src/**/*.test.{ts,tsx}",
     ],
   },

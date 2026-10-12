@@ -40,6 +40,19 @@ There is no "props changed" mechanism: if a parent wants to change what a
 child shows, it hands the child a State. Destructuring props is safe —
 they are ordinary values.
 
+A reusable component often wants to accept **either** — `label: Reactive<string>`
+(the same type the JSX attributes use). `asState` normalizes it:
+
+```tsx
+import { asState, type Reactive } from "@continuum-js/dom";
+
+function Badge(props: { label: Reactive<string> }) {
+  const label = asState(props.label); // a State either way
+  return <b>{label.map((l) => l.toUpperCase())}</b>;
+}
+// <Badge label="new" />  and  <Badge label={liveLabel} />  both work
+```
+
 ## Children
 
 `children` is whatever JSX puts there: nodes, strings, States, arrays, or

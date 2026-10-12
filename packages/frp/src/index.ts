@@ -1698,6 +1698,54 @@ export function selector<K, V>(
   };
 }
 
+/** A dictionary a `keyed` process can read: a Record or a Map. */
+export type Dict<K, V> = Record<K & (string | number), V> | Map<K, V>;
+
+function dictGet<K, V>(d: Dict<K, V>, k: K): V | undefined {
+  return d instanceof Map
+    ? d.get(k)
+    : (d as Record<string | number, V>)[k as string | number];
+}
+
+/**
+ * Per-key cells over a dictionary state — the fine-grained answer to "N
+ * rows selecting from one store". ONE process watches `dict`; on each
+ * update it checks only the live cells (by `eq`, default `Object.is` on the
+ * value) and stages the ones whose value changed. A cell is created on
+ * request, seeded from the current dictionary, and evicted once its last
+ * listener detaches (re-requesting reseeds). `undefined` means "absent".
+ *
+ * ```ts
+ * const chatById = keyed(global.map((g) => g.chats.byId));
+ * const chat = chatById(props.chatId); // one cell, one edge, updates only when THIS chat changes
+ * ```
+ */
+export function keyed<K, V>(
+  dict: State<Dict<K, V>>,
+  eq: (a: V | undefined, b: V | undefined) => boolean = Object.is,
+): (key: K) => State<V | undefined> {
+  const scope = requireScope("keyed()", "keyed(byId)");
+  const cells = new Map<K, Cell<V | undefined>>();
+  const un = dict.updates.listen_(null, (t, d) => {
+    for (const [k, c] of cells) {
+      const next = dictGet(d, k);
+      if (!eq(c.pending(t), next)) c.stage(t, next);
+    }
+  });
+  scope.onDispose(un);
+  return (key: K) => {
+    let c = cells.get(key);
+    if (!c) {
+      c = new Cell<V | undefined>(dictGet(dict.sampleNoTrans(), key), eq);
+      c.updates.onSleep = () => {
+        cells.delete(key);
+      };
+      cells.set(key, c);
+    }
+    return c;
+  };
+}
+
 /** A source stream plus its `fire`, as one value. */
 export function stream<A>(): StreamSource<A> {
   const [e, fire] = newStream<A>();

@@ -57,6 +57,26 @@ function Chart() {
 (`createX` по конвенции) и отключаются при размонтировании. В вашем коде нет
 ни одного чтения layout.
 
+Для строк — один observer на всех: `createVisibilityObserver()` создаёт
+единственный `IntersectionObserver` на список и возвращает `observe(el)` —
+`State<boolean>` на элемент; 300 сообщений не должны означать 300
+observer'ов. Ячейка перестаёт наблюдать вместе со своим владельцем (строкой);
+observer отключается вместе с владельцем, который его создал (списком).
+
+```tsx
+const observe = createVisibilityObserver({ root: list });
+each(
+  messages,
+  (m) => m.id,
+  (m) => {
+    const el = (<div class="msg" />) as HTMLElement;
+    const seen = observe(el); // State<boolean>
+    onCleanup(seen.updates.filter(Boolean).listen(() => markRead(m.id)));
+    return el;
+  },
+);
+```
+
 ## `measure`: чтение, которое нужно снять самому
 
 У некоторых измерений нет observer'а — высота скролла после вставки, смещение

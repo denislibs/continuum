@@ -13,6 +13,7 @@ import {
   requestMeasure,
   withLayout,
   type State,
+  type StateSource,
   type Stream,
 } from "@continuum-js/frp";
 import { onCleanup } from "./index.js";
@@ -46,6 +47,41 @@ export function createVisibility(
   io.observe(el);
   onCleanup(() => io.disconnect());
   return visible;
+}
+
+/**
+ * ONE IntersectionObserver for a whole list: returns `observe(el)`, which
+ * hands out a `State<boolean>` per element. Each cell unobserves when its
+ * owner is disposed; the observer disconnects with the owner that created
+ * it. Prefer this over `createVisibility` for rows — 300 messages must not
+ * mean 300 observers.
+ */
+export function createVisibilityObserver(
+  opts?: IntersectionObserverInit,
+): (el: Element) => State<boolean> {
+  const cells = new Map<Element, StateSource<boolean>>();
+  const io = new IntersectionObserver((entries) => {
+    batch(() => {
+      for (const e of entries) cells.get(e.target)?.set(e.isIntersecting);
+    });
+  }, opts);
+  onCleanup(() => {
+    io.disconnect();
+    cells.clear();
+  });
+  return (el) => {
+    let cell = cells.get(el);
+    if (!cell) {
+      cell = state(false);
+      cells.set(el, cell);
+      io.observe(el);
+      onCleanup(() => {
+        io.unobserve(el);
+        cells.delete(el);
+      });
+    }
+    return cell;
+  };
 }
 
 /** Scroll offset of an element or the window, live via the `scroll` event. */

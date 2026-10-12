@@ -7,6 +7,7 @@ import {
   Stream,
   state,
   stream,
+  constant,
   Scope,
   getScope,
   runInScope,
@@ -245,6 +246,15 @@ function createEl(tag: string): Element {
   return SVG_TAGS.has(tag)
     ? document.createElementNS(SVG_NS, tag)
     : document.createElement(tag);
+}
+
+/**
+ * Normalize a `Reactive<T>` prop: a State is returned as-is, a plain value
+ * is wrapped in a constant. The one helper a reusable component needs to
+ * accept `label: Reactive<string>` and bind it either way.
+ */
+export function asState<T>(v: T | State<T>): State<T> {
+  return v instanceof State ? v : constant(v);
 }
 
 /** Anything placeable in JSX: nodes, behaviors (live-bound), primitives, arrays. */
