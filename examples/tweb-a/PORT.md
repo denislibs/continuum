@@ -4,23 +4,23 @@
 
 ## 0. Карта соответствий
 
-| telegram-tt                                                           | Continuum                                                                            |
-| --------------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
-| `global` (один объект), `setGlobal`/`getGlobal`                       | `global: State<GlobalState>` — свёртка `actions.accum`                               |
-| `addActionHandler("openChat", (global, actions, payload) => …)`       | reducer-ветка в `reduce(global, action)`; эффекты — `perform` на `actions.filter(…)` |
-| `withGlobal(mapStateToProps)(Component)`                              | селекторы: `global.map(sel)` + `dedupe`, пробрасываются в props как `State<T>`       |
-| `apiUpdate` → `addActionHandler("apiUpdate")`                         | `apiUpdates: Stream<ApiUpdate>` из воркера → тот же `reduce`                         |
-| `callApi("fetchMessages", …)`                                         | `perform(requests, (r) => callApi(…))`                                               |
-| `useState`/`useRef`/`useMemo`/`useCallback`                           | `state()`, обычная переменная, `map`/`combine`, обычная функция                      |
-| `useEffect(fn, deps)`                                                 | `combine(deps…).listen(fn)` + `onCleanup`                                            |
-| `useLayoutEffect` + `requestMeasure`/`requestMutation`/`forceMeasure` | `measure(trigger, read)` / запись в `listen` / `forceMeasure`                        |
-| `beginHeavyAnimation`, `useHeavyAnimation`                            | `beginHeavyAnimation`, `isHeavyAnimating`, `holdWhile`                               |
-| `teactFastList` / `teactOrderKey`                                     | `each` (LIS)                                                                         |
-| `memo`                                                                | не нужен                                                                             |
-| `<Transition name="slide" activeKey>`                                 | `Transition` над `dyn` + CSS, гейт через heavy animation                             |
-| `useInfiniteScroll`, `InfiniteScroll`                                 | `createScroll` + окно `combine(ids, viewport)`                                       |
-| `useIntersectionObserver`                                             | `createVisibility`                                                                   |
-| `useFlag`, `useLastCallback`, `useStateRef`                           | не нужны (нет ререндеров и stale closures)                                           |
+| telegram-tt                                                           | Continuum                                                                                                                           |
+| --------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| `global` (один объект), `setGlobal`/`getGlobal`                       | слайсы `chats`/`users`/`messages`/`ui: State<…>` — по `accum` над одним `actions`; эфемерное (typing, online) — ячейки мимо свёртки |
+| `addActionHandler("openChat", (global, actions, payload) => …)`       | ветка в `reduceX(slice, action)` каждого задетого слайса; эффекты — `perform` на `actions.filter(…)`                                |
+| `withGlobal(mapStateToProps)(Component)`                              | `keyed`-ячейки для `byId`, `select(slice, sel)` для одиночных значений, в props как `State<T>`                                      |
+| `apiUpdate` → `addActionHandler("apiUpdate")`                         | `apiUpdates: Stream<ApiUpdate>` из воркера → тот же `reduce`                                                                        |
+| `callApi("fetchMessages", …)`                                         | `perform(requests, (r) => callApi(…))`                                                                                              |
+| `useState`/`useRef`/`useMemo`/`useCallback`                           | `state()`, обычная переменная, `map`/`combine`, обычная функция                                                                     |
+| `useEffect(fn, deps)`                                                 | `combine(deps…).listen(fn)` + `onCleanup`                                                                                           |
+| `useLayoutEffect` + `requestMeasure`/`requestMutation`/`forceMeasure` | `measure(trigger, read)` / запись в `listen` / `forceMeasure`                                                                       |
+| `beginHeavyAnimation`, `useHeavyAnimation`                            | `beginHeavyAnimation`, `isHeavyAnimating`, `holdWhile`                                                                              |
+| `teactFastList` / `teactOrderKey`                                     | `each` (LIS)                                                                                                                        |
+| `memo`                                                                | не нужен                                                                                                                            |
+| `<Transition name="slide" activeKey>`                                 | `Transition` над `dyn` + CSS, гейт через heavy animation                                                                            |
+| `useInfiniteScroll`, `InfiniteScroll`                                 | `createScroll` + окно `combine(ids, viewport)`                                                                                      |
+| `useIntersectionObserver`                                             | `createVisibility`                                                                                                                  |
+| `useFlag`, `useLastCallback`, `useStateRef`                           | не нужны (нет ререндеров и stale closures)                                                                                          |
 
 ## 1. Структура
 
@@ -30,17 +30,23 @@ src/
   global/
     types.ts      GlobalState — без изменений
     actions.ts    stream<Action>() + типизированный dispatch
-    reducers/     чистые (global, payload) => global — переносятся как есть
-    selectors/    чистые (global, …) => T — переносятся как есть
+    reducers/     чистые (slice, action) => slice — по доменам, как в tt
+    selectors/    чистые (slice, …) => T — переносятся как есть
     effects/      perform-цепочки (бывшие async action handlers)
-    index.ts      global = actions.accum(initial, reduce); apiUpdates подмешаны
+    ephemeral.ts  ячейки для typing/online/progress — мимо свёртки
+    index.ts      слайсы = events.accum(…); keyed над byId
   components/
     left/  middle/  right/  common/  ui/  modals/
   hooks/ → lib/   composables: createX (scope-зависимые), чистые хелперы
   styles/         scss без изменений
 ```
 
-## 2. Стор
+## 2. Стор: слайсы + ячейки (B + C)
+
+tt держит один `global`, потому что у teactn один `setGlobal`. У нас стор делится на два вида состояния с разной природой:
+
+- **История** (чаты, пользователи, сообщения, настройки, навигация) — свёртка над потоком действий. Это всё, ради чего модель: транзакции, undo/replay, persist одной строкой. Режется на **слайсы по доменам**: каждый — своя `accum` над **одним и тем же** потоком `actions`. Все слайсы сворачивают один момент, поэтому `openChat`, который трогает `chats` + `messages` + `ui`, остаётся атомарным без усилий — `combine` слайсов по закону не увидит полумомента. Копируется только свой слайс, не корень.
+- **Эфемерное** (typing, online, «печатает…», просмотры, прогресс загрузки) — не история, replay не нужен, частота самая высокая. Это **ячейки**, в которые апдейт из воркера пишет напрямую: O(1), ноль копий, мимо свёртки.
 
 ```ts
 // global/actions.ts
@@ -61,53 +67,116 @@ export const dispatch = new Proxy({} as Actions, {
 ```
 
 ```ts
-// global/index.ts
-import { root, batch } from "@continuum-js/frp";
+// global/index.ts — слайсы над одним потоком
+import { root, keyed, selector, combine } from "@continuum-js/frp";
 import { actions } from "./actions";
 import { apiUpdates } from "../api/bridge";
-import { reduce } from "./reducers";
-import { INITIAL_STATE } from "./initialState";
+import { reduceChats, reduceUsers, reduceMessages, reduceUi } from "./reducers";
 
-// apiUpdate в tt — это тоже action; сливаем два потока в один fold.
-// batch() на пачке апдейтов из воркера даёт один момент на пачку.
+// apiUpdate в tt — тоже action; воркер шлёт пачку в batch() → один момент
 const events = actions.or(
   apiUpdates.map((u) => ({ type: "apiUpdate", payload: u }) as Action),
 );
 
-export const global = root(() =>
-  events.accum(INITIAL_STATE, (a, g) => reduce(g, a)),
+export const chats = root(() =>
+  events.accum(INITIAL.chats, (a, s) => reduceChats(s, a)),
 );
+export const users = root(() =>
+  events.accum(INITIAL.users, (a, s) => reduceUsers(s, a)),
+);
+export const messages = root(() =>
+  events.accum(INITIAL.messages, (a, s) => reduceMessages(s, a)),
+);
+export const ui = root(() =>
+  events.accum(INITIAL.ui, (a, s) => reduceUi(s, a)),
+);
+
+// byId-словари → keyed(): ячейка на ключ, обновляются только изменившиеся ключи
+export const chatById = root(() => keyed(chats.map((c) => c.byId)));
+export const userById = root(() => keyed(users.map((u) => u.byId)));
+export const messagesByChat = root(() =>
+  keyed(messages.map((m) => m.byChatId)),
+);
+// «этот чат открыт?» → selector(): O(2) при смене
+export const isChatOpen = root(() =>
+  selector(ui.map((u) => u.messageList?.chatId)),
+);
+
+// кросс-доменный селектор — combine слайсов, glitch-free
+export const senderOf = (m: ApiMessage) =>
+  m.senderId ? userById(m.senderId) : chatById(m.chatId);
 ```
 
 ```ts
-// global/reducers/messages.ts — переносится буквально
-export function addMessages(
-  global: GlobalState,
+// global/ephemeral.ts — ячейки мимо свёртки
+import { state, type StateSource } from "@continuum-js/frp";
+import { apiUpdates } from "../api/bridge";
+
+function cells<K, V>(init: V) {
+  const map = new Map<K, StateSource<V>>();
+  return (key: K): StateSource<V> => {
+    let c = map.get(key);
+    if (!c) map.set(key, (c = state(init)));
+    return c;
+  };
+}
+
+export const typingOf = cells<string, ApiTypingStatus | undefined>(undefined);
+export const onlineOf = cells<string, ApiUserStatus | undefined>(undefined);
+export const uploadProgress = cells<string, number>(0);
+
+root(() => {
+  apiUpdates.listen((u) => {
+    if (u["@type"] === "updateChatTypingStatus")
+      typingOf(u.id).set(u.typingStatus);
+    else if (u["@type"] === "updateUserStatus")
+      onlineOf(u.userId).set(u.status);
+  });
+});
+```
+
+(В tt typing-статус живёт в `global.messages.byChatId[id].threadsById[t].typingStatus` и гоняет через весь reducer; здесь он не трогает ни один слайс.)
+
+Reducers tt уже сгруппированы по доменам (`reducers/chats.ts`, `reducers/messages.ts`, …) — каждый становится `reduceX(slice, action)`:
+
+```ts
+// global/reducers/messages.ts — тот же код, только над своим слайсом
+export function reduceMessages(s: MessagesState, a: Action): MessagesState {
+  switch (a.type) {
+    case "apiUpdate":
+      return applyMessageUpdate(s, a.payload);
+    case "addViewportMessages":
+      return addViewportIds(
+        addMessages(s, a.payload.chatId, a.payload.byId),
+        a.payload,
+      );
+    default:
+      return s;
+  }
+}
+function addMessages(
+  s: MessagesState,
   chatId: string,
   byId: Record<number, ApiMessage>,
-): GlobalState {
-  const current = global.messages.byChatId[chatId] ?? {
-    byId: {},
-    threadsById: {},
-  };
+): MessagesState {
+  const current = s.byChatId[chatId] ?? { byId: {}, threadsById: {} };
   return {
-    ...global,
-    messages: {
-      ...global.messages,
-      byChatId: {
-        ...global.messages.byChatId,
-        [chatId]: { ...current, byId: { ...current.byId, ...byId } },
-      },
+    ...s,
+    byChatId: {
+      ...s.byChatId,
+      [chatId]: { ...current, byId: { ...current.byId, ...byId } },
     },
   };
 }
 ```
 
+Действие, задевающее несколько доменов (`openChat` → `ui.messageList`, `chats.byId[id].unreadCount`, `messages` viewport), обрабатывается в каждом reducer по-своему — как `combineReducers` в Redux, но атомарно: один момент на все слайсы.
+
 ```ts
-// global/effects/messages.ts — бывший async handler loadViewportMessages
+// global/effects/messages.ts — бывший async action handler loadViewportMessages
 import { perform, batch } from "@continuum-js/frp";
 import { actions, dispatch } from "../actions";
-import { global } from "..";
+import { chats, messages } from "..";
 import { callApi } from "../../api/bridge";
 
 const loads = actions.filter((a) => a.type === "loadViewportMessages");
@@ -115,10 +184,15 @@ const loads = actions.filter((a) => a.type === "loadViewportMessages");
 root(() => {
   const results = perform(loads, async (a) => {
     const { chatId, threadId, direction } = a.payload;
-    const g = global.sample();
-    const offsetId = selectViewportEdge(g, chatId, threadId, direction);
+    const chat = chats.sample().byId[chatId];
+    const offsetId = selectViewportEdge(
+      messages.sample(),
+      chatId,
+      threadId,
+      direction,
+    );
     const result = await callApi("fetchMessages", {
-      chat: selectChat(g, chatId),
+      chat,
       offsetId,
       addOffset: -20,
       limit: 40,
@@ -142,38 +216,33 @@ root(() => {
 });
 ```
 
-Селекторы — как в tt, чистые функции; реактивность добавляется на границе компонента:
+Селекторы tt остаются чистыми функциями; реактивность — на границе компонента:
 
 ```ts
 // lib/select.ts
-import { keyed, combine, selector, type State } from "@continuum-js/frp";
+import { combine, type State } from "@continuum-js/frp";
 import { dedupe } from "@continuum-js/std";
-import { global } from "../global";
+import { ui, chats } from "../global";
 
-/** withGlobal для одиночного значения: live-селектор с дедупом по ссылке. */
-export const select = <T>(sel: (g: GlobalState) => T, eq = Object.is) =>
-  dedupe(global.map(sel), eq);
+/** Одиночное значение из слайса, с дедупом по ссылке. */
+export const select = <S, T>(
+  slice: State<S>,
+  sel: (s: S) => T,
+  eq = Object.is,
+) => dedupe(slice.map(sel), eq);
 
 /** Селектор с параметром-State: без flatten, без пересоздания узла. */
-export const selectWith = <P, T>(
+export const selectWith = <S, P, T>(
+  slice: State<S>,
   p: State<P>,
-  sel: (g: GlobalState, p: P) => T,
+  sel: (s: S, p: P) => T,
   eq = Object.is,
-) => dedupe(combine(global, p, sel), eq);
-
-// byId-словари — через keyed(): один процесс на словарь, ячейка на ключ,
-// обновляются только ключи, чьё значение сменилось. 1000 строк чата = 1 edge
-// на global вместо 1000.
-export const chatById = keyed(global.map((g) => g.chats.byId));
-export const userById = keyed(global.map((g) => g.users.byId));
-export const messagesByChat = keyed(global.map((g) => g.messages.byChatId));
-// «этот чат выбран?» — selector(): O(2) при смене выбора
-export const isChatSelected = selector(
-  global.map((g) => selectCurrentMessageList(g)?.chatId),
-);
+) => dedupe(combine(slice, p, sel), eq);
 ```
 
-Два режима, и важно не путать. `select(sel)` = `global.map(sel)` пересчитывается на **каждый** момент стора (как `mapStateToProps` tt на каждый `setGlobal`) — годится для одиночных значений: текущий чат, флаги UI. Всё, что «по id» из словаря, — только `keyed`: иначе 1000 строк × 5 селекторов = 5000 подписчиков на одном узле `global.updates`, и каждый момент стора (typing, online) гоняет их все.
+Правило выбора: одиночные значения (текущий чат, флаги UI, тема) — `select(ui, …)`; всё «по id» — `chatById`/`userById`/`messagesByChat` (`keyed`); горячее эфемерное — ячейки. Так ни один момент стора не гоняет больше подписчиков, чем реально изменилось.
+
+Undo/persist при слайсах: `persist("ui", ui)`, а снимок всего состояния для replay — `combine(chats, users, messages, ui, (c, u, m, i) => ({ c, u, m, i }))`.
 
 ## 3. Мост к воркеру
 
@@ -427,7 +496,12 @@ export function ChatList(props: { folderId: State<number> }) {
 
   // порядок чатов папки — чистый селектор tt (folderManager); параметр-State
   // через combine, без flatten и пересоздания узла
-  const ids = selectWith(props.folderId, selectOrderedChatIds, shallowEqual);
+  const ids = selectWith(
+    chats,
+    props.folderId,
+    selectOrderedChatIds,
+    shallowEqual,
+  );
 
   // окно: из позиции скролла — [from, to) с запасом в SLICE
   const scroll = createScroll(container);
@@ -482,7 +556,7 @@ export function Chat(props: { chatId: string; offsetTop: State<number> }) {
         : constant(undefined),
     ),
   );
-  const isSelected = isChatSelected(props.chatId); // selector(): O(2)
+  const isSelected = isChatOpen(props.chatId); // selector(): O(2)
   const unread = chat.map((c) => c?.unreadCount ?? 0);
   const isPinned = chat.map((c) => !!c?.isPinned);
   const typing = flatten(
@@ -596,7 +670,7 @@ export function MessageList(props: {
     props.threadId,
     (cm, t) => !!cm && selectIsViewportNewestOf(cm, t),
   );
-  const isChatWithSelf = selectWith(props.chatId, selectIsChatWithSelf);
+  const isChatWithSelf = selectWith(users, props.chatId, selectIsChatWithSelf);
 
   // groupMessages — функция tt без изменений
   const groups = combine(
@@ -945,10 +1019,10 @@ export function Composer(props: {
   const html = state("");
   // драфт из стора при смене чата, сохранение в стор с дебаунсом (tt: useDraft)
   const draft = combine(
-    global,
+    messages,
     props.chatId,
     props.threadId,
-    (g, id, t) => selectDraft(g, id, t)?.text ?? "",
+    (m, id, t) => selectDraft(m, id, t)?.text ?? "",
   );
   onCleanup(draft.listen((d) => html.set(d)));
   onCleanup(
@@ -991,8 +1065,8 @@ export function Composer(props: {
         <MessageInput
           html={html}
           onSend={send}
-          placeholder={select((g) =>
-            selectComposerPlaceholder(g, props.chatId.sample()),
+          placeholder={flatten(props.chatId.map(chatById)).map((c) =>
+            composerPlaceholderFor(c),
           )}
         />
         <Button
@@ -1041,14 +1115,14 @@ export function Composer(props: {
 
 ## 8. Колонки, роутинг, Main
 
-tt роутит хэшем (`#123456`, `#-100…_thread`), `Main.tsx` раскладывает `LeftColumn`/`MiddleColumn`/`RightColumn`, состояние колонок в `global.ui`.
+tt роутит хэшем (`#123456`, `#-100…_thread`), `Main.tsx` раскладывает `LeftColumn`/`MiddleColumn`/`RightColumn`, состояние колонок в слайсе `ui`.
 
 ```tsx
 // components/main/Main.tsx
 export function Main() {
-  const isLeftOpen = select((g) => selectTabState(g).isLeftColumnShown);
-  const isRightOpen = select((g) => selectTabState(g).isRightColumnShown);
-  const messageList = select((g) => selectCurrentMessageList(g), shallowEqual);
+  const isLeftOpen = select(ui, (u) => u.isLeftColumnShown);
+  const isRightOpen = select(ui, (u) => u.isRightColumnShown);
+  const messageList = select(ui, (u) => u.messageList, shallowEqual);
   const hasChat = messageList.map((m) => !!m);
 
   // хэш ↔ стор (tt: useHistoryBack + hash в openChat)
@@ -1096,8 +1170,8 @@ export function Main() {
 ```tsx
 // middle/MiddleColumn.tsx
 export function MiddleColumn(props: { chatId: State<string>; threadId: State<ThreadId>; type: State<MessageListType> }) {
-  const canPost = select((g) => selectCanPost(g, props.chatId.sample(), props.threadId.sample()));
-  const bg = select((g) => selectTheme(g).background);
+  const canPost = combine(chatById(props.chatId.sample()), props.threadId, (chat, t) => !!chat && selectCanPostIn(chat, t));
+  const bg = select(ui, (u) => u.theme.background);
   // переход между чатами — Transition с heavy-animation, список под holdWhile
   const activeKey = props.chatId.updates.accum(0, (_, n) => n + 1);
   return (
@@ -1131,8 +1205,8 @@ export function MiddleColumn(props: { chatId: State<string>; threadId: State<Thr
 - `teactFastList`/`teactOrderKey`, `useOrderDiff` — `each` + CSS `top`.
 - `fasterdom` целиком — кадровый проход, `measure`, `forceMeasure`.
 - `useInfiniteScroll`, `InfiniteScroll` — `createScroll` + `combine`.
-- `addActionHandler` с `global`/`actions` аргументами — `reduce` + `perform`.
-- `TeactN` — `global` это `State`.
+- `addActionHandler` с `global`/`actions` аргументами — `reduceX` по слайсам + `perform`.
+- `TeactN` и монолитный `global` — слайсы-`State` + ячейки.
 
 ## 11. Что ушло во фреймворк, что осталось в клиенте
 
@@ -1146,4 +1220,4 @@ export function MiddleColumn(props: { chatId: State<string>; threadId: State<Thr
 
 Плюс пять строк `bindClass`/`bindClassName` в `lib/dom.ts`.
 
-Единственное место, где надо думать о производительности, — выбор между `select` и `keyed` (раздел 2): всё «по id» идёт через `keyed`, иначе fine-grained поверх монолитного `global` вырождается в «все слушают всё».
+Единственное место, где надо думать о производительности, — выбор между `select` и `keyed` (раздел 2): всё «по id» идёт через `keyed`, иначе fine-grained поверх стора вырождается в «все слушают всё».
