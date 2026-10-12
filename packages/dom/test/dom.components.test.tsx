@@ -10,6 +10,7 @@ import {
   portal,
 } from "@continuum-js/dom";
 import { state } from "@continuum-js/frp";
+import { flushFrame } from "@continuum-js/frp";
 
 describe("<Show>", () => {
   test("renders children when truthy, fallback when falsy, and toggles", () => {
@@ -21,11 +22,15 @@ describe("<Show>", () => {
         {(u) => <span>{u.name}</span>}
       </Show>
     ));
+    flushFrame();
     expect(container.querySelector(".empty")).not.toBeNull();
     setUser({ name: "Ann" });
+    flushFrame();
     expect(container.textContent).toBe("Ann");
+    flushFrame();
     expect(container.querySelector(".empty")).toBeNull();
     setUser(null);
+    flushFrame();
     expect(container.querySelector(".empty")).not.toBeNull();
   });
 
@@ -42,8 +47,10 @@ describe("<Show>", () => {
         }}
       </Show>
     ));
+    flushFrame();
     expect(builds).toBe(1);
     setFlag(true); // same truthiness
+    flushFrame();
     expect(builds).toBe(1);
   });
 });
@@ -61,13 +68,16 @@ describe("<Each>", () => {
         {(item) => <li id={"row" + item.id}>{item.t}</li>}
       </Each>
     ));
+    flushFrame();
     expect(container.textContent).toBe("ab");
     const row1 = container.querySelector("#row1");
     setItems([
       { id: 2, t: "b" },
       { id: 1, t: "a" },
     ]);
+    flushFrame();
     expect(container.textContent).toBe("ba");
+    flushFrame();
     expect(container.querySelector("#row1")).toBe(row1); // reused
   });
 });
@@ -82,8 +92,10 @@ describe("<Dynamic>", () => {
         {(t) => (t === "home" ? <span>H</span> : <span>A</span>)}
       </Dynamic>
     ));
+    flushFrame();
     expect(container.textContent).toBe("H");
     setTab("about");
+    flushFrame();
     expect(container.textContent).toBe("A");
   });
 });
@@ -97,9 +109,12 @@ describe("<Portal>", () => {
         <span>hi</span>
       </Portal>
     ));
+    flushFrame();
     expect(target.textContent).toBe("hi");
+    flushFrame();
     expect(container.textContent).toBe("");
     unmount();
+    flushFrame();
     expect(target.textContent).toBe("");
   });
 });
@@ -107,7 +122,9 @@ describe("<Portal>", () => {
 describe("dynamic regions demand an owner — with a teaching error", () => {
   test("dyn/each/portal outside any owner explain themselves", () => {
     const b = state(0);
+    flushFrame();
     expect(() => dyn(b, (v) => String(v))).toThrow(/needs an owner/);
+    flushFrame();
     expect(() =>
       each(
         b.map((v) => [v]),
@@ -115,6 +132,7 @@ describe("dynamic regions demand an owner — with a teaching error", () => {
         (x) => String(x),
       ),
     ).toThrow(/needs an owner/);
+    flushFrame();
     expect(() => portal(document.createElement("div"), "hi")).toThrow(
       /needs an owner/,
     );

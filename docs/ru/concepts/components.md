@@ -40,6 +40,20 @@ function Price(props: { amount: State<number>; currency: string }) {
 показывает ребёнок, он передаёт ему State. Деструктурировать пропсы
 безопасно — это обычные значения.
 
+Переиспользуемому компоненту часто нужно принимать **и то, и другое** —
+`label: Reactive<string>` (тот же тип, что у JSX-атрибутов). `asState`
+нормализует:
+
+```tsx
+import { asState, type Reactive } from "@continuum-js/dom";
+
+function Badge(props: { label: Reactive<string> }) {
+  const label = asState(props.label); // State в любом случае
+  return <b>{label.map((l) => l.toUpperCase())}</b>;
+}
+// <Badge label="new" />  и  <Badge label={liveLabel} />  работают оба
+```
+
 ## Дети
 
 `children` — всё, что JSX туда положил: узлы, строки, States, массивы или

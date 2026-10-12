@@ -1,6 +1,7 @@
 import { describe, test, expect } from "vitest";
 import { root, state } from "@continuum-js/frp";
 import { previous, dedupe } from "@continuum-js/std";
+import { flushFrame } from "@continuum-js/frp";
 
 // Regression for #117: `dedupe` used an eager `listen_` and dropped its
 // unlisten handle, so it never detached from its source — a permanent edge
@@ -12,12 +13,15 @@ describe("behavior combinators", () => {
     const b = state(0);
     const setB = b.set;
     const prev = root(() => previous(b, -1));
+    flushFrame();
     expect(prev.sample()).toBe(-1);
 
     setB(5);
+    flushFrame();
     expect(prev.sample()).toBe(0); // value b held before
 
     setB(9);
+    flushFrame();
     expect(prev.sample()).toBe(5);
   });
 
@@ -32,6 +36,7 @@ describe("behavior combinators", () => {
     setB(2); // change — emitted
     setB(2); // same — suppressed
     setB(3); // change — emitted
+    flushFrame();
     expect(seen).toEqual([2, 3]);
   });
 
@@ -44,6 +49,7 @@ describe("behavior combinators", () => {
 
     setB({ id: 1 }); // equal by id — suppressed
     setB({ id: 2 }); // different id — emitted
+    flushFrame();
     expect(seen).toEqual([2]);
   });
 
@@ -60,6 +66,7 @@ describe("behavior combinators", () => {
 
       const before = maps;
       src.set(1);
+      flushFrame();
       expect(maps).toBeGreaterThan(before); // warm: the chain propagates
 
       un(); // last listener gone
@@ -68,6 +75,7 @@ describe("behavior combinators", () => {
       src.set(3);
       // With the leak the eager edge kept `mapped` awake, so `maps` would keep
       // climbing. Fixed: dedupe slept, detached `mapped`, which detached `src`.
+      flushFrame();
       expect(maps).toBe(afterUn);
     });
   });
@@ -82,6 +90,7 @@ describe("behavior combinators", () => {
     d.updates.listen((v) => seen.push(v));
     setB(2); // equal to the CURRENT value — suppressed, not compared to 1
     setB(3);
+    flushFrame();
     expect(seen).toEqual([3]);
   });
 });

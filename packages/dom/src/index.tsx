@@ -7,11 +7,15 @@ import {
   Stream,
   state,
   stream,
+  constant,
   Scope,
   getScope,
   runInScope,
   observe_,
   unobserve_,
+  flushFrame,
+  effectZone_,
+  withLayout,
 } from "@continuum-js/frp";
 import type { Unlisten, StateSource, ObserverHandle } from "@continuum-js/frp";
 
@@ -115,9 +119,17 @@ function flushMounts(scope: Scope): void {
   const mounts = scope.mounts;
   if (mounts) {
     scope.mounts = null;
-    runInScope(scope, () => {
-      for (let i = mounts.length - 1; i >= 0; i--) mounts[i]();
-    });
+    // onMount is an effect zone — on the first mount as much as on a region
+    // rebuild (law 3: measure with createSize/measure, or opt out with
+    // withLayout for a third-party widget).
+    effectZone_(1);
+    try {
+      runInScope(scope, () => {
+        for (let i = mounts.length - 1; i >= 0; i--) mounts[i]();
+      });
+    } finally {
+      effectZone_(-1);
+    }
   }
 }
 
@@ -236,6 +248,15 @@ function createEl(tag: string): Element {
     : document.createElement(tag);
 }
 
+/**
+ * Normalize a `Reactive<T>` prop: a State is returned as-is, a plain value
+ * is wrapped in a constant. The one helper a reusable component needs to
+ * accept `label: Reactive<string>` and bind it either way.
+ */
+export function asState<T>(v: T | State<T>): State<T> {
+  return v instanceof State ? v : constant(v);
+}
+
 /** Anything placeable in JSX: nodes, behaviors (live-bound), primitives, arrays. */
 export type Child =
   | Node
@@ -319,6 +340,14 @@ function setStyle(el: Element, prev: unknown, next: unknown): void {
   setProp(el, "style", next);
 }
 
+// [true-token, false-token] for the attributes whose "false" is meaningful.
+const ENUMERATED: Record<string, readonly [string, string]> = {
+  draggable: ["true", "false"],
+  spellcheck: ["true", "false"],
+  contenteditable: ["true", "false"],
+  translate: ["yes", "no"],
+};
+
 function setProp(el: Element, key: string, value: unknown): void {
   if (key === "class" || key === "className") {
     // SVG elements have a read-only `className` (SVGAnimatedString).
@@ -343,6 +372,13 @@ function setProp(el: Element, key: string, value: unknown): void {
     return;
   }
   if (typeof value === "boolean") {
+    // Enumerated attributes: "false" is a value, not an absence (an absent
+    // `draggable` means auto, an absent `spellcheck` means the default).
+    const tokens = ENUMERATED[key];
+    if (tokens) {
+      el.setAttribute(key, tokens[value ? 0 : 1]);
+      return;
+    }
     if (value) el.setAttribute(key, "");
     else el.removeAttribute(key);
     return;
@@ -393,19 +429,24 @@ const delegatedTypes = new WeakMap<Document, Set<string>>();
 function delegatedDispatch(e: Event): void {
   const key = "$$" + e.type;
   let node = e.target as Node | null;
-  while (node) {
-    const h = (node as unknown as Record<string, unknown>)[key] as
-      EventListener | undefined;
-    if (h) {
-      // handlers expect currentTarget = the element carrying the handler
-      Object.defineProperty(e, "currentTarget", {
-        configurable: true,
-        value: node,
-      });
-      h.call(node, e);
-      if (e.cancelBubble) return; // stopPropagation() halts the walk
+  try {
+    while (node) {
+      const h = (node as unknown as Record<string, unknown>)[key] as
+        EventListener | undefined;
+      if (h) {
+        // handlers expect currentTarget = the element carrying the handler
+        Object.defineProperty(e, "currentTarget", {
+          configurable: true,
+          value: node,
+        });
+        h.call(node, e);
+        if (e.cancelBubble) return; // stopPropagation() halts the walk
+      }
+      node = node.parentNode;
     }
-    node = node.parentNode;
+  } finally {
+    // give the native getter back: an event object must not pin a node
+    delete (e as unknown as Record<string, unknown>).currentTarget;
   }
 }
 
@@ -684,8 +725,10 @@ export function dyn<T>(b: State<T>, render: (v: T) => Child): Node {
 
 // A list row IS its owner plus the reuse key — the {key, owner} wrapper
 // record per row was pure overhead (10k of them at 10k rows).
-class EachOwner<K> extends Owner {
+class EachOwner<T, K> extends Owner {
   key: K;
+  /** The row's live item, when the render asked for it (`render.length >= 2`). */
+  cell: StateSource<T> | null = null;
   constructor(parent: Scope | null, key: K) {
     super(parent);
     this.key = key;
@@ -745,7 +788,7 @@ function lisIndices(seq: number[]): Set<number> {
 export function each<T, K>(
   items: State<T[]>,
   key: (item: T) => K,
-  render: (item: T) => Child,
+  render: (item: T, row: State<T>) => Child,
 ): Node {
   needRegionOwner("each()");
   const owner = getScope();
@@ -755,7 +798,7 @@ export function each<T, K>(
   frag.appendChild(start);
   frag.appendChild(end);
 
-  let rows: Array<EachOwner<K>> = [];
+  let rows: Array<EachOwner<T, K>> = [];
 
   const update = (list: T[]) => {
     const parent = end.parentNode!;
@@ -763,7 +806,7 @@ export function each<T, K>(
     rows.forEach((r, i) => oldIndex.set(r.key, i));
 
     const seen = new Set<K>();
-    const next: Array<EachOwner<K>> = [];
+    const next: Array<EachOwner<T, K>> = [];
     const seq: number[] = [];
     const freshFlushes: Owner[] = [];
     for (const item of list) {
@@ -772,11 +815,19 @@ export function each<T, K>(
       seen.add(k);
       const prevIdx = oldIndex.get(k);
       if (prevIdx !== undefined) {
-        next.push(rows[prevIdx]); // reuse: no re-render
+        const row = rows[prevIdx];
+        next.push(row); // reuse: no re-render …
+        row.cell?.set(item); // … the row's State follows the item instead
         seq.push(prevIdx);
       } else {
-        const built = new EachOwner(owner, k);
-        buildScoped(built, () => render(item));
+        const built = new EachOwner<T, K>(owner, k);
+        // A row cell only when the render declares the second parameter:
+        // 10k rows that never read it never pay for it.
+        const cell = render.length >= 2 ? state(item) : null;
+        built.cell = cell;
+        buildScoped(built, () =>
+          cell ? render(item, cell) : (render as (i: T) => Child)(item),
+        );
         next.push(built);
         seq.push(-1);
         freshFlushes.push(built);
@@ -830,7 +881,9 @@ export function each<T, K>(
       doc.activeElement !== active &&
       active.isConnected
     ) {
-      active.focus();
+      // focus() forces layout: the renderer's one documented layout call,
+      // explicitly outside the effect zone
+      withLayout(() => active.focus());
     }
 
     rows = next;
@@ -1004,6 +1057,10 @@ export function animationFrames(): Stream<number> {
   const ticks = stream<number>();
   let raf = requestAnimationFrame(function loop(t) {
     ticks.fire(t);
+    // A tick's observers would otherwise wait for the NEXT frame pass (a
+    // rAF requested from inside a rAF callback runs a frame later): run the
+    // pass now, so animation state reaches the DOM in this frame.
+    flushFrame();
     raf = requestAnimationFrame(loop);
   });
   onCleanup(() => cancelAnimationFrame(raf));
@@ -1066,9 +1123,13 @@ export function Show<T>(props: {
 export function Each<T, K = T>(props: {
   each: State<T[]>;
   by?: (item: T) => K;
-  children: (item: T) => Child;
+  /** `row` follows the item under the same key — bind `row.map(…)` for live fields. */
+  children: (item: T, row: State<T>) => Child;
 }): Node {
-  const render = asRender<T>(props.children);
+  const render = asRender<T>(props.children) as (
+    item: T,
+    row: State<T>,
+  ) => Child;
   const key = props.by ?? ((item: T) => item as unknown as K);
   return each(props.each, key, render);
 }

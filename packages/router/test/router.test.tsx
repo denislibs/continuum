@@ -11,6 +11,7 @@ import {
   useParams,
   type RouteDef,
 } from "../src/index.js";
+import { flushFrame } from "@continuum-js/frp";
 
 beforeEach(() => {
   // Through navigate (not raw history.replaceState) so the location()
@@ -21,15 +22,19 @@ afterEach(() => cleanup());
 
 describe("location & navigate", () => {
   test("location() reflects the current URL as a behavior", () => {
+    flushFrame();
     expect(location().sample().pathname).toBe("/");
     navigate("/about");
+    flushFrame();
     expect(location().sample().pathname).toBe("/about");
+    flushFrame();
     expect(window.location.pathname).toBe("/about");
   });
 
   test("replace navigation does not grow history", () => {
     const before = history.length;
     navigate("/a", { replace: true });
+    flushFrame();
     expect(history.length).toBe(before);
   });
 });
@@ -42,8 +47,10 @@ describe("Router", () => {
 
   test("renders the matched route and switches on navigate", () => {
     const { container } = render(() => <Router routes={routes} />);
+    flushFrame();
     expect(container.textContent).toBe("Home");
     navigate("/about");
+    flushFrame();
     expect(container.textContent).toBe("About");
   });
 
@@ -52,6 +59,7 @@ describe("Router", () => {
       <Router routes={routes} fallback={() => <p>lost</p>} />
     ));
     navigate("/nope");
+    flushFrame();
     expect(container.textContent).toBe("lost");
   });
 
@@ -69,6 +77,7 @@ describe("Router", () => {
     ];
     render(() => <Router routes={rs} />);
     navigate("/about");
+    flushFrame();
     expect(cleaned).toBe(1);
   });
 });
@@ -92,8 +101,10 @@ describe("nested routes & params", () => {
     ];
     const { container } = render(() => <Router routes={routes} />);
     navigate("/users");
+    flushFrame();
     expect(container.textContent).toBe("Userslist");
     navigate("/users/7");
+    flushFrame();
     expect(container.textContent).toBe("Usersuser");
   });
 
@@ -116,9 +127,12 @@ describe("nested routes & params", () => {
     ];
     const { container } = render(() => <Router routes={routes} />);
     navigate("/users/1");
+    flushFrame();
     expect(container.textContent).toBe("user 1");
     navigate("/users/2");
+    flushFrame();
     expect(container.textContent).toBe("user 2");
+    flushFrame();
     expect(builds).toBe(1); // fine-grained: same route def -> same subtree
   });
 });
@@ -137,10 +151,14 @@ describe("Link", () => {
       </div>
     ));
     const a = container.querySelector("a")!;
+    flushFrame();
     expect(a.classList.contains("active")).toBe(false);
     click(a);
+    flushFrame();
     expect(container.textContent).toContain("about");
+    flushFrame();
     expect(window.location.pathname).toBe("/about");
+    flushFrame();
     expect(a.classList.contains("active")).toBe(true);
   });
 
@@ -164,13 +182,16 @@ describe("Link", () => {
     const a = container.querySelector("a")!;
     const before = window.location.pathname;
     const ev = leftClick(a);
+    flushFrame();
     expect(ev.defaultPrevented).toBe(false); // browser handles it
+    flushFrame();
     expect(window.location.pathname).toBe(before); // no client-side navigate
   });
 
   test("does not intercept a mailto: link", () => {
     const { container } = render(() => <Link href="mailto:a@b.com">mail</Link>);
     const ev = leftClick(container.querySelector("a")!);
+    flushFrame();
     expect(ev.defaultPrevented).toBe(false);
   });
 
@@ -181,10 +202,13 @@ describe("Link", () => {
       </Link>
     ));
     const a = container.querySelector("a")!;
+    flushFrame();
     expect(a.getAttribute("target")).toBe("_blank");
     const before = window.location.pathname;
     const ev = leftClick(a);
+    flushFrame();
     expect(ev.defaultPrevented).toBe(false);
+    flushFrame();
     expect(window.location.pathname).toBe(before);
   });
 });
@@ -207,21 +231,27 @@ describe("lazy", () => {
       { path: "about", component: About },
     ];
     const { container } = render(() => <Router routes={routes} />);
+    flushFrame();
     expect(loaded).toBe(0); // not visited -> not loaded
 
     navigate("/about");
+    flushFrame();
     expect(loaded).toBe(1);
+    flushFrame();
     expect(container.textContent).toBe("loading…");
 
     release();
     await flush();
+    flushFrame();
     expect(container.textContent).toBe("lazy about");
 
     // returning later reuses the cached module, no second load
     navigate("/");
     navigate("/about");
     await flush();
+    flushFrame();
     expect(loaded).toBe(1);
+    flushFrame();
     expect(container.textContent).toBe("lazy about");
   });
 });
@@ -235,7 +265,9 @@ describe("guards", () => {
     ];
     const { container } = render(() => <Router routes={routes} />);
     navigate("/admin");
+    flushFrame();
     expect(container.textContent).toBe("login");
+    flushFrame();
     expect(window.location.pathname).toBe("/login");
   });
 });

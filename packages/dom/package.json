@@ -1,7 +1,7 @@
 {
   "name": "@continuum-js/dom",
   "version": "1.0.0",
-  "description": "Continuum DOM renderer — fine-grained bindings, dynamic regions, ownership, context",
+  "description": "Continuum DOM renderer \u2014 fine-grained bindings, dynamic regions, ownership, context",
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -29,6 +29,10 @@
     "./compiled": {
       "types": "./dist/compiled.d.ts",
       "import": "./dist/compiled.js"
+    },
+    "./layout": {
+      "types": "./dist/layout.d.ts",
+      "import": "./dist/layout.js"
     }
   },
   "files": [

@@ -8,6 +8,7 @@ import {
   constant,
   type State,
 } from "@continuum-js/frp";
+import { flushFrame } from "@continuum-js/frp";
 
 describe("error semantics (§5.1 + isolation)", () => {
   test("exception in a combinator propagates but the engine recovers", () => {
@@ -19,8 +20,10 @@ describe("error semantics (§5.1 + isolation)", () => {
     }).listen((v) => seen.push(v));
 
     fire(1);
+    flushFrame();
     expect(() => fire(2)).toThrow("bad");
     fire(3); // subsequent moments still work
+    flushFrame();
     expect(seen).toEqual([1, 3]);
   });
 
@@ -33,10 +36,14 @@ describe("error semantics (§5.1 + isolation)", () => {
     });
     const b = root(() => mapped.hold(0));
     fire(5);
+    flushFrame();
     expect(b.sample()).toBe(5);
+    flushFrame();
     expect(() => fire(99)).toThrow("nope");
+    flushFrame();
     expect(b.sample()).toBe(5); // 99 never committed
     fire(7);
+    flushFrame();
     expect(b.sample()).toBe(7);
   });
 
@@ -48,7 +55,8 @@ describe("error semantics (§5.1 + isolation)", () => {
     });
     e.listen((v) => seen.push(v));
 
-    expect(() => fire(1)).toThrow("obs1");
+    fire(1);
+    expect(() => flushFrame()).toThrow("obs1");
     expect(seen).toEqual([1]); // second observer still ran
   });
 
@@ -72,6 +80,7 @@ describe("error semantics (§5.1 + isolation)", () => {
       // Switch flat onto c AND poison, so the switch's phase-2 emission throws
       // — aborting the moment after c.onWake ran but before its reseed reset.
       poison = true;
+      flushFrame();
       expect(() => sel.set(c)).toThrow("boom");
       poison = false;
 
@@ -80,6 +89,7 @@ describe("error semantics (§5.1 + isolation)", () => {
       const seen: number[] = [];
       c.updates.listen((v) => seen.push(v));
       a.set(10);
+      flushFrame();
       expect(seen).toEqual([11]);
     });
   });

@@ -16,6 +16,10 @@ export default defineConfig({
         replacement: r("./packages/dom/src/jsx-runtime.ts"),
       },
       {
+        find: "@continuum-js/dom/layout",
+        replacement: r("./packages/dom/src/layout.ts"),
+      },
+      {
         find: "@continuum-js/dom/compiled",
         replacement: r("./packages/dom/src/compiled.ts"),
       },
@@ -36,6 +40,10 @@ export default defineConfig({
         replacement: r("./packages/router/src/index.ts"),
       },
       {
+        find: "@continuum-js/devtools",
+        replacement: r("./packages/devtools/src/index.ts"),
+      },
+      {
         find: "@continuum-js/frp",
         replacement: r("./packages/frp/src/index.ts"),
       },
@@ -52,9 +60,10 @@ export default defineConfig({
   test: {
     globals: true,
     environment: "jsdom",
+    setupFiles: ["./vitest.setup.ts"],
     include: [
       "packages/*/test/**/*.test.{ts,tsx}",
-      "examples/*/*.test.{ts,tsx}",
+      "examples/*/**/*.test.{ts,tsx}",
       "benchmark/src/**/*.test.{ts,tsx}",
     ],
   },

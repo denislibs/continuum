@@ -1,6 +1,7 @@
 import { describe, test, expect, afterEach } from "vitest";
 import { mount, dyn, each, onMount, portal } from "@continuum-js/dom";
 import { state } from "@continuum-js/frp";
+import { flushFrame } from "@continuum-js/frp";
 
 let unmounts: Array<() => void> = [];
 afterEach(() => {
@@ -28,7 +29,9 @@ describe("onMount", () => {
       });
       return el;
     });
+    flushFrame();
     expect(calls).toBe(1);
+    flushFrame();
     expect(connectedAtCall).toBe(true);
   });
 
@@ -46,6 +49,7 @@ describe("onMount", () => {
         </div>
       );
     });
+    flushFrame();
     expect(order).toEqual(["child", "parent"]);
   });
 
@@ -63,9 +67,12 @@ describe("onMount", () => {
         return el;
       }),
     );
+    flushFrame();
     expect(connectedAtCall).toBe(false);
     setShow(true);
+    flushFrame();
     expect(connectedAtCall).toBe(true);
+    flushFrame();
     expect(container.contains(el)).toBe(true);
   });
 
@@ -83,8 +90,10 @@ describe("onMount", () => {
         },
       ),
     );
+    flushFrame();
     expect(mounted).toEqual(["a"]);
     setItems(["a", "b"]);
+    flushFrame();
     expect(mounted).toEqual(["a", "b"]);
   });
 
@@ -102,7 +111,9 @@ describe("onMount", () => {
       };
       return portal(target, content());
     });
+    flushFrame();
     expect(connectedAtCall).toBe(true);
+    flushFrame();
     expect(target.contains(el)).toBe(true);
   });
 
@@ -117,11 +128,14 @@ describe("onMount", () => {
       }),
     );
     setV(1);
+    flushFrame();
     setV(2);
+    flushFrame();
     expect(mounted).toEqual([0, 1, 2]);
   });
 
   test("throws outside any owner (a mount hook nobody flushes)", () => {
+    flushFrame();
     expect(() => onMount(() => {})).toThrow(/outside/i);
   });
 });

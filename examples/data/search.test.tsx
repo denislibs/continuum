@@ -1,6 +1,7 @@
 import { describe, test, expect, vi, afterEach } from "vitest";
 import { mount } from "@continuum-js/dom";
 import { UserSearch, type User } from "./search";
+import { flushFrame } from "@continuum-js/frp";
 
 describe("UserSearch", () => {
   afterEach(() => vi.useRealTimers());
@@ -8,6 +9,7 @@ describe("UserSearch", () => {
   const type = (input: HTMLInputElement, v: string) => {
     input.value = v;
     input.dispatchEvent(new window.Event("input", { bubbles: true }));
+    flushFrame(); // handlers' state changes reach effects (debounce) now
   };
 
   test("debounces typing, shows loading, then renders fetched users", async () => {
@@ -25,6 +27,7 @@ describe("UserSearch", () => {
     const input = container.querySelector("input")!;
 
     // hint shown while idle
+    flushFrame();
     expect(container.querySelector(".hint")).not.toBeNull();
 
     // a burst of keystrokes within the debounce window → one fetch
@@ -32,10 +35,13 @@ describe("UserSearch", () => {
     type(input, "an");
     type(input, "ann");
     await vi.advanceTimersByTimeAsync(299);
+    flushFrame();
     expect(calls).toEqual([]); // debounced, no fetch yet
 
     await vi.advanceTimersByTimeAsync(1);
+    flushFrame();
     expect(calls).toEqual(["ann"]);
+    flushFrame();
     expect(container.querySelector(".loading")).not.toBeNull();
 
     resolve([
@@ -44,10 +50,12 @@ describe("UserSearch", () => {
     ]);
     await vi.advanceTimersByTimeAsync(0);
 
+    flushFrame();
     expect(container.querySelector(".loading")).toBeNull();
     const items = Array.from(container.querySelectorAll("li")).map(
       (li) => li.textContent,
     );
+    flushFrame();
     expect(items).toEqual(["ann", "annie"]);
   });
 
@@ -61,9 +69,12 @@ describe("UserSearch", () => {
 
     type(input, "zzz");
     await vi.advanceTimersByTimeAsync(300);
+    flushFrame(); // the debounced query reaches `resource` in the frame pass
     await vi.advanceTimersByTimeAsync(0);
 
+    flushFrame();
     expect(container.querySelector(".empty")).not.toBeNull();
+    flushFrame();
     expect(container.querySelectorAll("li").length).toBe(0);
   });
 });

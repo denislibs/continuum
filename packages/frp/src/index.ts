@@ -9,6 +9,52 @@
 /** Handle returned by `listen`: call it to unsubscribe. */
 export type Unlisten = () => void;
 
+/**
+ * @internal Engine counters for devtools: live scopes, live subscriptions
+ * (edges), moments opened. Null in production — one null check per event.
+ */
+export interface DevHooks {
+  scope?: (delta: 1 | -1) => void;
+  edge?: (delta: number) => void;
+  moment?: () => void;
+}
+let dev: DevHooks | null = null;
+
+/** @internal Install (or remove, with `null`) the devtools counters. */
+export function setDevHooks(h: DevHooks | null): void {
+  dev = h;
+}
+
+// The effect zone: > 0 while the frame pass runs bindings and effects (and
+// while a renderer flushes its mount hooks). Law 3: a layout read here is a
+// violation — devtools' patched getters check this flag.
+let effectZone = 0;
+
+/** @internal True while observers run (bindings, effects, mount hooks). */
+export function inEffectZone(): boolean {
+  return effectZone > 0;
+}
+
+/** @internal Enter (+1) or leave (-1) the effect zone — for renderers. */
+export function effectZone_(delta: 1 | -1): void {
+  effectZone += delta;
+}
+
+/**
+ * Run `fn` outside the effect zone: an explicit, lint-visible layout read
+ * from an effect (a third-party widget's init in `onMount`). The zone is
+ * restored afterwards, even if `fn` throws.
+ */
+export function withLayout<T>(fn: () => T): T {
+  const saved = effectZone;
+  effectZone = 0;
+  try {
+    return fn();
+  } finally {
+    effectZone = saved;
+  }
+}
+
 // A subscriber inside the graph: receives the enclosing transaction + value.
 type Handler<A> = (t: Transaction, a: A) => void;
 
@@ -62,6 +108,7 @@ export class Scope {
   constructor(parent: Scope | null = currentScope) {
     this.parent = parent;
     if (parent) (parent.children ??= []).push(this);
+    dev?.scope?.(1);
   }
 
   /** Register a teardown to run when this scope disposes. */
@@ -73,6 +120,7 @@ export class Scope {
   dispose(): void {
     if ((this.flags & 1) !== 0) return;
     this.flags |= 1;
+    dev?.scope?.(-1);
     if (this.children) {
       for (let i = this.children.length - 1; i >= 0; i--) {
         this.children[i].dispose();
@@ -86,8 +134,10 @@ export class Scope {
       this.cleanups.length = 0;
     }
     if (this.parent) {
+      // A parent that is disposing drains its list itself — a per-child
+      // indexOf+splice there made a 10k-row teardown quadratic.
       const siblings = this.parent.children;
-      if (siblings) {
+      if (siblings && (this.parent.flags & 1) === 0) {
         const idx = siblings.indexOf(this);
         if (idx >= 0) siblings.splice(idx, 1);
       }
@@ -202,9 +252,12 @@ export class Transaction {
   }
 
   // --- phase 3: observer side effects, run after the moment closes ---
-  post<X>(fn: (x: X) => void, arg: X): void {
+  // Stores the EDGE (not the bare handler): the frame scheduler needs the
+  // edge to coalesce bindings per subscriber and to skip edges removed
+  // before the frame fires.
+  post<X>(e: Edge<X>, arg: X): void {
     const q = this.postQ;
-    q[this.postN++] = fn;
+    q[this.postN++] = e;
     q[this.postN++] = arg;
   }
 
@@ -335,6 +388,7 @@ export class Transaction {
       t = new Transaction();
     }
     Transaction.current = t;
+    dev?.moment?.();
     let result: A;
     try {
       result = f(t);
@@ -348,28 +402,135 @@ export class Transaction {
     // transaction — this one is not in the pool yet, so no aliasing).
     // Observers are isolated: one throwing does not stop the rest; the
     // first error is rethrown.
+    // phase 3 is deferred to the FRAME pass (see the scheduler below):
+    // bindings coalesce per edge (latest value wins — a binding is
+    // level-triggered), effects queue in order (every occurrence — an
+    // effect is edge-triggered). The moment itself is closed: a `send`
+    // from the pass opens a brand-new moment.
     const posts = t.postQ;
     const postN = t.postN;
-    let firstErr: unknown;
-    let hasErr = false;
     for (let i = 0; i < postN; i += 2) {
-      const fn = posts[i] as (x: unknown) => void;
+      const e = posts[i] as Edge<unknown>;
       const arg = posts[i + 1];
       posts[i] = posts[i + 1] = undefined; // recycled array must retain nothing
-      try {
-        fn(arg);
-      } catch (err) {
-        if (!hasErr) {
-          hasErr = true;
-          firstErr = err;
-        }
+      if (e.t === POST) frameLevel.set(e, arg);
+      else {
+        frameEffects[frameEffectN++] = e;
+        frameEffects[frameEffectN++] = arg;
       }
     }
     t.postN = 0;
     Transaction.pool = t;
-    if (hasErr) throw firstErr;
+    if (postN > 0 && !flushing) scheduleFrame();
     return result;
   }
+}
+
+// ---------------------------------------------------------------------------
+// Frame scheduler — the observer phase.
+//
+// The graph updates synchronously (`sample()` is current the instant `set()`
+// returns), but observers run in ONE pass per animation frame: measures
+// first (layout reads, before any write), then bindings (one delivery per
+// edge, the latest value), then effects (every occurrence, FIFO). A `set`
+// from inside the pass lands in the same pass. `flushFrame()` runs the pass
+// now — the escape hatch for code that must read the DOM after a write.
+// ---------------------------------------------------------------------------
+
+// bindings: edge -> latest arg (insertion order = first delivery order)
+let frameLevel = new Map<Edge<unknown>, unknown>();
+// effects: flat (edge, arg) pairs
+let frameEffects: unknown[] = [];
+let frameEffectN = 0;
+let measureQ: Array<() => void> = [];
+let frameScheduled = false;
+let rafId = 0;
+let timeoutId: ReturnType<typeof setTimeout> | undefined;
+// rAF does not fire in a background tab; the timeout keeps logic that waits
+// on a frame (a `measure` result) from stalling there.
+const FRAME_TIMEOUT_MS = 35;
+
+/**
+ * Queue a layout read for the next frame pass; it runs before any binding
+ * of that pass writes to the DOM.
+ */
+export function requestMeasure(cb: () => void): void {
+  measureQ.push(cb);
+  if (!flushing) scheduleFrame();
+}
+
+function scheduleFrame(): void {
+  if (frameScheduled) return;
+  frameScheduled = true;
+  const raf = typeof requestAnimationFrame === "function";
+  if (raf) rafId = requestAnimationFrame(flushFrame);
+  timeoutId = setTimeout(flushFrame, raf ? FRAME_TIMEOUT_MS : 0);
+}
+
+/**
+ * Run the pending frame pass now (measures → bindings → effects). A no-op
+ * when nothing is pending. Observers are isolated: one throwing does not
+ * stop the rest; the first error is rethrown at the end.
+ */
+let flushing = false;
+
+export function flushFrame(): void {
+  if (flushing) return; // re-entrant call from inside the pass: already draining
+  flushing = true;
+  try {
+    flushFrameNow();
+  } finally {
+    flushing = false;
+  }
+}
+
+function flushFrameNow(): void {
+  if (frameScheduled) {
+    frameScheduled = false;
+    if (rafId !== 0) cancelAnimationFrame(rafId);
+    rafId = 0;
+    clearTimeout(timeoutId);
+  }
+  let firstErr: unknown;
+  let hasErr = false;
+  // one call site for the isolation rule: an observer that throws does not
+  // stop the rest; the first error is rethrown once the pass is done
+  const call = (e: Edge<unknown> | null, a: unknown, cb?: () => void) => {
+    if (e !== null && e.i === -1) return; // unsubscribed before its turn
+    try {
+      if (e === null) cb!();
+      else (e.h as Observer<unknown>)(a);
+    } catch (err) {
+      if (!hasErr) {
+        hasErr = true;
+        firstErr = err;
+      }
+    }
+  };
+  // Rounds of reads-then-writes until nothing is pending: a measure
+  // requested from inside a round (an effect reacting to an insertion)
+  // runs after that round's writes and still in this frame — before paint
+  // — and the moments its results open get their writes in the next round.
+  do {
+    while (measureQ.length > 0) {
+      const q = measureQ;
+      measureQ = [];
+      for (const cb of q) call(null, undefined, cb);
+    }
+    effectZone++;
+    while (frameLevel.size > 0 || frameEffectN > 0) {
+      const m = frameLevel;
+      frameLevel = new Map();
+      for (const [e, a] of m) call(e, a);
+      const q = frameEffects;
+      const n = frameEffectN;
+      frameEffects = [];
+      frameEffectN = 0;
+      for (let i = 0; i < n; i += 2) call(q[i] as Edge<unknown>, q[i + 1]);
+    }
+    effectZone--;
+  } while (measureQ.length > 0);
+  if (hasErr) throw firstErr;
 }
 
 // ---------------------------------------------------------------------------
@@ -506,7 +667,7 @@ export class Stream<A> {
       const o0 = n.ob0;
       if (o0 !== null) {
         const t0 = o0.t;
-        if (t0 !== null && t0 !== POST) {
+        if (t0 !== null && t0.rank >= 0) {
           if (onPath.has(t0))
             throw new Error("Continuum: dependency cycle detected");
           stack.push({ n: t0, l: n.rank });
@@ -514,7 +675,7 @@ export class Stream<A> {
       } else if (n.obs) {
         for (const e of n.obs) {
           const t = e.t;
-          if (t === null || t === POST) continue;
+          if (t === null || t.rank < 0) continue;
           if (onPath.has(t))
             throw new Error("Continuum: dependency cycle detected");
           // duplicate edges to one target just revisit an already-high rank
@@ -542,6 +703,7 @@ export class Stream<A> {
       );
     }
     const rec: Edge<any> = { h, t: target, i: -2 };
+    dev?.edge?.(1);
     const obs = this.obs;
     if (obs === null) {
       const first = this.ob0;
@@ -565,7 +727,7 @@ export class Stream<A> {
     }
     // keep the target strictly above this source (handles dynamic
     // subscriptions from flatten onto deeper events).
-    if (target !== null && target !== POST) target.ensureBiggerThan(this.rank);
+    if (target !== null && target.rank >= 0) target.ensureBiggerThan(this.rank);
     return rec;
   }
 
@@ -575,11 +737,13 @@ export class Stream<A> {
     if (rec === this.ob0) {
       this.ob0 = null;
       rec.i = -1;
+      dev?.edge?.(-1);
       this.sleep();
       return;
     }
     const obs = this.obs;
     if (!obs || rec.i < 0) return;
+    dev?.edge?.(-1);
     const last = obs.pop()!;
     if (last !== rec) {
       obs[rec.i] = last;
@@ -603,7 +767,7 @@ export class Stream<A> {
       // (The sentinel target discriminates the union in `Edge.h`: a POST
       // edge carries the user callback — schedule it for the observer
       // phase without a per-listen wrapper closure.)
-      if (o0.t === POST) t.post(o0.h as Observer<A>, a);
+      if (o0.t !== null && o0.t.rank < 0) t.post(o0, a);
       else (o0.h as Handler<A>)(t, a);
       return;
     }
@@ -613,7 +777,7 @@ export class Stream<A> {
     // allocates nothing.
     const ls = (this.snap ??= this.obs.length > 0 ? [...this.obs] : EMPTY_SNAP);
     for (const e of ls) {
-      if (e.t === POST) t.post(e.h as Observer<A>, a);
+      if (e.t !== null && e.t.rank < 0) t.post(e, a);
       else (e.h as Handler<A>)(t, a);
     }
   }
@@ -722,6 +886,8 @@ export class Stream<A> {
     const cs = this.cleanups;
     this.cleanups = null;
     if (cs) for (const c of cs) c();
+    // downstream edges are dropped wholesale, not unlistened one by one
+    if (dev?.edge) dev.edge(-((this.ob0 ? 1 : 0) + (this.obs?.length ?? 0)));
     this.ob0 = null;
     this.obs = null;
     this.snap = null;
@@ -930,7 +1096,7 @@ export class Stream<A> {
     // No dispose-cascade here (it used to guess liveness from listener
     // counts and guessed wrong): pure derivations sleep on their own, and
     // stateful ones live exactly as long as their owning scope.
-    const rec = this.attach_(POST, h);
+    const rec = this.attach_(POST_EFFECT, h);
     return () => this.unlisten_(rec);
   }
 
@@ -950,7 +1116,12 @@ export class Stream<A> {
 // directly. This kills the `(t, a) => t.post(h, a)` wrapper closure every
 // `listen()` used to allocate. Rank machinery skips the sentinel.
 // (Below the class: `new Stream` needs the declaration evaluated.)
-const POST = new Stream<any>(0);
+// Both sentinels carry rank -1: `t.rank < 0` is the one check for "this
+// edge belongs to the observer phase" (rank machinery and `send_`).
+const POST = new Stream<any>(-1);
+// Sentinel for EFFECT edges (`listen`): in the frame pass effects deliver
+// every occurrence, while POST bindings coalesce to the latest value.
+const POST_EFFECT = new Stream<any>(-1);
 
 // ---------------------------------------------------------------------------
 // State<A> — a value across time (pull) + discrete `updates` (push).
@@ -995,12 +1166,19 @@ export class State<A> {
     return out;
   }
 
-  /** Deliver the current value immediately, then every change. */
+  /**
+   * Deliver the current value immediately, then the value as of each frame
+   * it changed in. A state is a LEVEL: like a binding, the listener gets one
+   * delivery per frame pass with the latest value (several changes between
+   * frames coalesce) — unlike `updates.listen`, which is the stream view and
+   * delivers every occurrence.
+   */
   listen(h: (a: A) => void): Unlisten {
     // Register BEFORE the initial delivery: if `h` fires a transaction while
     // handling the initial value (e.g. an error boundary flipping its state
     // during the first render), that update must not be lost.
-    const un = this.updates.listen(h);
+    const rec = this.updates.attach_(POST, h);
+    const un = () => this.updates.unlisten_(rec);
     try {
       // Initial delivery is a pure read; sample directly instead of opening
       // a fresh transaction per listener (hot path with many bindings).
@@ -1236,7 +1414,7 @@ function makeFire<A>(e: Stream<A>, once: boolean): (a: A) => void {
   return (a: A) => {
     if (Transaction.current?.pureZone) {
       throw new Error(
-        "Source fired inside a pure combinator (map/filter/snapshot/accum). " +
+        "Source fired inside a pure combinator (map/filter/at/accum). " +
           "Keep those callbacks pure — fire from a handler, `listen`, or `perform`.",
       );
     }
@@ -1520,6 +1698,54 @@ export function selector<K, V>(
   };
 }
 
+/** A dictionary a `keyed` process can read: a Record or a Map. */
+export type Dict<K, V> = Record<K & (string | number), V> | Map<K, V>;
+
+function dictGet<K, V>(d: Dict<K, V>, k: K): V | undefined {
+  return d instanceof Map
+    ? d.get(k)
+    : (d as Record<string | number, V>)[k as string | number];
+}
+
+/**
+ * Per-key cells over a dictionary state — the fine-grained answer to "N
+ * rows selecting from one store". ONE process watches `dict`; on each
+ * update it checks only the live cells (by `eq`, default `Object.is` on the
+ * value) and stages the ones whose value changed. A cell is created on
+ * request, seeded from the current dictionary, and evicted once its last
+ * listener detaches (re-requesting reseeds). `undefined` means "absent".
+ *
+ * ```ts
+ * const chatById = keyed(global.map((g) => g.chats.byId));
+ * const chat = chatById(props.chatId); // one cell, one edge, updates only when THIS chat changes
+ * ```
+ */
+export function keyed<K, V>(
+  dict: State<Dict<K, V>>,
+  eq: (a: V | undefined, b: V | undefined) => boolean = Object.is,
+): (key: K) => State<V | undefined> {
+  const scope = requireScope("keyed()", "keyed(byId)");
+  const cells = new Map<K, Cell<V | undefined>>();
+  const un = dict.updates.listen_(null, (t, d) => {
+    for (const [k, c] of cells) {
+      const next = dictGet(d, k);
+      if (!eq(c.pending(t), next)) c.stage(t, next);
+    }
+  });
+  scope.onDispose(un);
+  return (key: K) => {
+    let c = cells.get(key);
+    if (!c) {
+      c = new Cell<V | undefined>(dictGet(dict.sampleNoTrans(), key), eq);
+      c.updates.onSleep = () => {
+        cells.delete(key);
+      };
+      cells.set(key, c);
+    }
+    return c;
+  };
+}
+
 /** A source stream plus its `fire`, as one value. */
 export function stream<A>(): StreamSource<A> {
   const [e, fire] = newStream<A>();
@@ -1667,7 +1893,16 @@ export function perform<A, B>(
   // listen runs in phase post (after the moment closes); the promise
   // settles later, and `fire` opens a brand-new moment.
   const un = e.listen((a) => {
-    run(a).then(
+    // "errors flow as data" covers a run() that throws before it returns a
+    // promise (a bad URL, a serializer) — not only a rejection.
+    let p: Promise<B>;
+    try {
+      p = run(a);
+    } catch (error) {
+      if (!dead) fire({ ok: false, error });
+      return;
+    }
+    p.then(
       (value) => {
         if (!dead) fire({ ok: true, value });
       },

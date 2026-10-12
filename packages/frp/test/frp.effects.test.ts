@@ -1,6 +1,7 @@
 import { describe, test, expect } from "vitest";
 import { root, newStream } from "@continuum-js/frp";
 import { distinct, perform } from "@continuum-js/frp";
+import { flushFrame } from "@continuum-js/frp";
 
 const tick = () => new Promise((r) => setTimeout(r, 0));
 
@@ -14,6 +15,7 @@ describe("distinct", () => {
     fire(2);
     fire(2);
     fire(1);
+    flushFrame();
     expect(seen).toEqual([1, 2, 1]);
   });
 
@@ -24,6 +26,7 @@ describe("distinct", () => {
     fire({ id: 1 });
     fire({ id: 1 }); // different object, same id -> suppressed
     fire({ id: 2 });
+    flushFrame();
     expect(seen).toEqual([1, 2]);
   });
 });
@@ -36,7 +39,9 @@ describe("perform", () => {
       seen.push(r as { ok: boolean; value?: number }),
     );
     fire(5);
+    flushFrame(); // the request effect runs in the frame pass
     await tick();
+    flushFrame();
     expect(seen).toEqual([{ ok: true, value: 10 }]);
   });
 
@@ -49,9 +54,13 @@ describe("perform", () => {
       }),
     ).listen((r) => seen.push(r as { ok: boolean; error?: unknown }));
     fire(1);
+    flushFrame(); // the request effect runs in the frame pass
     await tick();
+    flushFrame();
     expect(seen).toHaveLength(1);
+    flushFrame();
     expect(seen[0].ok).toBe(false);
+    flushFrame();
     expect((seen[0].error as Error).message).toBe("boom");
   });
 });

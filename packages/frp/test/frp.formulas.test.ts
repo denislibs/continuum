@@ -11,6 +11,7 @@ import {
   Stream,
   State,
 } from "@continuum-js/frp";
+import { flushFrame } from "@continuum-js/frp";
 
 describe("merge is a formula", () => {
   test("a cold merge never touches its inputs", () => {
@@ -23,6 +24,7 @@ describe("merge is a formula", () => {
     });
     Stream.merge(counted, b, (l, r) => l + r);
     a.fire(1);
+    flushFrame();
     expect(calls).toBe(0); // recipe: nothing attached
   });
 
@@ -33,12 +35,15 @@ describe("merge is a formula", () => {
     const seen: number[] = [];
     const un = m.listen((v) => seen.push(v));
     a.fire(1);
+    flushFrame();
     expect(seen).toEqual([1]);
     un();
     a.fire(99); // asleep
+    flushFrame();
     expect(seen).toEqual([1]);
     m.listen((v) => seen.push(v));
     b.fire(2);
+    flushFrame();
     expect(seen).toEqual([1, 2]);
   });
 });
@@ -54,6 +59,7 @@ describe("distinct is a formula with per-warm-period memory", () => {
       }),
     );
     src.fire(1);
+    flushFrame();
     expect(calls).toBe(0);
   });
 
@@ -65,11 +71,13 @@ describe("distinct is a formula with per-warm-period memory", () => {
     src.fire(1);
     src.fire(1);
     src.fire(2);
+    flushFrame();
     expect(seen).toEqual([1, 2]);
     un(); // sleeps: the one-value memory belongs to the warm period
     const seen2: number[] = [];
     d.listen((v) => seen2.push(v));
     src.fire(2); // same as the last delivered before the sleep
+    flushFrame();
     expect(seen2).toEqual([2]); // fresh period: it passes
   });
 });
@@ -82,6 +90,7 @@ describe("once is a formula with a persistent (observation-consistent) flag", ()
     const seen: number[] = [];
     o.listen((v) => seen.push(v));
     src.fire(2);
+    flushFrame();
     expect(seen).toEqual([2]);
   });
 
@@ -91,11 +100,13 @@ describe("once is a formula with a persistent (observation-consistent) flag", ()
     const seen: number[] = [];
     const un = o.listen((v) => seen.push(v));
     src.fire(1);
+    flushFrame();
     expect(seen).toEqual([1]);
     un();
     const seen2: number[] = [];
     o.listen((v) => seen2.push(v));
     src.fire(2);
+    flushFrame();
     expect(seen2).toEqual([]); // spent
   });
 });
@@ -111,6 +122,7 @@ describe("flatten is a formula", () => {
     const sel = state<Stream<number>>(counted);
     flatten(sel);
     a.fire(1);
+    flushFrame();
     expect(calls).toBe(0);
   });
 
@@ -122,6 +134,7 @@ describe("flatten is a formula", () => {
     const seen: number[] = [];
     const un = flat.listen((v) => seen.push(v));
     a.fire(1);
+    flushFrame();
     un(); // asleep
     sel.set(b); // selection changes while nobody watches
     a.fire(99);
@@ -130,7 +143,9 @@ describe("flatten is a formula", () => {
     flat.listen((v) => seen2.push(v)); // wake: must attach b, not a
     b.fire(2);
     a.fire(97);
+    flushFrame();
     expect(seen2).toEqual([2]);
+    flushFrame();
     expect(seen).toEqual([1]);
   });
 
@@ -144,17 +159,22 @@ describe("flatten is a formula", () => {
     });
     const sel = state<State<number>>(yc);
     const flat = flatten(sel);
+    flushFrame();
     expect(flat.sample()).toBe(10); // pull through, fully cold
+    flushFrame();
     expect(calls).toBe(1); // the pull recompute only
     const seen: number[] = [];
     const un = flat.listen((v) => seen.push(v));
     y.set(20);
+    flushFrame();
     expect(seen).toEqual([10, 20]);
     un(); // sleep: the inner subscription must detach too
     const before = calls;
     y.set(30);
+    flushFrame();
     expect(calls).toBe(before); // yc asleep — no push computation
     sel.set(x);
+    flushFrame();
     expect(flat.sample()).toBe(1); // still answers cold
   });
 
@@ -169,6 +189,7 @@ describe("flatten is a formula", () => {
     sel.set(b);
     b.fire("b1");
     a.fire("a2"); // no longer selected
+    flushFrame();
     expect(seen).toEqual(["a1", "b1"]);
   });
 });

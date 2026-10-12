@@ -1,6 +1,7 @@
 import { describe, test, expect } from "vitest";
 import { mount } from "@continuum-js/dom";
 import { Counter } from "./counter";
+import { flushFrame } from "@continuum-js/frp";
 
 describe("Counter (end-to-end DOM -> Stream -> State -> DOM)", () => {
   test("clicking patches exactly the bound text node", () => {
@@ -9,12 +10,15 @@ describe("Counter (end-to-end DOM -> Stream -> State -> DOM)", () => {
     mount(container, () => <Counter />);
     const btn = container.querySelector("button")!;
     const textNode = btn.lastChild; // the {count} binding
+    flushFrame();
     expect(btn.textContent).toBe("count: 0");
     btn.click();
     btn.click();
     btn.click();
+    flushFrame();
     expect(btn.textContent).toBe("count: 3");
     // the same text node was patched in place (no re-render)
+    flushFrame();
     expect(btn.lastChild).toBe(textNode);
   });
 });

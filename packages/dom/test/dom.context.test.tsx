@@ -10,6 +10,7 @@ import {
   portal,
 } from "@continuum-js/dom";
 import { state, constant } from "@continuum-js/frp";
+import { flushFrame } from "@continuum-js/frp";
 
 describe("context", () => {
   test("use falls back to the default when nothing is provided", () => {
@@ -25,6 +26,7 @@ describe("context", () => {
         <Leaf />
       </div>
     ));
+    flushFrame();
     expect(seen).toBe("light");
   });
 
@@ -48,6 +50,7 @@ describe("context", () => {
         </div>
       );
     });
+    flushFrame();
     expect(results).toEqual(["outer", "inner"]);
   });
 
@@ -66,8 +69,10 @@ describe("context", () => {
       provide(ThemeCtx, theme);
       return <Leaf />;
     });
+    flushFrame();
     expect(node!.textContent).toBe("dark");
     setTheme("solarized");
+    flushFrame();
     expect(node!.textContent).toBe("solarized"); // dynamics flow through the State
   });
 });
@@ -88,14 +93,20 @@ describe("when", () => {
         () => <span>no</span>,
       ),
     );
+    flushFrame();
     expect(container.textContent).toBe("yes");
+    flushFrame();
     expect(thenRenders).toBe(1);
     set(true); // same value -> no rebuild
+    flushFrame();
     expect(thenRenders).toBe(1);
     set(false);
+    flushFrame();
     expect(container.textContent).toBe("no");
     set(true);
+    flushFrame();
     expect(container.textContent).toBe("yes");
+    flushFrame();
     expect(thenRenders).toBe(2);
   });
 });
@@ -106,9 +117,11 @@ describe("bindInput", () => {
     const setText = text.set;
     const input = (<input {...bindInput(text, setText)} />) as HTMLInputElement;
     document.body.appendChild(input); // delegated events need a connected tree
+    flushFrame();
     expect(input.value).toBe("hi");
     input.value = "world";
     input.dispatchEvent(new window.Event("input", { bubbles: true }));
+    flushFrame();
     expect(text.sample()).toBe("world");
     input.remove();
   });
@@ -119,9 +132,12 @@ describe("portal", () => {
     const target = document.createElement("div");
     const container = document.createElement("div");
     const unmount = mount(container, () => portal(target, <span>hi</span>));
+    flushFrame();
     expect(target.textContent).toBe("hi");
+    flushFrame();
     expect(container.textContent).toBe(""); // only a placeholder comment
     unmount();
+    flushFrame();
     expect(target.textContent).toBe("");
   });
 });

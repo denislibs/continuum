@@ -4,6 +4,7 @@ import { describe, test, expect, afterEach } from "vitest";
 import { state } from "@continuum-js/frp";
 import { root } from "@continuum-js/dom";
 import { tmpl, insert, prop, event } from "@continuum-js/dom/compiled";
+import { flushFrame } from "@continuum-js/frp";
 
 const cleanup: Array<() => void> = [];
 afterEach(() => {
@@ -15,8 +16,11 @@ describe("compiled runtime", () => {
     const t = tmpl(`<tr><td class="col-md-1"></td><td></td></tr>`);
     const a = t();
     const b = t();
+    flushFrame();
     expect(a).not.toBe(b);
+    flushFrame();
     expect(a.outerHTML).toBe(b.outerHTML);
+    flushFrame();
     expect((a as HTMLElement).tagName).toBe("TR"); // table parts parse fine
   });
 
@@ -26,8 +30,10 @@ describe("compiled runtime", () => {
       const t = tmpl(`<div>[<!>]</div>`)();
       const marker = t.firstChild!.nextSibling!; // the <!> comment
       insert(t, w, marker);
+      flushFrame();
       expect(t.textContent).toBe("[a]");
       w.set("b");
+      flushFrame();
       expect(t.textContent).toBe("[b]");
       dispose();
     });
@@ -39,9 +45,12 @@ describe("compiled runtime", () => {
       const el = tmpl(`<tr></tr>`)();
       prop(el, "class", cls);
       prop(el, "data-id", 7);
+      flushFrame();
       expect(el.className).toBe("danger");
+      flushFrame();
       expect(el.getAttribute("data-id")).toBe("7");
       cls.set("");
+      flushFrame();
       expect(el.className).toBe("");
       dispose();
     });
@@ -54,9 +63,11 @@ describe("compiled runtime", () => {
     document.body.appendChild(el);
     cleanup.push(() => el.remove());
     el.click();
+    flushFrame();
     expect(calls).toBe(1);
     el.remove();
     el.click(); // detached: delegated dispatch no longer reaches it
+    flushFrame();
     expect(calls).toBe(1);
   });
 });

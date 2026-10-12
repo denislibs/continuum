@@ -5,6 +5,7 @@
 // aliases until 1.0.
 import { describe, test, expect } from "vitest";
 import { Stream, newStream } from "@continuum-js/frp";
+import { flushFrame } from "@continuum-js/frp";
 
 describe("Stream naming", () => {
   test("newStream creates a working source", () => {
@@ -13,6 +14,7 @@ describe("Stream naming", () => {
     const un = s.listen((v) => seen.push(v));
     fire(1);
     fire(2);
+    flushFrame();
     un();
     expect(seen).toEqual([1, 2]);
   });
@@ -23,6 +25,7 @@ describe("Stream naming", () => {
     const seen: number[] = [];
     const un = Stream.merge(a, b, (l, r) => l + r).listen((v) => seen.push(v));
     fireA(7);
+    flushFrame();
     un();
     expect(seen).toEqual([7]);
   });

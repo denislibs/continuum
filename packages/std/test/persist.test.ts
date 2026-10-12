@@ -1,6 +1,7 @@
 import { describe, test, expect } from "vitest";
 import { state } from "@continuum-js/frp";
 import { persist, loadPersisted } from "@continuum-js/std";
+import { flushFrame } from "@continuum-js/frp";
 
 // A minimal in-memory Storage double — persistence must be testable without
 // touching the real localStorage.
@@ -15,20 +16,24 @@ function memoryStorage(initial: Record<string, string> = {}) {
 
 describe("loadPersisted", () => {
   test("returns the fallback when the key is missing", () => {
+    flushFrame();
     expect(loadPersisted("todos", [], memoryStorage())).toEqual([]);
   });
 
   test("returns the parsed value when present", () => {
     const s = memoryStorage({ todos: JSON.stringify([{ id: "1" }]) });
+    flushFrame();
     expect(loadPersisted("todos", [], s)).toEqual([{ id: "1" }]);
   });
 
   test("returns the fallback on corrupted JSON instead of throwing", () => {
     const s = memoryStorage({ todos: "{oops" });
+    flushFrame();
     expect(loadPersisted("todos", "fallback", s)).toBe("fallback");
   });
 
   test("returns the fallback when storage is unavailable (SSR)", () => {
+    flushFrame();
     expect(loadPersisted("todos", 42, undefined)).toBe(42);
   });
 });
@@ -40,8 +45,10 @@ describe("persist", () => {
     const set = b.set;
     const un = persist("n", b, s);
 
+    flushFrame();
     expect(s.data.get("n")).toBe("1"); // initial delivery
     set(2);
+    flushFrame();
     expect(s.data.get("n")).toBe("2");
     un();
   });
@@ -53,12 +60,14 @@ describe("persist", () => {
     const un = persist("n", b, s);
     un();
     set(99);
+    flushFrame();
     expect(s.data.get("n")).toBe("1"); // frozen at the last pre-unlisten write
   });
 
   test("is a no-op without storage (SSR) and still returns an unlisten", () => {
     const b = state(1);
     const un = persist("n", b, undefined);
+    flushFrame();
     expect(typeof un).toBe("function");
     un(); // must not throw
   });
@@ -73,7 +82,9 @@ describe("persist", () => {
     const b = state(1);
     const set = b.set;
     const un = persist("n", b, s);
+    flushFrame();
     expect(() => set(2)).not.toThrow(); // persistence is best-effort
+    flushFrame();
     expect(b.sample()).toBe(2); // the value itself still updated
     un();
   });

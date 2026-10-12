@@ -11,16 +11,20 @@ import {
   combine,
   flatten,
 } from "@continuum-js/frp";
+import { flushFrame } from "@continuum-js/frp";
 
 describe("State.map", () => {
   test("maps sampled value and updates", () => {
     const [n, fire] = newStream<number>();
     const b = root(() => n.hold(1)).map((x) => x * 3);
+    flushFrame();
     expect(b.sample()).toBe(3);
     const seen: number[] = [];
     b.updates.listen((v) => seen.push(v));
     fire(5);
+    flushFrame();
     expect(b.sample()).toBe(15);
+    flushFrame();
     expect(seen).toEqual([15]);
   });
 });
@@ -32,8 +36,27 @@ describe("State.listen", () => {
     const seen: number[] = [];
     b.listen((v) => seen.push(v));
     set(2);
+    flushFrame();
     set(3);
+    flushFrame();
     expect(seen).toEqual([1, 2, 3]);
+  });
+
+  test("is a LEVEL: changes within one frame coalesce to the latest value", () => {
+    const b = state(1);
+    const seen: number[] = [];
+    b.listen((v) => seen.push(v));
+    b.set(2);
+    b.set(3);
+    flushFrame();
+    expect(seen).toEqual([1, 3]);
+    // the stream view still delivers every occurrence
+    const all: number[] = [];
+    b.updates.listen((v) => all.push(v));
+    b.set(4);
+    b.set(5);
+    flushFrame();
+    expect(all).toEqual([4, 5]);
   });
 });
 
@@ -44,10 +67,13 @@ describe("lift2 / apply", () => {
     const b = state(10);
     const setB = b.set;
     const sum = combine(a, b, (x, y) => x + y);
+    flushFrame();
     expect(sum.sample()).toBe(12);
     setA(5);
+    flushFrame();
     expect(sum.sample()).toBe(15);
     setB(100);
+    flushFrame();
     expect(sum.sample()).toBe(105);
   });
 
@@ -59,7 +85,9 @@ describe("lift2 / apply", () => {
     const seen: number[] = [];
     combined.updates.listen((v) => seen.push(v));
     fire(5); // b=5, b2=10 in one moment -> single coalesced update 15
+    flushFrame();
     expect(seen).toEqual([15]);
+    flushFrame();
     expect(combined.sample()).toBe(15);
   });
 
@@ -69,10 +97,13 @@ describe("lift2 / apply", () => {
     const bx = state(10);
     const setX = bx.set;
     const out = combine(bf, bx, (f, x) => f(x));
+    flushFrame();
     expect(out.sample()).toBe(11);
     setF((n) => n * 2);
+    flushFrame();
     expect(out.sample()).toBe(20);
     setX(3);
+    flushFrame();
     expect(out.sample()).toBe(6);
   });
 
@@ -81,6 +112,7 @@ describe("lift2 / apply", () => {
     const b = state(2);
     const c = state(3);
     const out = combine(a, b, c, (x, y, z) => x + y + z);
+    flushFrame();
     expect(out.sample()).toBe(6);
   });
 });
@@ -90,12 +122,15 @@ describe("switchB", () => {
     const outer = state<State<number>>(constant(1));
     const setOuter = outer.set;
     const sw = flatten(outer);
+    flushFrame();
     expect(sw.sample()).toBe(1);
     const b2 = state(10);
     const set2 = b2.set;
     setOuter(b2);
+    flushFrame();
     expect(sw.sample()).toBe(10);
     set2(20);
+    flushFrame();
     expect(sw.sample()).toBe(20);
   });
 
@@ -108,7 +143,9 @@ describe("switchB", () => {
     const b2 = state(10);
     const set2 = b2.set;
     setOuter(b2); // switch -> emit new inner's current value 10
+    flushFrame();
     set2(20); // inner update flows through
+    flushFrame();
     expect(seen).toEqual([1, 10, 20]);
   });
 });
@@ -127,6 +164,7 @@ describe("switchE", () => {
     setSel(eb);
     fireB("b2");
     fireA("a2"); // ignored, eb selected
+    flushFrame();
     expect(seen).toEqual(["a1", "b2"]);
   });
 });
@@ -135,8 +173,10 @@ describe("continuous behaviors", () => {
   test("fromPoll samples fresh each read", () => {
     let n = 0;
     const b = State.fromPoll(() => n);
+    flushFrame();
     expect(b.sample()).toBe(0);
     n = 42;
+    flushFrame();
     expect(b.sample()).toBe(42);
   });
 
@@ -144,7 +184,9 @@ describe("continuous behaviors", () => {
     const t = time();
     const a = t.sample();
     const b = t.sample();
+    flushFrame();
     expect(typeof a).toBe("number");
+    flushFrame();
     expect(b).toBeGreaterThanOrEqual(a);
   });
 });
@@ -158,6 +200,7 @@ describe("listen registration order", () => {
       seen.push(v);
       if (v === 0) set(1);
     });
+    flushFrame();
     expect(seen).toEqual([0, 1]);
   });
 
@@ -165,6 +208,7 @@ describe("listen registration order", () => {
     const b = state(0);
     const set = b.set;
     let delivered = 0;
+    flushFrame();
     expect(() =>
       b.listen(() => {
         throw new Error("initial boom");
@@ -172,6 +216,7 @@ describe("listen registration order", () => {
     ).toThrow("initial boom");
     b.listen(() => delivered++);
     set(1);
+    flushFrame();
     expect(delivered).toBe(2); // initial + update; the broken listener is gone
   });
 });
@@ -185,6 +230,7 @@ describe("newBehavior equality skip", () => {
     set(5); // no-op: same value
     set(6);
     set(6); // no-op again
+    flushFrame();
     expect(seen).toEqual([5, 6]);
   });
 
@@ -194,12 +240,14 @@ describe("newBehavior equality skip", () => {
     const seen: number[] = [];
     b.listen((v) => seen.push(v));
     set(NaN); // Object.is(NaN, NaN) — skipped
+    flushFrame();
     expect(seen.length).toBe(1);
     const z = state(0);
     const setZ = z.set;
     const zs: number[] = [];
     z.listen((v) => zs.push(v));
     setZ(-0); // Object.is(0, -0) is false — delivered
+    flushFrame();
     expect(zs.length).toBe(2);
   });
 
@@ -210,6 +258,7 @@ describe("newBehavior equality skip", () => {
     b.listen((v) => seen.push(v));
     set({ id: 1 }); // equal by id — skipped
     set({ id: 2 });
+    flushFrame();
     expect(seen.map((v) => v.id)).toEqual([1, 2]);
   });
 
@@ -217,10 +266,11 @@ describe("newBehavior equality skip", () => {
     const b = state(1, () => false);
     const set = b.set;
     const seen: number[] = [];
-    b.listen((v) => seen.push(v));
+    b.updates.listen((v) => seen.push(v)); // the stream view: every set
     set(1);
     set(1);
-    expect(seen).toEqual([1, 1, 1]);
+    flushFrame();
+    expect(seen).toEqual([1, 1]);
   });
 
   test("inside a batch the skip compares against the LAST set, not the pre-moment value", () => {
@@ -232,7 +282,9 @@ describe("newBehavior equality skip", () => {
       set(5);
       set(4); // must NOT be skipped: the last set was 5
     });
+    flushFrame();
     expect(b.sample()).toBe(4);
+    flushFrame();
     expect(seen[seen.length - 1]).toBe(4);
   });
 });

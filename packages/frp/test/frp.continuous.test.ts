@@ -1,17 +1,22 @@
 import { describe, test, expect } from "vitest";
 import { newStream, state, constant, root } from "@continuum-js/frp";
 import { integral, derivative, warp } from "@continuum-js/frp";
+import { flushFrame } from "@continuum-js/frp";
 
 describe("integral", () => {
   test("accumulates value * dt over a tick clock", () => {
     const [tick, fire] = newStream<number>(); // timestamps (ms)
     const x = root(() => integral(constant(2), tick, 0)); // constant velocity 2/ms
+    flushFrame();
     expect(x.sample()).toBe(0);
     fire(0); // baseline
+    flushFrame();
     expect(x.sample()).toBe(0);
     fire(10); // dt=10 -> +20
+    flushFrame();
     expect(x.sample()).toBe(20);
     fire(15); // dt=5 -> +10
+    flushFrame();
     expect(x.sample()).toBe(30);
   });
 
@@ -22,9 +27,11 @@ describe("integral", () => {
     const x = root(() => integral(v, tick, 0));
     fire(0);
     fire(10); // v=1, dt=10 -> +10
+    flushFrame();
     expect(x.sample()).toBe(10);
     setV(3);
     fire(20); // v=3, dt=10 -> +30
+    flushFrame();
     expect(x.sample()).toBe(40);
   });
 });
@@ -38,11 +45,14 @@ describe("derivative", () => {
     fire(0); // baseline
     setPos(10);
     fire(10); // (10-0)/10 = 1
+    flushFrame();
     expect(d.sample()).toBe(1);
     fire(20); // (10-10)/10 = 0
+    flushFrame();
     expect(d.sample()).toBe(0);
     setPos(40);
     fire(30); // (40-10)/10 = 3
+    flushFrame();
     expect(d.sample()).toBe(3);
   });
 });
@@ -54,6 +64,7 @@ describe("warp (time remapping)", () => {
     warp(tick, (t) => t * 2).listen((v) => seen.push(v));
     fire(1);
     fire(3);
+    flushFrame();
     expect(seen).toEqual([2, 6]);
   });
 
@@ -68,6 +79,7 @@ describe("warp (time remapping)", () => {
     );
     fire(0); // warped baseline 0
     fire(5); // warped 10 -> dt=10 -> +10 (unwarped would be +5)
+    flushFrame();
     expect(x.sample()).toBe(10);
   });
 });

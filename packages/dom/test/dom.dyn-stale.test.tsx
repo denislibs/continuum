@@ -1,6 +1,7 @@
 import { describe, test, expect } from "vitest";
 import { mount, dyn } from "@continuum-js/dom";
 import { state } from "@continuum-js/frp";
+import { flushFrame } from "@continuum-js/frp";
 
 describe("dyn under re-entrant moments", () => {
   test("a stale queued update cannot overwrite a newer render", () => {
@@ -15,10 +16,12 @@ describe("dyn under re-entrant moments", () => {
 
     const container = document.createElement("div");
     mount(container, () => dyn(n, (v) => <p>{String(v)}</p>) as Node);
+    flushFrame();
     expect(container.textContent).toBe("0");
 
     setN(1); // handler above immediately renavigates to 2
     // The stale "1" delivery must not clobber the "2" render.
+    flushFrame();
     expect(container.textContent).toBe("2");
   });
 
@@ -35,10 +38,13 @@ describe("dyn under re-entrant moments", () => {
           return <p>{String(v)}</p>;
         }) as Node,
     );
+    flushFrame();
     expect(builds).toBe(1);
     setN(1);
+    flushFrame();
     expect(builds).toBe(2);
     setN(1); // same value again — a rebuild would lose subtree state
+    flushFrame();
     expect(builds).toBe(2);
   });
 });
@@ -59,12 +65,15 @@ describe("dyn region removal", () => {
           on ? dyn(inner, (v) => <p>{v}</p>) : <span>off</span>,
         ) as Node,
     );
+    flushFrame();
     expect(container.textContent).toBe("a");
 
     setInner("b"); // nested region replaces its nodes
+    flushFrame();
     expect(container.textContent).toBe("b");
 
     setOuter(false); // outer rebuild must sweep EVERYTHING between its markers
+    flushFrame();
     expect(container.textContent).toBe("off");
   });
 });

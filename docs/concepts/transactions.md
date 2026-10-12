@@ -50,8 +50,7 @@ The past is available; the present is still forming.
 
 Each `fire`/`set` normally opens its own moment. When one user action
 updates several sources, wrap them in `batch` — everything inside joins
-**one** moment: joins recompute once, merges coalesce, observers run once
-at the end:
+**one** moment: joins recompute once, merges coalesce, bindings patch once:
 
 ```ts
 import { batch } from "@continuum-js/frp";
@@ -74,11 +73,39 @@ occurrence over pre-moment state would corrupt `accum`). Setting the same
 _state_ repeatedly is fine — the last write wins, and its `updates` delivers
 a single coalesced occurrence carrying the final value.
 
-## Effects run after
+## Observers run in the frame pass
 
-`listen` handlers run in the _post_ phase, after the moment closes. If a
-handler fires a new event (a router redirect, a `perform` response), that
-opens a **new** moment — transactions never nest or interleave.
+The moment closes before `set()` returns: the graph is updated and
+`sample()` is current. Observers, though, do not run inside the moment —
+they run in **one pass per animation frame**, in three steps:
+
+1. **measures** — layout reads queued with `requestMeasure`, before any
+   write;
+2. **bindings** — DOM bindings and `State.listen`. A state is a _level_, so a
+   binding gets **one** delivery per frame with the latest value: ten
+   updates between frames are one DOM patch and one region rebuild, with no
+   `batch` needed;
+3. **effects** — `Stream.listen`, `perform` requests, `persist`. A stream is
+   a sequence of _occurrences_, so an effect gets every one, in order.
+
+If a handler in the pass fires a new event (a router redirect, a `perform`
+response), that opens a **new** moment whose observers join the same pass
+— transactions never nest or interleave. An observer unsubscribed before its
+turn is not called: a disposed region is never written to a frame later.
+
+Code that must read the DOM right after a write — focusing the input of a
+dialog you just opened, or a test — runs the pass itself:
+
+```ts
+import { flushFrame } from "@continuum-js/frp";
+
+open.set(true);
+flushFrame(); // bindings have run: the dialog is in the DOM
+dialog.querySelector("input")!.focus();
+```
+
+The `@continuum-js/test` helpers (`click`, `type`, `fire`, `flush`) do this
+for you.
 
 For the full operational story — the three phases, ranks, `flatten`, and how
 this maps to the Sodium book — see

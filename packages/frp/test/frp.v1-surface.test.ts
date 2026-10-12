@@ -11,6 +11,7 @@ import {
   flatten,
   root,
 } from "@continuum-js/frp";
+import { flushFrame } from "@continuum-js/frp";
 
 describe("1.0 surface — removed aliases", () => {
   test("the rename-era aliases are gone", () => {
@@ -22,6 +23,7 @@ describe("1.0 surface — removed aliases", () => {
       "wire",
       "newBehavior",
     ]) {
+      flushFrame();
       expect(name in frp, `${name} must be removed`).toBe(false);
     }
   });
@@ -29,6 +31,7 @@ describe("1.0 surface — removed aliases", () => {
   test("theory-flavored statics are gone from State", () => {
     for (const name of ["apply", "lift2", "lift3", "switchB", "switchE"]) {
       // own-property check: `"apply" in State` would hit Function.prototype
+      flushFrame();
       expect(
         Object.prototype.hasOwnProperty.call(State, name),
         `State.${name} must be removed (use combine/flatten)`,
@@ -39,6 +42,7 @@ describe("1.0 surface — removed aliases", () => {
   test("deprecated Stream methods are gone", () => {
     const s = stream<number>();
     for (const name of ["snapshot", "gate", "orElse"]) {
+      flushFrame();
       expect(
         (s as unknown as Record<string, unknown>)[name],
         `Stream.${name} must be removed`,
@@ -51,10 +55,12 @@ describe("1.0 surface — removed aliases", () => {
       const a = state(1);
       const b = state(2);
       const sum = combine(a, b, (x, y) => x + y);
+      flushFrame();
       expect(sum.sample()).toBe(3);
 
       const chosen = state<State<number>>(a);
       const flat = flatten(chosen);
+      flushFrame();
       expect(flat.sample()).toBe(1);
 
       const clicks = stream<number>();
@@ -63,9 +69,11 @@ describe("1.0 surface — removed aliases", () => {
       const seen: number[] = [];
       merged.listen((v) => seen.push(v));
       clicks.fire(7);
+      flushFrame();
       expect(seen).toEqual([7]); // left-biased on simultaneity
 
       const at = a.at(clicks, (value, ev) => value + ev);
+      flushFrame();
       expect(at instanceof Stream).toBe(true);
     });
   });

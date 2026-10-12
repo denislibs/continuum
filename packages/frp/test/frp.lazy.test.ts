@@ -12,6 +12,7 @@ import {
   combine,
   flatten,
 } from "@continuum-js/frp";
+import { flushFrame } from "@continuum-js/frp";
 
 describe("lazy activation — pure derivations", () => {
   test("a chain nobody listens to never runs its callbacks", () => {
@@ -22,6 +23,7 @@ describe("lazy activation — pure derivations", () => {
       return x;
     });
     fire(1);
+    flushFrame();
     expect(calls).toBe(0); // cold: not attached to the source at all
   });
 
@@ -35,6 +37,7 @@ describe("lazy activation — pure derivations", () => {
       });
     }
     fire(1);
+    flushFrame();
     expect(calls).toBe(0); // was 1000 with eager attachment
   });
 
@@ -51,7 +54,9 @@ describe("lazy activation — pure derivations", () => {
     const seen: number[] = [];
     leaf.listen((v) => seen.push(v)); // demand propagates up to src
     fire(1);
+    flushFrame();
     expect(seen).toEqual([20]);
+    flushFrame();
     expect(calls).toBe(1);
   });
 
@@ -64,17 +69,21 @@ describe("lazy activation — pure derivations", () => {
     });
     const un = m.listen(() => {});
     fire(1);
+    flushFrame();
     expect(calls).toBe(1);
 
     un(); // last listener leaves -> chain detaches
     fire(2);
+    flushFrame();
     expect(calls).toBe(1); // asleep: callback did not run
 
     // the node is NOT dead: a new listener revives it (no "disposed" throw)
     const seen: number[] = [];
     m.listen((v) => seen.push(v));
     fire(3);
+    flushFrame();
     expect(seen).toEqual([3]);
+    flushFrame();
     expect(calls).toBe(2);
   });
 
@@ -88,12 +97,15 @@ describe("lazy activation — pure derivations", () => {
     const unA = mid.map((x) => x).listen(() => {});
     const unB = mid.map((x) => x).listen(() => {});
     fire(1);
+    flushFrame();
     expect(calls).toBe(1);
     unA();
     fire(2);
+    flushFrame();
     expect(calls).toBe(2); // B still demands mid
     unB();
     fire(3);
+    flushFrame();
     expect(calls).toBe(2); // nobody left
   });
 
@@ -101,8 +113,10 @@ describe("lazy activation — pure derivations", () => {
     const b = state(2);
     const set = b.set;
     const derived = b.map((x) => x * 10).map((x) => x + 1);
+    flushFrame();
     expect(derived.sample()).toBe(21); // pull needs no subscription
     set(5);
+    flushFrame();
     expect(derived.sample()).toBe(51); // still correct while cold
   });
 
@@ -115,10 +129,12 @@ describe("lazy activation — pure derivations", () => {
       return l + r;
     });
     fireA(1); // cold: nothing happens
+    flushFrame();
     expect(combines).toBe(0);
     const seen: number[] = [];
     m.listen((v) => seen.push(v));
     fireA(2);
+    flushFrame();
     expect(seen).toEqual([2]);
   });
 
@@ -134,6 +150,7 @@ describe("lazy activation — pure derivations", () => {
     fire(1);
     un(); // zero listeners, but pinned
     fire(2);
+    flushFrame();
     expect(calls).toBe(2); // still attached, still computing
   });
 
@@ -147,6 +164,7 @@ describe("lazy activation — pure derivations", () => {
     m.listen(() => {});
     m.dispose();
     fire(1);
+    flushFrame();
     expect(calls).toBe(0);
   });
 });
@@ -157,6 +175,7 @@ describe("lazy activation — stateful nodes stay eager", () => {
     const total = root(() => src.accum(0, (a, s) => s + a));
     fire(1);
     fire(2);
+    flushFrame();
     expect(total.sample()).toBe(3); // attached from construction
   });
 
@@ -164,6 +183,7 @@ describe("lazy activation — stateful nodes stay eager", () => {
     const [src, fire] = newStream<number>();
     const last = root(() => src.hold(0));
     fire(42);
+    flushFrame();
     expect(last.sample()).toBe(42);
   });
 });
@@ -181,9 +201,11 @@ describe("lazy activation — lift caches reseed on wake", () => {
     // wake it up
     const seen: number[] = [];
     sum.listen((v) => seen.push(v));
+    flushFrame();
     expect(seen).toEqual([22]); // initial delivery: fresh, not construction-time
     // one input changes: the flush must combine with the OTHER fresh value
     setA(3);
+    flushFrame();
     expect(seen).toEqual([22, 23]); // 3 + 20, NOT 3 + 10
   });
 
@@ -199,6 +221,7 @@ describe("lazy activation — lift caches reseed on wake", () => {
     const seen: number[] = [];
     sum.listen((v) => seen.push(v)); // wake
     setN(4);
+    flushFrame();
     expect(seen).toEqual([15, 24]); // 6+9 then 8+16 — never a mixed state
   });
 });
@@ -211,6 +234,7 @@ describe("lazy activation — wake robustness", () => {
     // the wake wave used to recurse once per node; now it is a worklist.
     // (DELIVERY through a linear chain stays recursive by design — real
     // graphs are nowhere near this deep, and RANK_LIMIT bounds them anyway.)
+    flushFrame();
     expect(() => node.listen(() => {})).not.toThrow();
   });
 
@@ -236,6 +260,7 @@ describe("lazy activation — wake robustness", () => {
       setRaw(50); // commit scheduled after the rewire
     });
     setOther(1000); // flush must combine with the committed raw (50)
+    flushFrame();
     expect(seen).toEqual([1050]);
   });
 
@@ -245,6 +270,7 @@ describe("lazy activation — wake robustness", () => {
     const un = m.listen(() => {});
     un();
     src.dispose();
+    flushFrame();
     expect(() => m.listen(() => {})).toThrow(/dispose\(\)|reaped/);
   });
 });

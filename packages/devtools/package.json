@@ -1,0 +1,35 @@
+{
+  "name": "@continuum-js/devtools",
+  "version": "0.0.0",
+  "description": "Continuum devtools — strict layout mode (law 3 violations) and a live counters overlay. Dev-only.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/denislibs/continuum.git",
+    "directory": "packages/devtools"
+  },
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist"
+  ],
+  "sideEffects": false,
+  "scripts": {
+    "build": "rm -rf dist && tsc -p tsconfig.build.json"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "peerDependencies": {
+    "@continuum-js/frp": ">=1.0.0"
+  }
+}

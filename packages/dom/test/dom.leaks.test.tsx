@@ -11,6 +11,7 @@ import {
 } from "@continuum-js/dom";
 import { state, type State } from "@continuum-js/frp";
 import { interval } from "@continuum-js/std";
+import { flushFrame } from "@continuum-js/frp";
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -31,9 +32,11 @@ describe("leak stress", () => {
       unmount();
     }
 
+    flushFrame();
     expect(container.childNodes.length).toBe(0);
     mapCalls = 0;
     set(1); // nobody should be listening anymore
+    flushFrame();
     expect(mapCalls).toBe(0);
   });
 
@@ -53,7 +56,9 @@ describe("leak stress", () => {
     }
 
     vi.advanceTimersByTime(60_000);
+    flushFrame();
     expect(ticks).toBe(0);
+    flushFrame();
     expect(vi.getTimerCount()).toBe(0);
   });
 
@@ -78,6 +83,7 @@ describe("leak stress", () => {
       unmount();
     }
 
+    flushFrame();
     expect(pending.size).toBe(0);
   });
 
@@ -99,10 +105,12 @@ describe("leak stress", () => {
     const baseline = container.getElementsByTagName("*").length;
     for (let i = 0; i < 10_000; i++) setFlag(i % 2 === 0);
     // 10k-th toggle ends hidden (i=9999 → false)
+    flushFrame();
     expect(container.getElementsByTagName("*").length).toBe(baseline);
 
     mapCalls = 0;
     set(1); // the hidden branch must not be listening
+    flushFrame();
     expect(mapCalls).toBe(0);
     unmount();
   });
@@ -128,9 +136,11 @@ describe("leak stress", () => {
     }
     setItems([]);
 
+    flushFrame();
     expect(container.querySelectorAll("li").length).toBe(0);
     mapCalls = 0;
     set(1); // 20k dead rows must not be listening
+    flushFrame();
     expect(mapCalls).toBe(0);
     unmount();
   });
@@ -146,6 +156,7 @@ describe("leak stress", () => {
     }
     const unmount = mount(container, () => <span class="live">{b}</span>);
     set(42);
+    flushFrame();
     expect(container.querySelector(".live")!.textContent).toBe("42");
     unmount();
   });
@@ -162,6 +173,7 @@ describe("derivation lifecycle semantics", () => {
     // the old "disposed after its last listener" trap is gone.
     const unmount = mount(container, () => <span class="live">{shared}</span>);
     set(41);
+    flushFrame();
     expect(container.querySelector(".live")!.textContent).toBe("42");
     unmount();
   });
@@ -176,6 +188,7 @@ describe("derivation lifecycle semantics", () => {
     }
     const unmount = mount(container, () => <span class="live">{shared}</span>);
     set(41);
+    flushFrame();
     expect(container.querySelector(".live")!.textContent).toBe("42");
     unmount();
   });

@@ -1,5 +1,6 @@
 import { describe, test, expect } from "vitest";
 import { root, newStream, state, constant, never } from "@continuum-js/frp";
+import { flushFrame } from "@continuum-js/frp";
 
 describe("sources and basic push", () => {
   test("listen receives the value that was sent", () => {
@@ -8,6 +9,7 @@ describe("sources and basic push", () => {
     e.listen((v) => seen.push(v));
     fire(1);
     fire(2);
+    flushFrame();
     expect(seen).toEqual([1, 2]);
   });
 
@@ -17,6 +19,7 @@ describe("sources and basic push", () => {
     e.map((n) => n * 10).listen((v) => seen.push(v));
     fire(1);
     fire(3);
+    flushFrame();
     expect(seen).toEqual([10, 30]);
   });
 
@@ -28,6 +31,7 @@ describe("sources and basic push", () => {
     fire(2);
     fire(3);
     fire(4);
+    flushFrame();
     expect(seen).toEqual([2, 4]);
   });
 
@@ -36,8 +40,10 @@ describe("sources and basic push", () => {
     const seen: number[] = [];
     const un = e.listen((v) => seen.push(v));
     fire(1);
+    flushFrame();
     un();
     fire(2);
+    flushFrame();
     expect(seen).toEqual([1]);
   });
 });
@@ -46,10 +52,12 @@ describe("never / constant", () => {
   test("never fires nothing", () => {
     const seen: number[] = [];
     never<number>().listen((v) => seen.push(v));
+    flushFrame();
     expect(seen).toEqual([]);
   });
 
   test("constant behavior samples its value", () => {
+    flushFrame();
     expect(constant(42).sample()).toBe(42);
   });
 });
@@ -58,18 +66,23 @@ describe("hold and sample", () => {
   test("hold starts at init and updates across moments", () => {
     const [e, fire] = newStream<number>();
     const b = root(() => e.hold(0));
+    flushFrame();
     expect(b.sample()).toBe(0);
     fire(5);
+    flushFrame();
     expect(b.sample()).toBe(5);
     fire(7);
+    flushFrame();
     expect(b.sample()).toBe(7);
   });
 
   test("newBehavior set updates the value", () => {
     const b = state(1);
     const set = b.set;
+    flushFrame();
     expect(b.sample()).toBe(2 - 1);
     set(9);
+    flushFrame();
     expect(b.sample()).toBe(9);
   });
 });
@@ -86,6 +99,7 @@ describe("hold delay semantics (classic FRP)", () => {
     fire(1); // b was 0 at start of this moment
     fire(2); // b was 1 at start of this moment
     fire(3); // b was 2 at start of this moment
+    flushFrame();
     expect(snapped).toEqual([
       [1, 0],
       [2, 1],
@@ -95,7 +109,7 @@ describe("hold delay semantics (classic FRP)", () => {
 });
 
 describe("listener bookkeeping under mutation (guards the Set refactor)", () => {
-  test("a listener unsubscribed DURING delivery still receives the current occurrence", () => {
+  test("a listener unsubscribed DURING the frame pass does NOT receive the in-flight occurrence", () => {
     const [e, fire] = newStream<number>();
     const seen: string[] = [];
     const unB: Array<() => void> = [];
@@ -105,9 +119,13 @@ describe("listener bookkeeping under mutation (guards the Set refactor)", () => 
     });
     unB.push(e.listen((v) => seen.push(`b${v}`)));
     fire(1);
-    expect(seen).toEqual(["a1", "b1"]); // b still saw the in-flight occurrence
+    flushFrame();
+    // b was removed before its turn in the pass: a removed observer is never
+    // called (a disposed region must not be written to a frame later)
+    expect(seen).toEqual(["a1"]);
     fire(2);
-    expect(seen).toEqual(["a1", "b1", "a2"]); // and is gone afterwards
+    flushFrame();
+    expect(seen).toEqual(["a1", "a2"]);
   });
 
   test("a listener subscribed DURING delivery does not receive the current occurrence", () => {
@@ -122,8 +140,10 @@ describe("listener bookkeeping under mutation (guards the Set refactor)", () => 
       }
     });
     fire(1);
+    flushFrame();
     expect(seen).toEqual(["a1"]); // late joiner missed the in-flight moment
     fire(2);
+    flushFrame();
     expect(seen).toEqual(["a1", "a2", "late2"]);
   });
 
@@ -135,6 +155,7 @@ describe("listener bookkeeping under mutation (guards the Set refactor)", () => 
     e.listen(() => seen.push("third"));
     un();
     fire(0);
+    flushFrame();
     expect(seen).toEqual(["first", "third"]);
   });
 
@@ -146,6 +167,7 @@ describe("listener bookkeeping under mutation (guards the Set refactor)", () => 
     un();
     un(); // second call must be a no-op
     fire(0);
+    flushFrame();
     expect(seen).toEqual(["b"]);
   });
 });

@@ -7,6 +7,7 @@
 //   - wake/sleep fire on the 0↔1 boundary regardless of representation.
 import { describe, test, expect } from "vitest";
 import { stream, root } from "@continuum-js/frp";
+import { flushFrame } from "@continuum-js/frp";
 
 describe("edge bookkeeping — single-observer transitions", () => {
   test("a listener added during single-observer delivery misses that occurrence", () => {
@@ -21,8 +22,10 @@ describe("edge bookkeeping — single-observer transitions", () => {
       }
     });
     s.fire(1); // second attaches mid-delivery -> must NOT see 1
+    flushFrame();
     expect(seen).toEqual(["first:1"]);
     s.fire(2);
+    flushFrame();
     expect(seen).toEqual(["first:1", "first:2", "second:2"]);
   });
 
@@ -34,8 +37,10 @@ describe("edge bookkeeping — single-observer transitions", () => {
       un(); // self-removal mid-delivery
     });
     s.fire(1);
+    flushFrame();
     expect(seen).toEqual([1]);
     s.fire(2); // nobody left
+    flushFrame();
     expect(seen).toEqual([1]);
   });
 
@@ -45,13 +50,18 @@ describe("edge bookkeeping — single-observer transitions", () => {
     const b: number[] = [];
     const unA = s.listen((v) => a.push(v));
     s.fire(1); // only a
+    flushFrame();
     const unB = s.listen((v) => b.push(v));
     s.fire(2); // both
+    flushFrame();
     unA();
     s.fire(3); // only b
+    flushFrame();
     unB();
     s.fire(4); // nobody
+    flushFrame();
     expect(a).toEqual([1, 2]);
+    flushFrame();
     expect(b).toEqual([2, 3]);
   });
 
@@ -63,6 +73,7 @@ describe("edge bookkeeping — single-observer transitions", () => {
     un();
     un(); // double removal must not disturb the survivor
     s.fire(1);
+    flushFrame();
     expect(seen).toEqual([10]);
     un2();
   });
@@ -76,15 +87,19 @@ describe("edge bookkeeping — single-observer transitions", () => {
     });
     const un1 = s.listen(() => {}); // keeps the SOURCE warm, not the map
     s.fire(1);
+    flushFrame();
     expect(computes).toBe(0); // cold map: no listener, no work
     const un2 = m.listen(() => {});
     s.fire(2);
+    flushFrame();
     expect(computes).toBe(1);
     un2(); // map sleeps again
     s.fire(3);
+    flushFrame();
     expect(computes).toBe(1);
     const un3 = m.listen(() => {}); // re-wake
     s.fire(4);
+    flushFrame();
     expect(computes).toBe(2);
     un1();
     un3();
@@ -99,7 +114,9 @@ describe("edge bookkeeping — single-observer transitions", () => {
       s.fire(1);
       m.dispose();
       s.fire(2); // chain broken
+      flushFrame();
       expect(seen).toEqual([1]);
+      flushFrame();
       expect(() => m.listen(() => {})).toThrow(/disposed/);
     });
   });

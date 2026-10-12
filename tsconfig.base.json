@@ -20,6 +20,8 @@
       "@continuum-js/frp": ["./packages/frp/src/index.ts"],
       "@continuum-js/dom": ["./packages/dom/src/index.tsx"],
       "@continuum-js/dom/compiled": ["./packages/dom/src/compiled.ts"],
+      "@continuum-js/dom/layout": ["./packages/dom/src/layout.ts"],
+      "@continuum-js/devtools": ["./packages/devtools/src/index.ts"],
       "@continuum-js/dom/jsx-runtime": ["./packages/dom/src/jsx-runtime.ts"],
       "@continuum-js/dom/jsx-dev-runtime": [
         "./packages/dom/src/jsx-dev-runtime.ts"

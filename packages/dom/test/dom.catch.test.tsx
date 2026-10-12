@@ -1,6 +1,7 @@
 import { describe, test, expect, afterEach } from "vitest";
 import { mount, Catch, Show, onCleanup } from "@continuum-js/dom";
 import { state } from "@continuum-js/frp";
+import { flushFrame } from "@continuum-js/frp";
 
 let unmounts: Array<() => void> = [];
 afterEach(() => {
@@ -21,7 +22,9 @@ describe("<Catch>", () => {
         {() => <p class="ok">fine</p>}
       </Catch>
     ));
+    flushFrame();
     expect(container.querySelector(".ok")).not.toBeNull();
+    flushFrame();
     expect(container.querySelector(".err")).toBeNull();
   });
 
@@ -33,7 +36,9 @@ describe("<Catch>", () => {
         }}
       </Catch>
     ));
+    flushFrame();
     expect(container.querySelector(".err")).not.toBeNull();
+    flushFrame();
     expect(container.textContent).toContain("boom");
   });
 
@@ -53,10 +58,13 @@ describe("<Catch>", () => {
         }}
       </Catch>
     ));
+    flushFrame();
     expect(container.querySelector(".err")).not.toBeNull();
     broken = false;
     doReset();
+    flushFrame();
     expect(container.querySelector(".ok")).not.toBeNull();
+    flushFrame();
     expect(container.querySelector(".err")).toBeNull();
   });
 
@@ -77,9 +85,12 @@ describe("<Catch>", () => {
         )}
       </Catch>
     ));
+    flushFrame();
     expect(container.querySelector(".ok")).not.toBeNull();
     setShow(true);
+    flushFrame();
     expect(container.querySelector(".err")).not.toBeNull();
+    flushFrame();
     expect(container.querySelector(".ok")).toBeNull(); // subtree replaced
   });
 
@@ -101,8 +112,10 @@ describe("<Catch>", () => {
         }}
       </Catch>
     ));
+    flushFrame();
     expect(cleaned).toBe(0);
     setShow(true);
+    flushFrame();
     expect(cleaned).toBe(1);
   });
 
@@ -116,6 +129,7 @@ describe("<Catch>", () => {
         }}
       </Catch>
     ));
+    flushFrame();
     expect(cleaned).toBe(1);
   });
 
@@ -135,6 +149,7 @@ describe("<Catch>", () => {
         )}
       </Catch>
     ));
+    flushFrame();
     expect(container.querySelector(".outer-err")).not.toBeNull();
   });
 
@@ -148,6 +163,7 @@ describe("<Catch>", () => {
         }}
       </Show>
     ));
-    expect(() => setShow(true)).toThrow("unguarded");
+    setShow(true);
+    expect(() => flushFrame()).toThrow("unguarded");
   });
 });

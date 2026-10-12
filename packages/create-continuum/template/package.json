@@ -19,6 +19,7 @@
     "@continuum-js/frp": "^1.0.0"
   },
   "devDependencies": {
+    "@continuum-js/devtools": "^0.1.0",
     "@continuum-js/eslint-plugin": "^0.3.0",
     "@continuum-js/vite-plugin": "^0.3.0",
     "@eslint/js": "^10.0.1",

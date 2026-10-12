@@ -33,8 +33,9 @@ What follows from this:
 
 ## Row content that changes
 
-If list items update "in place" (same id, different fields), pass the row a
-state of its data, not a snapshot:
+If list items update "in place" (same id, different fields), take the
+**second** render argument: `row` is a `State<T>` that follows the item
+under the same key across list updates.
 
 ```tsx
 function TodoRow(props: { todo: State<Todo> }) {
@@ -44,14 +45,14 @@ function TodoRow(props: { todo: State<Todo> }) {
 }
 
 <Each each={todos} by={(t) => t.id}>
-  {(t) => (
-    <TodoRow todo={todos.map((xs) => xs.find((x) => x.id === t.id) ?? t)} />
-  )}
+  {(_t, row) => <TodoRow todo={row} />}
 </Each>;
 ```
 
 The row is built once, while its text and class are live bindings. A field
-update patches a text node without touching the structure.
+update patches a text node without touching the structure. The first
+argument is the item as of the row's creation — a snapshot; a render that
+only uses it (one parameter) allocates no row state at all.
 
 ## Filtering and sorting are derived lists
 

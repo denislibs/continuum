@@ -163,3 +163,29 @@ const rowClass = selector(selected, "danger", ""); // value form
 
 The watching process belongs to the ambient scope (a component, or `root()`
 at module level).
+
+## Rows over one store: `keyed()`
+
+The same inversion for a dictionary. A normalized store — `chats.byId`,
+`messages.byChatId` — read per row as `store.map((s) => s.byId[id])` puts
+one derivation per row on the store's update stream: a thousand rows means a
+thousand recomputes on every store moment, whatever changed. `keyed()` runs
+ONE process over the dictionary and hands out a cell per key; an update
+stages only the cells whose value changed (by `Object.is` on the value, or
+your `eq`):
+
+```ts
+import { keyed } from "@continuum-js/frp";
+
+const chatById = keyed(store.map((s) => s.chats.byId)); // (id) => State<Chat | undefined>
+
+function ChatRow(props: { id: string }) {
+  const chat = chatById(props.id); // one cell, one edge on the store
+  return <li>{chat.map((c) => c?.title ?? "")}</li>;
+}
+```
+
+A cell is created on request, seeded from the current dictionary, and
+evicted once its last listener detaches — re-requesting the key reseeds.
+`undefined` means "absent". Records and `Map`s both work. Like `selector`,
+the process belongs to the ambient scope.

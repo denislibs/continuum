@@ -1,6 +1,7 @@
 import { describe, test, expect } from "vitest";
 import { root, newStream } from "@continuum-js/frp";
 import { resource, type Async } from "@continuum-js/std";
+import { flushFrame } from "@continuum-js/frp";
 
 const tick = () => new Promise((r) => setTimeout(r, 0));
 
@@ -15,12 +16,15 @@ describe("resource", () => {
       ),
     );
 
+    flushFrame();
     expect(state.sample().status).toBe("idle");
     fire("ann");
+    flushFrame();
     expect(state.sample().status).toBe("loading");
 
     resolve(["ann", "anna"]);
     await tick();
+    flushFrame();
     expect(state.sample()).toEqual({ status: "ok", value: ["ann", "anna"] });
   });
 
@@ -33,9 +37,13 @@ describe("resource", () => {
     );
 
     fire("x");
+
+    flushFrame();
     await tick();
     const s = state.sample();
+    flushFrame();
     expect(s.status).toBe("error");
+    flushFrame();
     expect((s as Extract<Async<unknown>, { status: "error" }>).error).toEqual(
       new Error("boom"),
     );
@@ -52,14 +60,18 @@ describe("resource", () => {
     );
 
     fire("first");
+    flushFrame();
     fire("second");
+    flushFrame();
 
     resolvers[1](["from-second"]);
     await tick();
+    flushFrame();
     expect(state.sample()).toEqual({ status: "ok", value: ["from-second"] });
 
     resolvers[0](["from-first"]); // stale — ignored
     await tick();
+    flushFrame();
     expect(state.sample()).toEqual({ status: "ok", value: ["from-second"] });
   });
 
@@ -79,14 +91,18 @@ describe("resource", () => {
     );
 
     fire("first");
+    flushFrame();
     fire("second");
+    flushFrame();
 
     settlers[1].res(["from-second"]);
     await tick();
+    flushFrame();
     expect(state.sample()).toEqual({ status: "ok", value: ["from-second"] });
 
     settlers[0].rej(new Error("late-first-failure")); // stale — must be ignored
     await tick();
+    flushFrame();
     expect(state.sample()).toEqual({ status: "ok", value: ["from-second"] });
   });
   test("a stale rejection leaves the newer request in its loading state", async () => {
@@ -100,10 +116,13 @@ describe("resource", () => {
     );
 
     fire("first");
+    flushFrame();
     fire("second");
+    flushFrame();
 
     rejecters[0](new Error("first failed after being superseded"));
     await tick();
+    flushFrame();
     expect(state.sample().status).toBe("loading");
   });
 });

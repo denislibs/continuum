@@ -4,11 +4,13 @@
 // instead of all reading the stale pre-moment value.
 import { describe, test, expect } from "vitest";
 import { state, batch } from "@continuum-js/frp";
+import { flushFrame } from "@continuum-js/frp";
 
 describe("state().update()", () => {
   test("updates from the current value", () => {
     const count = state(1);
     count.update((n) => n + 1);
+    flushFrame();
     expect(count.sample()).toBe(2);
   });
 
@@ -18,6 +20,7 @@ describe("state().update()", () => {
       count.update((n) => n + 1);
       count.update((n) => n + 1);
     });
+    flushFrame();
     expect(count.sample()).toBe(2);
     // the anti-pattern this replaces: set(sample() + 1) reads the committed
     // (pre-moment) value twice and loses an increment
@@ -26,6 +29,7 @@ describe("state().update()", () => {
       naive.set(naive.sample() + 1);
       naive.set(naive.sample() + 1);
     });
+    flushFrame();
     expect(naive.sample()).toBe(1); // documented hold-delay behavior
   });
 
@@ -35,6 +39,7 @@ describe("state().update()", () => {
       count.set(100);
       count.update((n) => n + 1); // sees the staged 100
     });
+    flushFrame();
     expect(count.sample()).toBe(101);
   });
 
@@ -43,6 +48,7 @@ describe("state().update()", () => {
     const seen: number[] = [];
     count.listen((v) => seen.push(v));
     count.update((n) => n); // same value -> no moment
+    flushFrame();
     expect(seen).toEqual([5]);
   });
 
@@ -54,14 +60,17 @@ describe("state().update()", () => {
       count.update((n) => n + 1);
       count.update((n) => n * 10);
     });
+    flushFrame();
     expect(seen).toEqual([0, 10]); // (0+1)*10, delivered once
   });
 
   test("a function-valued state is unambiguous: set takes values, update takes updaters", () => {
     const handler = state<() => string>(() => "a");
     handler.set(() => "b"); // a new VALUE (itself a function)
+    flushFrame();
     expect(handler.sample()()).toBe("b");
     handler.update((prev) => () => prev() + "!"); // an UPDATER returning a function
+    flushFrame();
     expect(handler.sample()()).toBe("b!");
   });
 });

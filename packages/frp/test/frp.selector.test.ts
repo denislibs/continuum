@@ -4,6 +4,7 @@
 // 10k recomputes per click.
 import { describe, test, expect } from "vitest";
 import { state, selector, root } from "@continuum-js/frp";
+import { flushFrame } from "@continuum-js/frp";
 
 describe("selector", () => {
   test("flips exactly the two affected keys", () => {
@@ -14,12 +15,17 @@ describe("selector", () => {
       for (const k of [1, 2, 3]) {
         isSel(k).listen(() => deliveries[k]++);
       }
+      flushFrame();
       expect(deliveries).toEqual({ 1: 1, 2: 1, 3: 1 }); // initial only
       selected.set(2);
+      flushFrame();
       expect(deliveries).toEqual({ 1: 1, 2: 2, 3: 1 }); // one flip
       selected.set(3);
+      flushFrame();
       expect(deliveries).toEqual({ 1: 1, 2: 3, 3: 2 }); // leave 2, enter 3
+      flushFrame();
       expect(isSel(3).sample()).toBe(true);
+      flushFrame();
       expect(isSel(2).sample()).toBe(false);
     });
   });
@@ -28,7 +34,9 @@ describe("selector", () => {
     root(() => {
       const selected = state(7);
       const isSel = selector(selected);
+      flushFrame();
       expect(isSel(7).sample()).toBe(true);
+      flushFrame();
       expect(isSel(8).sample()).toBe(false);
     });
   });
@@ -37,11 +45,15 @@ describe("selector", () => {
     root(() => {
       const selected = state<number | null>(null);
       const cls = selector(selected, "danger", "");
+      flushFrame();
       expect(cls(1).sample()).toBe("");
       selected.set(1);
+      flushFrame();
       expect(cls(1).sample()).toBe("danger");
       selected.set(2);
+      flushFrame();
       expect(cls(1).sample()).toBe("");
+      flushFrame();
       expect(cls(2).sample()).toBe("danger");
     });
   });
@@ -56,6 +68,7 @@ describe("selector", () => {
       one.updates.listen(() => pairs.push([one.sample(), two.sample()]));
       selected.set(2);
       // post-phase read: both already committed — never (false,false)/(true,true)
+      flushFrame();
       expect(pairs).toEqual([[false, true]]);
     });
   });
@@ -71,14 +84,19 @@ describe("selector", () => {
       const w1 = isSel(1);
       const un1 = w1.listen(() => {});
       const un2 = w1.listen(() => {});
+      flushFrame();
       expect(isSel(1)).toBe(w1); // alive while listened
       un1();
+      flushFrame();
       expect(isSel(1)).toBe(w1); // still one listener left
       un2();
       const w2 = isSel(1);
+      flushFrame();
       expect(w2).not.toBe(w1); // evicted → a fresh cell
+      flushFrame();
       expect(w2.sample()).toBe(false); // reseeded from the current selection
       selected.set(1);
+      flushFrame();
       expect(isSel(1).sample()).toBe(true); // the fresh cell still flips
     });
   });
@@ -89,15 +107,19 @@ describe("selector", () => {
       const isSel = selector(selected);
       const un = isSel(2).listen(() => {});
       un(); // evict
+      flushFrame();
       expect(isSel(2).sample()).toBe(true); // key === current selection
       selected.set(3);
+      flushFrame();
       expect(isSel(2).sample()).toBe(false);
+      flushFrame();
       expect(isSel(3).sample()).toBe(true);
     });
   });
 
   test("dies with its scope; outside a scope it teaches", () => {
     const selected = state(1);
+    flushFrame();
     expect(() => selector(selected)).toThrow(/scope|root\(\)/);
     let isSel!: (k: number) => { sample(): boolean };
     root((dispose) => {
@@ -105,6 +127,7 @@ describe("selector", () => {
       dispose();
     });
     selected.set(5);
+    flushFrame();
     expect(isSel(5).sample()).toBe(false); // frozen: the process is dead
   });
 });
